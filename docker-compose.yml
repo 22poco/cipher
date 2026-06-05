@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: cipher-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: cipher_db
+      POSTGRES_USER: cipher_user
+      POSTGRES_PASSWORD: cipher_password
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - cipher_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  cipher_postgres_data:
