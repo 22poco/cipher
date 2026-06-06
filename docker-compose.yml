@@ -13,7 +13,7 @@ services:
       - "5433:5432"
 
     volumes:
-      - cipher_postgres_data:/var/lib/postgresql/data
+      - cipher_postgres_data:/var/lib/postgresql
 
 volumes:
   cipher_postgres_data:
