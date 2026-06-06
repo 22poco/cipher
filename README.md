@@ -1,6 +1,12 @@
-# cipher
+<p align="center">
+  <img src="assets/cipher banner.png" alt="Cipher Banner" width="100%">
+</p>
 
-cipher is a full-stack AP cybersecurity learning platform built for high school students.
+<h1 align="center">cipher</h1>
+
+<p align="center">
+  cipher is a full-stack AP cybersecurity learning platform built for high school students.
+</p>
 
 ## features
 
