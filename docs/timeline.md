@@ -64,7 +64,7 @@ core architecture
 
 definition of done:
 
-- FastAPI backend can connect to PostgreSQL
+- fastapi backend can connect to postgresql
 - backend has a health check endpoint
 - users can register with name, email, and password
 - passwords are hashed before storage
@@ -76,6 +76,12 @@ definition of done:
 - frontend has login and registration pages
 - logged-in users can reach a basic student dashboard
 - admin users can reach a basic admin dashboard placeholder
+
+status:
+
+- implementation complete
+- end-to-end smoke test complete
+- manual browser test documented in `docs/week-2-test-plan.md`
 
 ---
 

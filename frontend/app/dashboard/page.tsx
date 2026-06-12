@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { ProtectedPage } from "../components/protected-page";
 
 export default function DashboardPage() {
@@ -28,6 +30,23 @@ export default function DashboardPage() {
                 <p className="mt-2 text-xl font-semibold text-slate-950">{value}</p>
               </div>
             ))}
+          </section>
+
+          <section className="rounded-md border border-slate-200 bg-white p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">unit 1</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  social engineering placeholder content is ready for week 3.
+                </p>
+              </div>
+              <Link
+                href="/units"
+                className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                view units
+              </Link>
+            </div>
           </section>
         </main>
       )}

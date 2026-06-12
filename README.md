@@ -39,7 +39,7 @@ students use it to move through course content and track progress. the teacher u
 
 ## status
 
-week 2 core architecture is in progress.
+week 2 core architecture is complete.
 
 completed:
 
@@ -48,9 +48,11 @@ completed:
 - backend health check
 - authentication api
 - frontend auth and navigation flow
+- protected unit 1 placeholder page
+- end-to-end smoke test
+- week 2 test plan
 
 current focus:
 
-- end-to-end testing
-- frontend/backend polish
-- preparing the course structure work for week 3
+- prepare the friday progress update
+- start course structure work in week 3
