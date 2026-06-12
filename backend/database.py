@@ -5,7 +5,10 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
-engine = create_engine(settings.sqlalchemy_database_url)
+engine = create_engine(
+    settings.sqlalchemy_database_url,
+    connect_args={"connect_timeout": 5},
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
