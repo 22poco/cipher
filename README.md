@@ -7,7 +7,7 @@
 <h1 align="center">cipher</h1>
 
 <p align="center">
-  a full-stack ap cybersecurity learning platform for high school students.
+  a full-stack AP cybersecurity learning platform for high school students.
 </p>
 
 ---
