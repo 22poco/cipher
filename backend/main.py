@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import check_database_connection
-from .routers import auth
+from .routers import auth, courses
 
 
 app = FastAPI(title="cipher api")
@@ -15,6 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(auth.router)
+app.include_router(courses.router)
 
 @app.get("/")
 def root():

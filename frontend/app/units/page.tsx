@@ -1,31 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback } from "react";
 
-import { ProtectedPage } from "../components/protected-page";
-
-const unitOneModules = [
-  {
-    title: "social engineering",
-    status: "placeholder",
-    description: "phishing, trust, manipulation, and basic defense habits.",
-  },
-  {
-    title: "linux basics",
-    status: "planned",
-    description: "commands students need for hands-on cybersecurity practice.",
-  },
-  {
-    title: "case study",
-    status: "planned",
-    description: "a guided analysis activity for unit 1.",
-  },
-];
+import { CourseLoader } from "../components/course-loader";
+import { fetchUnits, type Unit } from "@/lib/api";
 
 export default function UnitsPage() {
+  const loadUnits = useCallback((token: string) => fetchUnits(token), []);
+
   return (
-    <ProtectedPage>
-      {(user) => (
+    <CourseLoader load={loadUnits}>
+      {(units: Unit[]) => (
         <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
           <div className="grid gap-2">
             <p className="text-sm font-semibold text-emerald-700">course structure</p>
@@ -33,43 +19,58 @@ export default function UnitsPage() {
               units
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-slate-600">
-              this is the first course-structure placeholder. it gives {user.name} a
-              protected place to start unit 1 while lessons are built next week.
+              browse the course structure. unit 1 is seeded with placeholder
+              modules and lessons so content can be expanded next.
             </p>
           </div>
 
-          <section className="rounded-md border border-slate-200 bg-white p-5">
-            <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">unit 1</p>
-                <h2 className="mt-1 text-2xl font-semibold text-slate-950">
-                  cybersecurity foundations
-                </h2>
-              </div>
-              <span className="w-fit rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
-                placeholder ready
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              {unitOneModules.map((module) => (
+          {units.length === 0 ? (
+            <section className="rounded-md border border-slate-200 bg-white p-5 text-sm text-slate-600">
+              no units have been added yet. run the course seed script to add unit 1.
+            </section>
+          ) : (
+            <section className="grid gap-4">
+              {units.map((unit) => (
                 <article
-                  key={module.title}
-                  className="rounded-md border border-slate-200 p-4"
+                  key={unit.id}
+                  className="rounded-md border border-slate-200 bg-white p-5"
                 >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <h3 className="font-semibold text-slate-950">{module.title}</h3>
-                    <span className="w-fit rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
-                      {module.status}
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">
+                        unit {unit.order_index}
+                      </p>
+                      <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+                        {unit.title}
+                      </h2>
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                        {unit.description}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/units/${unit.id}`}
+                      className="flex h-10 w-fit items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    >
+                      open unit
+                    </Link>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
+                    <span className="rounded-md bg-slate-100 px-2 py-1">
+                      {unit.modules.length} modules
+                    </span>
+                    <span className="rounded-md bg-slate-100 px-2 py-1">
+                      {unit.modules.reduce(
+                        (lessonCount, module) => lessonCount + module.lessons.length,
+                        0,
+                      )}{" "}
+                      lessons
                     </span>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    {module.description}
-                  </p>
                 </article>
               ))}
-            </div>
-          </section>
+            </section>
+          )}
 
           <Link
             href="/dashboard"
@@ -79,6 +80,6 @@ export default function UnitsPage() {
           </Link>
         </main>
       )}
-    </ProtectedPage>
+    </CourseLoader>
   );
 }

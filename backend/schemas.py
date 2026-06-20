@@ -33,3 +33,47 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserRead
+
+
+class LessonSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    module_id: int
+    title: str
+    lesson_type: str
+    order_index: int
+    video_url: str | None = None
+
+
+class LessonRead(LessonSummary):
+    content: str | None = None
+
+
+class ModuleSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    unit_id: int
+    title: str
+    description: str | None = None
+    order_index: int
+    lessons: list[LessonSummary] = []
+
+
+class ModuleRead(ModuleSummary):
+    lessons: list[LessonSummary] = []
+
+
+class UnitSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    description: str | None = None
+    order_index: int
+    modules: list[ModuleSummary] = []
+
+
+class UnitRead(UnitSummary):
+    modules: list[ModuleSummary] = []

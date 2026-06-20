@@ -51,8 +51,12 @@ completed:
 - protected unit 1 placeholder page
 - end-to-end smoke test
 - week 2 test plan
+- read-only course structure api
+- unit/module/lesson pages
+- unit 1 seed content
 
 current focus:
 
 - prepare the friday progress update
-- start course structure work in week 3
+- start admin dashboard work in week 4
+- create/edit/delete course content from the admin dashboard

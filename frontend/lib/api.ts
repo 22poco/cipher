@@ -14,6 +14,36 @@ export type AuthResponse = {
   user: User;
 };
 
+export type LessonSummary = {
+  id: number;
+  module_id: number;
+  title: string;
+  lesson_type: string;
+  order_index: number;
+  video_url: string | null;
+};
+
+export type Lesson = LessonSummary & {
+  content: string | null;
+};
+
+export type CourseModule = {
+  id: number;
+  unit_id: number;
+  title: string;
+  description: string | null;
+  order_index: number;
+  lessons: LessonSummary[];
+};
+
+export type Unit = {
+  id: number;
+  title: string;
+  description: string | null;
+  order_index: number;
+  modules: CourseModule[];
+};
+
 export class ApiError extends Error {
   status: number;
 
@@ -80,4 +110,20 @@ export function loginUser(payload: { email: string; password: string }) {
 
 export function fetchCurrentUser(token: string) {
   return apiRequest<User>("/auth/me", {}, token);
+}
+
+export function fetchUnits(token: string) {
+  return apiRequest<Unit[]>("/courses/units", {}, token);
+}
+
+export function fetchUnit(unitId: string, token: string) {
+  return apiRequest<Unit>(`/courses/units/${unitId}`, {}, token);
+}
+
+export function fetchModule(moduleId: string, token: string) {
+  return apiRequest<CourseModule>(`/courses/modules/${moduleId}`, {}, token);
+}
+
+export function fetchLesson(lessonId: string, token: string) {
+  return apiRequest<Lesson>(`/courses/lessons/${lessonId}`, {}, token);
 }
