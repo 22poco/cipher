@@ -37,7 +37,7 @@ export default function DashboardPage() {
               <div>
                 <h2 className="text-lg font-semibold text-slate-950">unit 1</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  social engineering placeholder content is ready for week 3.
+                  social engineering, linux basics, and case study placeholders are ready.
                 </p>
               </div>
               <Link
