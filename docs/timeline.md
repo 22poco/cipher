@@ -106,6 +106,12 @@ definition of done:
 - lesson pages can show video links or embedded videos
 - unit 1 structure is added with placeholder lessons
 
+status:
+
+- implementation complete
+- unit 1 placeholder content seeded through `backend.seed_course`
+- manual browser test documented in `docs/week-3-test-plan.md`
+
 ---
 
 ### week 4
