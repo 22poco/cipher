@@ -111,3 +111,14 @@ week 3 should focus on course structure:
 - lessons
 - lesson pages
 - content rendering
+
+## week 3 update
+
+week 3 added read-only course structure:
+
+- unit list api
+- unit detail api
+- module detail api
+- lesson detail api
+- unit/module/lesson frontend pages
+- unit 1 seed content
