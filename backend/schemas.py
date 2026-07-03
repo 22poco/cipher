@@ -77,3 +77,54 @@ class UnitSummary(BaseModel):
 
 class UnitRead(UnitSummary):
     modules: list[ModuleSummary] = []
+
+
+class UnitCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+    order_index: int = Field(ge=0)
+
+
+class UnitUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
+    order_index: int | None = Field(default=None, ge=0)
+
+
+class ModuleCreate(BaseModel):
+    unit_id: int
+    title: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+    order_index: int = Field(ge=0)
+
+
+class ModuleUpdate(BaseModel):
+    unit_id: int | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
+    order_index: int | None = Field(default=None, ge=0)
+
+
+LessonType = Literal["reading", "video", "case_study", "code_activity"]
+
+
+class LessonCreate(BaseModel):
+    module_id: int
+    title: str = Field(min_length=1, max_length=255)
+    content: str | None = None
+    video_url: str | None = None
+    lesson_type: LessonType = "reading"
+    order_index: int = Field(ge=0)
+
+
+class LessonUpdate(BaseModel):
+    module_id: int | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    content: str | None = None
+    video_url: str | None = None
+    lesson_type: LessonType | None = None
+    order_index: int | None = Field(default=None, ge=0)
+
+
+class DeleteResponse(BaseModel):
+    message: str
