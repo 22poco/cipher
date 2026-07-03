@@ -27,6 +27,8 @@ export type Lesson = LessonSummary & {
   content: string | null;
 };
 
+export type LessonType = "reading" | "video" | "case_study" | "code_activity";
+
 export type CourseModule = {
   id: number;
   unit_id: number;
@@ -126,4 +128,98 @@ export function fetchModule(moduleId: string, token: string) {
 
 export function fetchLesson(lessonId: string, token: string) {
   return apiRequest<Lesson>(`/courses/lessons/${lessonId}`, {}, token);
+}
+
+export type UnitPayload = {
+  title: string;
+  description: string | null;
+  order_index: number;
+};
+
+export type ModulePayload = {
+  unit_id: number;
+  title: string;
+  description: string | null;
+  order_index: number;
+};
+
+export type LessonPayload = {
+  module_id: number;
+  title: string;
+  content: string | null;
+  video_url: string | null;
+  lesson_type: LessonType;
+  order_index: number;
+};
+
+export function createUnit(payload: UnitPayload, token: string) {
+  return apiRequest<Unit>(
+    "/admin/units",
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function updateUnit(unitId: number, payload: UnitPayload, token: string) {
+  return apiRequest<Unit>(
+    `/admin/units/${unitId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function deleteUnit(unitId: number, token: string) {
+  return apiRequest<{ message: string }>(
+    `/admin/units/${unitId}`,
+    { method: "DELETE" },
+    token,
+  );
+}
+
+export function createModule(payload: ModulePayload, token: string) {
+  return apiRequest<CourseModule>(
+    "/admin/modules",
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function updateModule(moduleId: number, payload: ModulePayload, token: string) {
+  return apiRequest<CourseModule>(
+    `/admin/modules/${moduleId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function deleteModule(moduleId: number, token: string) {
+  return apiRequest<{ message: string }>(
+    `/admin/modules/${moduleId}`,
+    { method: "DELETE" },
+    token,
+  );
+}
+
+export function createLesson(payload: LessonPayload, token: string) {
+  return apiRequest<Lesson>(
+    "/admin/lessons",
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function updateLesson(lessonId: number, payload: LessonPayload, token: string) {
+  return apiRequest<Lesson>(
+    `/admin/lessons/${lessonId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function deleteLesson(lessonId: number, token: string) {
+  return apiRequest<{ message: string }>(
+    `/admin/lessons/${lessonId}`,
+    { method: "DELETE" },
+    token,
+  );
 }
