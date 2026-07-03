@@ -54,9 +54,10 @@ completed:
 - read-only course structure api
 - unit/module/lesson pages
 - unit 1 seed content
+- admin course management dashboard
+- admin create/edit/delete for units, modules, and lessons
 
 current focus:
 
-- prepare the friday progress update
-- start admin dashboard work in week 4
-- create/edit/delete course content from the admin dashboard
+- test admin editing through the browser
+- start quizzes and progress tracking
