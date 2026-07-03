@@ -135,6 +135,13 @@ definition of done:
 - student users cannot access admin tools
 - admin-created content appears on student lesson pages
 
+status:
+
+- implementation complete
+- admin can create, edit, and delete units, modules, and lessons
+- admin-created content appears on student course pages
+- manual browser test documented in `docs/week-4-test-plan.md`
+
 ---
 
 ## july
