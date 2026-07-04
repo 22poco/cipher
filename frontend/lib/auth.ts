@@ -3,8 +3,14 @@ import type { AuthResponse, User } from "./api";
 const tokenKey = "cipher_token";
 const userKey = "cipher_user";
 const sessionEvent = "cipher-session-change";
+let cachedUserJson: string | null = null;
+let cachedUser: User | null = null;
 
 function announceSessionChange() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
   window.dispatchEvent(new Event(sessionEvent));
 }
 
@@ -30,12 +36,22 @@ export function getStoredUser(): User | null {
   const storedUser = localStorage.getItem(userKey);
 
   if (!storedUser) {
+    cachedUserJson = null;
+    cachedUser = null;
     return null;
   }
 
+  if (storedUser === cachedUserJson) {
+    return cachedUser;
+  }
+
   try {
-    return JSON.parse(storedUser) as User;
+    cachedUserJson = storedUser;
+    cachedUser = JSON.parse(storedUser) as User;
+    return cachedUser;
   } catch {
+    cachedUserJson = null;
+    cachedUser = null;
     return null;
   }
 }
@@ -43,6 +59,8 @@ export function getStoredUser(): User | null {
 export function clearSession() {
   localStorage.removeItem(tokenKey);
   localStorage.removeItem(userKey);
+  cachedUserJson = null;
+  cachedUser = null;
   announceSessionChange();
 }
 
