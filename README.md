@@ -39,7 +39,7 @@ students use it to move through course content and track progress. the teacher u
 
 ## status
 
-week 2 core architecture is complete.
+week 5 learning features are in progress.
 
 completed:
 
@@ -56,8 +56,13 @@ completed:
 - unit 1 seed content
 - admin course management dashboard
 - admin create/edit/delete for units, modules, and lessons
+- multiple-choice quiz models and api
+- quiz attempts and scoring
+- lesson completion tracking
+- student progress dashboard
+- admin quiz management tools
 
 current focus:
 
-- test admin editing through the browser
-- start quizzes and progress tracking
+- test quiz and progress flow through the browser
+- start deeper unit 1 content integration
