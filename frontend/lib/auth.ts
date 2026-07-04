@@ -4,7 +4,6 @@ const tokenKey = "cipher_token";
 const userKey = "cipher_user";
 const sessionEvent = "cipher-session-change";
 
-
 function announceSessionChange() {
   window.dispatchEvent(new Event(sessionEvent));
 }
@@ -16,10 +15,18 @@ export function saveSession(auth: AuthResponse) {
 }
 
 export function getToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
   return localStorage.getItem(tokenKey);
 }
 
 export function getStoredUser(): User | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
   const storedUser = localStorage.getItem(userKey);
 
   if (!storedUser) {
@@ -40,6 +47,10 @@ export function clearSession() {
 }
 
 export function subscribeToSessionChange(callback: () => void) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
   window.addEventListener(sessionEvent, callback);
   window.addEventListener("storage", callback);
 
