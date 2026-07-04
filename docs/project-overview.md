@@ -113,4 +113,4 @@ students will access the platform through a web browser.
 
 ## current status
 
-planning and setup
+core platform structure is working. authentication, course pages, admin course editing, basic quizzes, quiz scoring, and lesson progress tracking are implemented.

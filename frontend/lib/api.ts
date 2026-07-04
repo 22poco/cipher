@@ -46,6 +46,78 @@ export type Unit = {
   modules: CourseModule[];
 };
 
+export type QuizOption = {
+  id: number;
+  question_id: number;
+  option_text: string;
+};
+
+export type QuizAdminOption = QuizOption & {
+  is_correct: boolean;
+};
+
+export type QuizQuestion = {
+  id: number;
+  quiz_id: number;
+  question_text: string;
+  question_type: "multiple_choice";
+  order_index: number;
+  options: QuizOption[];
+};
+
+export type QuizAdminQuestion = Omit<QuizQuestion, "options"> & {
+  options: QuizAdminOption[];
+};
+
+export type Quiz = {
+  id: number;
+  lesson_id: number;
+  title: string;
+  description: string | null;
+  questions: QuizQuestion[];
+};
+
+export type QuizAdmin = Omit<Quiz, "questions"> & {
+  questions: QuizAdminQuestion[];
+};
+
+export type QuizSubmitResult = {
+  attempt_id: number;
+  quiz_id: number;
+  score: number;
+  correct_count: number;
+  total_questions: number;
+  results: {
+    question_id: number;
+    selected_option_id: number | null;
+    correct_option_id: number | null;
+    is_correct: boolean;
+  }[];
+};
+
+export type QuizAttempt = {
+  id: number;
+  quiz_id: number;
+  score: number;
+  submitted_at: string;
+};
+
+export type LessonProgress = {
+  id: number;
+  user_id: number;
+  lesson_id: number;
+  completed: boolean;
+  completed_at: string | null;
+};
+
+export type ProgressSummary = {
+  completed_lessons: number;
+  total_lessons: number;
+  unit_1_progress_percent: number;
+  lesson_progress: LessonProgress[];
+  quiz_attempts: QuizAttempt[];
+};
+
 export class ApiError extends Error {
   status: number;
 
@@ -128,6 +200,34 @@ export function fetchModule(moduleId: string, token: string) {
 
 export function fetchLesson(lessonId: string, token: string) {
   return apiRequest<Lesson>(`/courses/lessons/${lessonId}`, {}, token);
+}
+
+export function fetchLessonQuiz(lessonId: string, token: string) {
+  return apiRequest<Quiz>(`/quizzes/lesson/${lessonId}`, {}, token);
+}
+
+export function submitQuiz(
+  quizId: number,
+  payload: { answers: { question_id: number; option_id: number }[] },
+  token: string,
+) {
+  return apiRequest<QuizSubmitResult>(
+    `/quizzes/${quizId}/submit`,
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function completeLesson(lessonId: string, token: string) {
+  return apiRequest<LessonProgress>(
+    `/progress/lessons/${lessonId}/complete`,
+    { method: "POST" },
+    token,
+  );
+}
+
+export function fetchMyProgress(token: string) {
+  return apiRequest<ProgressSummary>("/progress/me", {}, token);
 }
 
 export type UnitPayload = {
@@ -220,6 +320,99 @@ export function deleteLesson(lessonId: number, token: string) {
   return apiRequest<{ message: string }>(
     `/admin/lessons/${lessonId}`,
     { method: "DELETE" },
+    token,
+  );
+}
+
+export type QuizPayload = {
+  lesson_id: number;
+  title: string;
+  description: string | null;
+};
+
+export type QuizQuestionPayload = {
+  quiz_id: number;
+  question_text: string;
+  question_type: "multiple_choice";
+  order_index: number;
+  options: { option_text: string; is_correct: boolean }[];
+};
+
+export type QuizQuestionUpdatePayload = {
+  question_text: string;
+  question_type: "multiple_choice";
+  order_index: number;
+};
+
+export type QuizOptionUpdatePayload = {
+  option_text: string;
+  is_correct: boolean;
+};
+
+export function fetchAdminLessonQuiz(lessonId: number, token: string) {
+  return apiRequest<QuizAdmin>(`/admin/lessons/${lessonId}/quiz`, {}, token);
+}
+
+export function createQuiz(payload: QuizPayload, token: string) {
+  return apiRequest<QuizAdmin>(
+    "/admin/quizzes",
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function updateQuiz(quizId: number, payload: QuizPayload, token: string) {
+  return apiRequest<QuizAdmin>(
+    `/admin/quizzes/${quizId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function deleteQuiz(quizId: number, token: string) {
+  return apiRequest<{ message: string }>(
+    `/admin/quizzes/${quizId}`,
+    { method: "DELETE" },
+    token,
+  );
+}
+
+export function createQuizQuestion(payload: QuizQuestionPayload, token: string) {
+  return apiRequest<QuizAdminQuestion>(
+    "/admin/quiz-questions",
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function updateQuizQuestion(
+  questionId: number,
+  payload: QuizQuestionUpdatePayload,
+  token: string,
+) {
+  return apiRequest<QuizAdminQuestion>(
+    `/admin/quiz-questions/${questionId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function deleteQuizQuestion(questionId: number, token: string) {
+  return apiRequest<{ message: string }>(
+    `/admin/quiz-questions/${questionId}`,
+    { method: "DELETE" },
+    token,
+  );
+}
+
+export function updateQuizOption(
+  optionId: number,
+  payload: QuizOptionUpdatePayload,
+  token: string,
+) {
+  return apiRequest<QuizAdminOption>(
+    `/admin/quiz-options/${optionId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
     token,
   );
 }

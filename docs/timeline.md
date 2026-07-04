@@ -166,6 +166,16 @@ definition of done:
 - student dashboard shows basic progress
 - unit 1 has at least one working quiz
 
+status:
+
+- implementation complete
+- multiple-choice quiz api added
+- quiz attempts and lesson progress are saved
+- student dashboard shows basic progress
+- admin can manage simple lesson quizzes
+- unit 1 has one seeded placeholder quiz
+- manual browser test documented in `docs/week-5-test-plan.md`
+
 ---
 
 ### week 2

@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .database import SessionLocal
-from .models import Lesson, Module, Unit
+from .database import Base, SessionLocal, engine
+from .models import Lesson, Module, Quiz, QuizOption, QuizQuestion, Unit
 
 
 UNIT_ONE = {
@@ -32,6 +32,48 @@ key ideas:
 - verification matters more than confidence
 
 for ap cybersecurity, this topic matters because security is not only about code and networks. people are part of every system.""",
+                    "quiz": {
+                        "title": "social engineering check",
+                        "description": "a short placeholder quiz for checking the first lesson.",
+                        "questions": [
+                            {
+                                "question_text": "what is the main idea behind social engineering?",
+                                "order_index": 1,
+                                "options": [
+                                    {
+                                        "option_text": "using trust or pressure to influence people",
+                                        "is_correct": True,
+                                    },
+                                    {
+                                        "option_text": "only breaking passwords with code",
+                                        "is_correct": False,
+                                    },
+                                    {
+                                        "option_text": "installing operating system updates",
+                                        "is_correct": False,
+                                    },
+                                ],
+                            },
+                            {
+                                "question_text": "which signal can make a message suspicious?",
+                                "order_index": 2,
+                                "options": [
+                                    {
+                                        "option_text": "the message creates urgency",
+                                        "is_correct": True,
+                                    },
+                                    {
+                                        "option_text": "the message has a normal subject line",
+                                        "is_correct": False,
+                                    },
+                                    {
+                                        "option_text": "the sender uses punctuation",
+                                        "is_correct": False,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
                 },
                 {
                     "title": "phishing signals",
@@ -156,27 +198,95 @@ def upsert_module(db: Session, unit: Unit, module_data: dict) -> Module:
 
 
 def upsert_lesson(db: Session, module: Module, lesson_data: dict) -> Lesson:
+    lesson_values = {
+        key: value for key, value in lesson_data.items() if key != "quiz"
+    }
     lesson = db.scalar(
         select(Lesson).where(
             Lesson.module_id == module.id,
-            Lesson.order_index == lesson_data["order_index"],
+            Lesson.order_index == lesson_values["order_index"],
         )
     )
 
     if lesson is None:
-        lesson = Lesson(module_id=module.id, **lesson_data)
+        lesson = Lesson(module_id=module.id, **lesson_values)
         db.add(lesson)
         db.flush()
     else:
-        lesson.title = lesson_data["title"]
-        lesson.content = lesson_data["content"]
-        lesson.video_url = lesson_data["video_url"]
-        lesson.lesson_type = lesson_data["lesson_type"]
+        lesson.title = lesson_values["title"]
+        lesson.content = lesson_values["content"]
+        lesson.video_url = lesson_values["video_url"]
+        lesson.lesson_type = lesson_values["lesson_type"]
 
     return lesson
 
 
+def upsert_quiz(db: Session, lesson: Lesson, quiz_data: dict) -> Quiz:
+    quiz = db.scalar(select(Quiz).where(Quiz.lesson_id == lesson.id))
+
+    if quiz is None:
+        quiz = Quiz(
+            lesson_id=lesson.id,
+            title=quiz_data["title"],
+            description=quiz_data["description"],
+        )
+        db.add(quiz)
+        db.flush()
+    else:
+        quiz.title = quiz_data["title"]
+        quiz.description = quiz_data["description"]
+
+    return quiz
+
+
+def upsert_question(db: Session, quiz: Quiz, question_data: dict) -> QuizQuestion:
+    question = db.scalar(
+        select(QuizQuestion).where(
+            QuizQuestion.quiz_id == quiz.id,
+            QuizQuestion.order_index == question_data["order_index"],
+        )
+    )
+
+    if question is None:
+        question = QuizQuestion(
+            quiz_id=quiz.id,
+            question_text=question_data["question_text"],
+            question_type="multiple_choice",
+            order_index=question_data["order_index"],
+        )
+        db.add(question)
+        db.flush()
+    else:
+        question.question_text = question_data["question_text"]
+        question.question_type = "multiple_choice"
+
+    return question
+
+
+def upsert_option(db: Session, question: QuizQuestion, option_data: dict) -> QuizOption:
+    option = db.scalar(
+        select(QuizOption).where(
+            QuizOption.question_id == question.id,
+            QuizOption.option_text == option_data["option_text"],
+        )
+    )
+
+    if option is None:
+        option = QuizOption(
+            question_id=question.id,
+            option_text=option_data["option_text"],
+            is_correct=option_data["is_correct"],
+        )
+        db.add(option)
+    else:
+        option.is_correct = option_data["is_correct"]
+
+    return option
+
+
 def seed_course() -> None:
+    Base.metadata.create_all(bind=engine)
+
     with SessionLocal() as db:
         unit = upsert_unit(db)
 
@@ -184,7 +294,16 @@ def seed_course() -> None:
             module = upsert_module(db, unit, module_data)
 
             for lesson_data in module_data["lessons"]:
-                upsert_lesson(db, module, lesson_data)
+                lesson = upsert_lesson(db, module, lesson_data)
+
+                if "quiz" in lesson_data:
+                    quiz = upsert_quiz(db, lesson, lesson_data["quiz"])
+
+                    for question_data in lesson_data["quiz"]["questions"]:
+                        question = upsert_question(db, quiz, question_data)
+
+                        for option_data in question_data["options"]:
+                            upsert_option(db, question, option_data)
 
         db.commit()
 
