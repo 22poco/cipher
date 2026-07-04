@@ -9,12 +9,20 @@ import {
   ApiError,
   createLesson,
   createModule,
+  createQuiz,
+  createQuizQuestion,
   createUnit,
   deleteLesson,
   deleteModule,
+  deleteQuiz,
+  deleteQuizQuestion,
   deleteUnit,
+  fetchAdminLessonQuiz,
   fetchUnits,
   fetchLesson,
+  updateQuiz,
+  updateQuizOption,
+  updateQuizQuestion,
   updateLesson,
   updateModule,
   updateUnit,
@@ -23,6 +31,8 @@ import {
   type LessonSummary,
   type LessonType,
   type ModulePayload,
+  type QuizAdmin,
+  type QuizAdminQuestion,
   type Unit,
   type UnitPayload,
 } from "@/lib/api";
@@ -55,6 +65,19 @@ type LessonFormState = {
   order_index: string;
 };
 
+type QuizFormState = {
+  lesson_id: string;
+  title: string;
+  description: string;
+};
+
+type QuizQuestionFormState = {
+  question_text: string;
+  order_index: string;
+  options: [string, string, string];
+  correct_index: string;
+};
+
 const emptyUnitForm: UnitFormState = {
   title: "",
   description: "",
@@ -75,6 +98,19 @@ const emptyLessonForm: LessonFormState = {
   video_url: "",
   lesson_type: "reading",
   order_index: "1",
+};
+
+const emptyQuizForm: QuizFormState = {
+  lesson_id: "",
+  title: "",
+  description: "",
+};
+
+const emptyQuizQuestionForm: QuizQuestionFormState = {
+  question_text: "",
+  order_index: "1",
+  options: ["", "", ""],
+  correct_index: "0",
 };
 
 function toNullableText(value: string) {
@@ -110,6 +146,14 @@ function lessonPayload(form: LessonFormState): LessonPayload {
   };
 }
 
+function quizPayload(form: QuizFormState) {
+  return {
+    lesson_id: Number(form.lesson_id),
+    title: form.title.trim(),
+    description: toNullableText(form.description),
+  };
+}
+
 export default function AdminPage() {
   return (
     <ProtectedPage allowedRole="admin">
@@ -128,6 +172,11 @@ function AdminDashboard({ email }: { email: string }) {
   const [unitForm, setUnitForm] = useState<UnitFormState>(emptyUnitForm);
   const [moduleForm, setModuleForm] = useState<ModuleFormState>(emptyModuleForm);
   const [lessonForm, setLessonForm] = useState<LessonFormState>(emptyLessonForm);
+  const [quizForm, setQuizForm] = useState<QuizFormState>(emptyQuizForm);
+  const [questionForm, setQuestionForm] =
+    useState<QuizQuestionFormState>(emptyQuizQuestionForm);
+  const [selectedQuiz, setSelectedQuiz] = useState<QuizAdmin | null>(null);
+  const [editQuestionId, setEditQuestionId] = useState<number | null>(null);
 
   const modules = useMemo(
     () => units.flatMap((unit) => unit.modules.map((module) => ({ ...module, unit }))),
@@ -172,6 +221,40 @@ function AdminDashboard({ email }: { email: string }) {
     return () => window.clearTimeout(timeout);
   }, [loadUnits]);
 
+  const loadSelectedQuiz = useCallback(async () => {
+    const token = getToken();
+
+    if (!token || !quizForm.lesson_id) {
+      setSelectedQuiz(null);
+      return;
+    }
+
+    try {
+      const quiz = await fetchAdminLessonQuiz(Number(quizForm.lesson_id), token);
+      setSelectedQuiz(quiz);
+      setQuizForm({
+        lesson_id: quiz.lesson_id.toString(),
+        title: quiz.title,
+        description: quiz.description ?? "",
+      });
+    } catch (caughtError) {
+      if (caughtError instanceof ApiError && caughtError.status === 404) {
+        setSelectedQuiz(null);
+        return;
+      }
+
+      showError(caughtError);
+    }
+  }, [quizForm.lesson_id]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void loadSelectedQuiz();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [loadSelectedQuiz]);
+
   function showResult(text: string) {
     setMessage(text);
     setError("");
@@ -199,6 +282,11 @@ function AdminDashboard({ email }: { email: string }) {
       ...emptyLessonForm,
       module_id: modules[0]?.id.toString() ?? "",
     });
+  }
+
+  function resetQuizQuestionForm() {
+    setEditQuestionId(null);
+    setQuestionForm(emptyQuizQuestionForm);
   }
 
   async function submitUnit(event: FormEvent<HTMLFormElement>) {
@@ -285,6 +373,100 @@ function AdminDashboard({ email }: { email: string }) {
     }
   }
 
+  async function submitQuiz(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = getToken();
+
+    if (!token) {
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      if (selectedQuiz) {
+        const quiz = await updateQuiz(selectedQuiz.id, quizPayload(quizForm), token);
+        setSelectedQuiz(quiz);
+        showResult("quiz updated");
+      } else {
+        const quiz = await createQuiz(quizPayload(quizForm), token);
+        setSelectedQuiz(quiz);
+        showResult("quiz created");
+      }
+    } catch (caughtError) {
+      showError(caughtError);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function submitQuizQuestion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = getToken();
+
+    if (!token || !selectedQuiz) {
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      if (editQuestionId) {
+        const question = selectedQuiz.questions.find((item) => item.id === editQuestionId);
+
+        if (!question) {
+          return;
+        }
+
+        await updateQuizQuestion(
+          question.id,
+          {
+            question_text: questionForm.question_text.trim(),
+            question_type: "multiple_choice",
+            order_index: Number(questionForm.order_index),
+          },
+          token,
+        );
+
+        await Promise.all(
+          question.options.slice(0, 3).map((option, index) =>
+            updateQuizOption(
+              option.id,
+              {
+                option_text: questionForm.options[index].trim(),
+                is_correct: questionForm.correct_index === index.toString(),
+              },
+              token,
+            ),
+          ),
+        );
+        showResult("quiz question updated");
+      } else {
+        await createQuizQuestion(
+          {
+            quiz_id: selectedQuiz.id,
+            question_text: questionForm.question_text.trim(),
+            question_type: "multiple_choice",
+            order_index: Number(questionForm.order_index),
+            options: questionForm.options.map((option, index) => ({
+              option_text: option.trim(),
+              is_correct: questionForm.correct_index === index.toString(),
+            })),
+          },
+          token,
+        );
+        showResult("quiz question created");
+      }
+
+      resetQuizQuestionForm();
+      await loadSelectedQuiz();
+    } catch (caughtError) {
+      showError(caughtError);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function removeUnit(unit: Unit) {
     if (!confirm(`delete unit "${unit.title}" and all of its modules and lessons?`)) {
       return;
@@ -345,6 +527,49 @@ function AdminDashboard({ email }: { email: string }) {
     }
   }
 
+  async function removeQuiz() {
+    if (!selectedQuiz || !confirm(`delete quiz "${selectedQuiz.title}"?`)) {
+      return;
+    }
+
+    const token = getToken();
+
+    if (!token) {
+      return;
+    }
+
+    try {
+      await deleteQuiz(selectedQuiz.id, token);
+      setSelectedQuiz(null);
+      setQuizForm({ ...emptyQuizForm, lesson_id: quizForm.lesson_id });
+      resetQuizQuestionForm();
+      showResult("quiz deleted");
+    } catch (caughtError) {
+      showError(caughtError);
+    }
+  }
+
+  async function removeQuizQuestion(question: QuizAdminQuestion) {
+    if (!confirm(`delete question "${question.question_text}"?`)) {
+      return;
+    }
+
+    const token = getToken();
+
+    if (!token) {
+      return;
+    }
+
+    try {
+      await deleteQuizQuestion(question.id, token);
+      resetQuizQuestionForm();
+      showResult("quiz question deleted");
+      await loadSelectedQuiz();
+    } catch (caughtError) {
+      showError(caughtError);
+    }
+  }
+
   function editUnit(unit: Unit) {
     setEditTarget({ type: "unit", id: unit.id });
     setUnitForm({
@@ -392,6 +617,26 @@ function AdminDashboard({ email }: { email: string }) {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function editQuizQuestion(question: QuizAdminQuestion) {
+    const options = question.options.slice(0, 3);
+    const correctIndex = Math.max(
+      options.findIndex((option) => option.is_correct),
+      0,
+    );
+
+    setEditQuestionId(question.id);
+    setQuestionForm({
+      question_text: question.question_text,
+      order_index: question.order_index.toString(),
+      options: [
+        options[0]?.option_text ?? "",
+        options[1]?.option_text ?? "",
+        options[2]?.option_text ?? "",
+      ],
+      correct_index: correctIndex.toString(),
+    });
   }
 
   return (
@@ -618,6 +863,177 @@ function AdminDashboard({ email }: { email: string }) {
                 onDeleteLesson={removeLesson}
               />
             ))
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-md border border-slate-200 bg-white p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">quiz management</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              add the first version of multiple-choice quizzes to lessons.
+            </p>
+          </div>
+          {selectedQuiz ? (
+            <button
+              type="button"
+              onClick={() => void removeQuiz()}
+              className="w-fit rounded-md border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:border-red-500"
+            >
+              delete quiz
+            </button>
+          ) : null}
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <form onSubmit={submitQuiz} className="grid min-w-0 gap-3">
+            <SelectField
+              label="lesson"
+              value={quizForm.lesson_id}
+              onChange={(value) =>
+                setQuizForm({ ...emptyQuizForm, lesson_id: value })
+              }
+              required
+            >
+              <option value="">select lesson</option>
+              {lessons.map((lesson) => (
+                <option key={lesson.id} value={lesson.id}>
+                  {lesson.unit.title} / {lesson.module.title} / {lesson.title}
+                </option>
+              ))}
+            </SelectField>
+            <TextField
+              label="quiz title"
+              value={quizForm.title}
+              onChange={(value) => setQuizForm({ ...quizForm, title: value })}
+              required
+            />
+            <TextArea
+              label="instructions"
+              value={quizForm.description}
+              onChange={(value) => setQuizForm({ ...quizForm, description: value })}
+              rows={3}
+            />
+            <FormActions
+              isSaving={isSaving}
+              onCancel={() => setQuizForm({ ...emptyQuizForm, lesson_id: quizForm.lesson_id })}
+              showCancel={Boolean(selectedQuiz)}
+            />
+          </form>
+
+          <form onSubmit={submitQuizQuestion} className="grid min-w-0 gap-3">
+            <h3 className="text-base font-semibold text-slate-950">
+              {editQuestionId ? "edit question" : "add question"}
+            </h3>
+            <TextField
+              label="question"
+              value={questionForm.question_text}
+              onChange={(value) =>
+                setQuestionForm({ ...questionForm, question_text: value })
+              }
+              required
+            />
+            <TextField
+              label="order"
+              type="number"
+              value={questionForm.order_index}
+              onChange={(value) =>
+                setQuestionForm({ ...questionForm, order_index: value })
+              }
+              required
+            />
+            {questionForm.options.map((option, index) => (
+              <label
+                key={index}
+                className="grid min-w-0 gap-2 text-sm font-medium text-slate-700"
+              >
+                option {index + 1}
+                <div className="flex min-w-0 gap-2">
+                  <input
+                    type="radio"
+                    name="correct-option"
+                    checked={questionForm.correct_index === index.toString()}
+                    onChange={() =>
+                      setQuestionForm({
+                        ...questionForm,
+                        correct_index: index.toString(),
+                      })
+                    }
+                  />
+                  <input
+                    value={option}
+                    onChange={(event) => {
+                      const nextOptions = [...questionForm.options] as [
+                        string,
+                        string,
+                        string,
+                      ];
+                      nextOptions[index] = event.target.value;
+                      setQuestionForm({ ...questionForm, options: nextOptions });
+                    }}
+                    required
+                    className="h-10 w-full min-w-0 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </div>
+              </label>
+            ))}
+            <FormActions
+              isSaving={isSaving || !selectedQuiz}
+              onCancel={resetQuizQuestionForm}
+              showCancel={Boolean(editQuestionId)}
+            />
+          </form>
+        </div>
+
+        <div className="mt-5 grid gap-3">
+          {!quizForm.lesson_id ? (
+            <p className="text-sm text-slate-500">
+              select a lesson to create or edit its quiz.
+            </p>
+          ) : selectedQuiz ? (
+            selectedQuiz.questions.length > 0 ? (
+              selectedQuiz.questions.map((question) => (
+                <div
+                  key={question.id}
+                  className="rounded-md border border-slate-200 bg-slate-50 p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        question {question.order_index}
+                      </p>
+                      <p className="font-semibold text-slate-950">
+                        {question.question_text}
+                      </p>
+                    </div>
+                    <ActionButtons
+                      onEdit={() => editQuizQuestion(question)}
+                      onDelete={() => void removeQuizQuestion(question)}
+                    />
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    {question.options.map((option) => (
+                      <p
+                        key={option.id}
+                        className={`rounded-md border px-3 py-2 text-sm ${
+                          option.is_correct
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                            : "border-slate-200 bg-white text-slate-600"
+                        }`}
+                      >
+                        {option.option_text}
+                        {option.is_correct ? " (correct)" : ""}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">this quiz has no questions yet.</p>
+            )
+          ) : (
+            <p className="text-sm text-slate-500">this lesson does not have a quiz yet.</p>
           )}
         </div>
       </section>

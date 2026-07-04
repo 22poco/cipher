@@ -128,3 +128,132 @@ class LessonUpdate(BaseModel):
 
 class DeleteResponse(BaseModel):
     message: str
+
+
+class QuizOptionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    question_id: int
+    option_text: str
+
+
+class QuizOptionAdminRead(QuizOptionRead):
+    is_correct: bool
+
+
+class QuizQuestionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    quiz_id: int
+    question_text: str
+    question_type: str
+    order_index: int
+    options: list[QuizOptionRead] = []
+
+
+class QuizQuestionAdminRead(QuizQuestionRead):
+    options: list[QuizOptionAdminRead] = []
+
+
+class QuizRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    lesson_id: int
+    title: str
+    description: str | None = None
+    questions: list[QuizQuestionRead] = []
+
+
+class QuizAdminRead(QuizRead):
+    questions: list[QuizQuestionAdminRead] = []
+
+
+class QuizCreate(BaseModel):
+    lesson_id: int
+    title: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+
+
+class QuizUpdate(BaseModel):
+    lesson_id: int | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
+
+
+class QuizOptionCreate(BaseModel):
+    option_text: str = Field(min_length=1)
+    is_correct: bool = False
+
+
+class QuizOptionUpdate(BaseModel):
+    option_text: str | None = Field(default=None, min_length=1)
+    is_correct: bool | None = None
+
+
+class QuizQuestionCreate(BaseModel):
+    quiz_id: int
+    question_text: str = Field(min_length=1)
+    question_type: Literal["multiple_choice"] = "multiple_choice"
+    order_index: int = Field(ge=0)
+    options: list[QuizOptionCreate] = Field(default_factory=list)
+
+
+class QuizQuestionUpdate(BaseModel):
+    question_text: str | None = Field(default=None, min_length=1)
+    question_type: Literal["multiple_choice"] | None = None
+    order_index: int | None = Field(default=None, ge=0)
+
+
+class QuizAnswerSubmit(BaseModel):
+    question_id: int
+    option_id: int
+
+
+class QuizSubmit(BaseModel):
+    answers: list[QuizAnswerSubmit]
+
+
+class QuizAnswerResult(BaseModel):
+    question_id: int
+    selected_option_id: int | None
+    correct_option_id: int | None
+    is_correct: bool
+
+
+class QuizSubmitResult(BaseModel):
+    attempt_id: int
+    quiz_id: int
+    score: float
+    correct_count: int
+    total_questions: int
+    results: list[QuizAnswerResult]
+
+
+class QuizAttemptRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    quiz_id: int
+    score: float
+    submitted_at: datetime
+
+
+class LessonProgressRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    lesson_id: int
+    completed: bool
+    completed_at: datetime | None = None
+
+
+class ProgressSummary(BaseModel):
+    completed_lessons: int
+    total_lessons: int
+    unit_1_progress_percent: float
+    lesson_progress: list[LessonProgressRead]
+    quiz_attempts: list[QuizAttemptRead]
