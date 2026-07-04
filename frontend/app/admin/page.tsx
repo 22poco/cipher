@@ -431,8 +431,11 @@ function AdminDashboard({ email }: { email: string }) {
         </div>
       ) : null}
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        <form onSubmit={submitUnit} className="rounded-md border border-slate-200 bg-white p-5">
+      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        <form
+          onSubmit={submitUnit}
+          className="min-w-0 rounded-md border border-slate-200 bg-white p-5"
+        >
           <h2 className="text-lg font-semibold text-slate-950">
             {editTarget?.type === "unit" ? "edit unit" : "create unit"}
           </h2>
@@ -463,7 +466,10 @@ function AdminDashboard({ email }: { email: string }) {
           />
         </form>
 
-        <form onSubmit={submitModule} className="rounded-md border border-slate-200 bg-white p-5">
+        <form
+          onSubmit={submitModule}
+          className="min-w-0 rounded-md border border-slate-200 bg-white p-5"
+        >
           <h2 className="text-lg font-semibold text-slate-950">
             {editTarget?.type === "module" ? "edit module" : "create module"}
           </h2>
@@ -507,7 +513,10 @@ function AdminDashboard({ email }: { email: string }) {
           />
         </form>
 
-        <form onSubmit={submitLesson} className="rounded-md border border-slate-200 bg-white p-5">
+        <form
+          onSubmit={submitLesson}
+          className="min-w-0 rounded-md border border-slate-200 bg-white p-5"
+        >
           <h2 className="text-lg font-semibold text-slate-950">
             {editTarget?.type === "lesson" ? "edit lesson" : "create lesson"}
           </h2>
@@ -563,6 +572,9 @@ function AdminDashboard({ email }: { email: string }) {
               onChange={(value) => setLessonForm({ ...lessonForm, content: value })}
               rows={8}
             />
+            {lessonForm.content.trim() ? (
+              <LessonPreview content={lessonForm.content} />
+            ) : null}
           </div>
           <FormActions
             isSaving={isSaving}
@@ -627,14 +639,14 @@ function TextField({
   required?: boolean;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-slate-700">
+    <label className="grid min-w-0 gap-2 text-sm font-medium text-slate-700">
       {label}
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
-        className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+        className="h-10 w-full min-w-0 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
       />
     </label>
   );
@@ -652,13 +664,13 @@ function TextArea({
   rows?: number;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-slate-700">
+    <label className="grid min-w-0 gap-2 text-sm font-medium text-slate-700">
       {label}
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         rows={rows}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+        className="w-full min-w-0 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
       />
     </label>
   );
@@ -678,17 +690,63 @@ function SelectField({
   children: ReactNode;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-slate-700">
+    <label className="grid min-w-0 gap-2 text-sm font-medium text-slate-700">
       {label}
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
-        className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+        className="h-10 w-full min-w-0 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
       >
         {children}
       </select>
     </label>
+  );
+}
+
+function LessonPreview({ content }: { content: string }) {
+  const lines = content
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="min-w-0 rounded-md border border-slate-200 bg-slate-50 p-3">
+      <p className="text-xs font-semibold text-slate-500">preview</p>
+      <div className="mt-2 grid gap-2 text-sm leading-6 text-slate-700">
+        {lines.map((line, index) => {
+          if (line.startsWith("### ")) {
+            return (
+              <p key={`${line}-${index}`} className="font-semibold text-slate-950">
+                {line.replace("### ", "")}
+              </p>
+            );
+          }
+
+          if (line.startsWith("## ")) {
+            return (
+              <p key={`${line}-${index}`} className="text-base font-semibold text-slate-950">
+                {line.replace("## ", "")}
+              </p>
+            );
+          }
+
+          if (line.startsWith("# ")) {
+            return (
+              <p key={`${line}-${index}`} className="text-lg font-semibold text-slate-950">
+                {line.replace("# ", "")}
+              </p>
+            );
+          }
+
+          if (line.startsWith("- ")) {
+            return <p key={`${line}-${index}`}>- {line.replace("- ", "")}</p>;
+          }
+
+          return <p key={`${line}-${index}`}>{line}</p>;
+        })}
+      </div>
+    </div>
   );
 }
 

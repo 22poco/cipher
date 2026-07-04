@@ -45,13 +45,13 @@ export default function Home() {
       </section>
 
       <section className="rounded-md border border-slate-200 bg-white p-5">
-        <h2 className="text-base font-semibold text-slate-950">week 2 status</h2>
+        <h2 className="text-base font-semibold text-slate-950">current status</h2>
         <div className="mt-4 grid gap-3 text-sm">
           {[
-            ["backend", "connected"],
-            ["database", "postgres ready"],
-            ["auth api", "register, login, me"],
-            ["frontend", "auth flow in progress"],
+            ["backend", "api and postgres connected"],
+            ["course pages", "units, modules, lessons"],
+            ["admin tools", "create, edit, delete content"],
+            ["next focus", "quizzes and progress"],
           ].map(([label, value]) => (
             <div
               key={label}

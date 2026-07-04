@@ -2,27 +2,24 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 import { clearSession, getStoredUser, subscribeToSessionChange } from "@/lib/auth";
-import type { User } from "@/lib/api";
 
 const publicLinks = [{ href: "/", label: "home" }];
+const getServerUser = () => null;
 
 export function AppNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(() =>
-    typeof window === "undefined" ? null : getStoredUser(),
+  const user = useSyncExternalStore(
+    subscribeToSessionChange,
+    getStoredUser,
+    getServerUser,
   );
-
-  useEffect(() => {
-    return subscribeToSessionChange(() => setUser(getStoredUser()));
-  }, []);
 
   function handleLogout() {
     clearSession();
-    setUser(null);
     router.push("/login");
   }
 
