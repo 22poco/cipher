@@ -37,6 +37,52 @@ students use it to move through course content and track progress. the teacher u
 - postgresql
 - netbird
 
+## quickstart
+
+run every command from the repo root unless noted. you need docker, python 3.12, and node.js.
+
+**1. start postgres** (exposed on host port `5433`)
+
+```bash
+docker compose up -d
+```
+
+**2. set up the backend**
+
+```bash
+python -m venv .venv
+source .venv/bin/activate            # windows: .\.venv\Scripts\activate
+pip install -r backend/requirements.txt
+cp backend/.env.example backend/.env
+```
+
+**3. create tables and seed unit 1 content**
+
+```bash
+python -m backend.seed_course
+```
+
+**4. run the api** (http://127.0.0.1:8000, docs at `/docs`)
+
+```bash
+uvicorn backend.main:app --reload --port 8000
+```
+
+**5. run the frontend** (http://localhost:3000) in a second terminal
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+then open http://localhost:3000 and register an account. to get admin tools, register with the role set to `admin`, or update your row's `role` in the database. after changing any backend model, reset the database so the new schema applies:
+
+```bash
+docker compose down -v && docker compose up -d
+python -m backend.seed_course
+```
+
 ## status
 
 week 5 learning features are in progress.
