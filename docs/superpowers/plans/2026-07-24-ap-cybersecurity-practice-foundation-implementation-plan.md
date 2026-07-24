@@ -27,7 +27,7 @@ The current backend already uses:
 
 ### Backend Modules To Add
 
-Add these to `backend/requirements.txt` during implementation:
+Add these to the root `requirements.txt` during implementation:
 
 - `alembic`: database migrations.
 - `google-auth`: Google ID token verification.
@@ -56,6 +56,8 @@ Add these to `frontend/package.json` during implementation:
 
 - `@xyflow/react`: network topology editor canvas.
 - `@playwright/test`: end-to-end browser tests.
+- `@fortawesome/react-fontawesome` (with `@fortawesome/fontawesome-svg-core` and the free icon packs): default icon library.
+- `motion`: default animation library (successor to Framer Motion; import from `motion/react`).
 
 Use Google Identity Services from Google’s browser script instead of adding a separate React SSO wrapper. This keeps the frontend dependency list smaller while the backend remains the authority for ID token verification.
 
@@ -83,7 +85,7 @@ Frontend:
 Local run sequence:
 
 1. `docker compose up -d postgres`
-2. `pip install -r backend/requirements.txt`
+2. `pip install -r requirements.txt`
 3. `alembic upgrade head`
 4. `uvicorn backend.main:app --reload`
 5. `cd frontend`

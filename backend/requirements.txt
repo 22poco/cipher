@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-psycopg[binary]
-python-dotenv
-SQLAlchemy
-bcrypt
-PyJWT
-email-validator

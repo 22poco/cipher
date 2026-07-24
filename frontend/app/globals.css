@@ -1,21 +1,49 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Cipher design tokens (see docs/cipher_mockup/cipher_main_ui.md §4)
+--------------------------------------------------------------------------- */
+@theme {
+  --color-primary: #0b63f6;
+  --color-primary-hover: #0754d5;
+  --color-primary-light: #eaf2ff;
+
+  --color-navy: #071a33;
+  --color-sidebar: #061b34;
+
+  --color-page: #f6f8fc;
+  --color-ink: #101828;
+  --color-body: #344054;
+  --color-muted: #667085;
+  --color-subtle: #98a2b3;
+  --color-hairline: #e4e7ec;
+
+  /* AP unit accents */
+  --color-unit-green: #16a34a;
+  --color-unit-blue: #0b63f6;
+  --color-unit-purple: #7c3aed;
+  --color-unit-orange: #f59e0b;
+  --color-unit-teal: #0d9488;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+}
+
 :root {
-  --background: #f8fafc;
-  --foreground: #020617;
+  --background: #f6f8fc;
+  --foreground: #101828;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+html,
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -23,4 +51,26 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+/* Thin, unobtrusive scrollbars inside scrolling panels */
+.cipher-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.cipher-scroll::-webkit-scrollbar-thumb {
+  background: #d0d5dd;
+  border-radius: 9999px;
+}
+.cipher-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }

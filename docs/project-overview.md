@@ -87,6 +87,8 @@ teacher can:
 - next.js
 - tailwind css
 - typescript
+- font awesome — default icon library
+- motion — default animation library
 
 ### backend
 
