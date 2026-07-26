@@ -101,12 +101,16 @@ if ($FrontendPort -ne $PreferredFrontend) {
 $HostIp = Get-HostIp
 
 # Point the browser at the machine IP so API calls work both locally and from
-# other devices on the LAN, and allow that origin through CORS.
+# other devices on the LAN. Allow the frontend origin through backend CORS and
+# allow the LAN host through Next.js dev-only asset protection.
 if (-not $env:NEXT_PUBLIC_API_BASE_URL) {
     $env:NEXT_PUBLIC_API_BASE_URL = "http://${HostIp}:${BackendPort}"
 }
 if (-not $env:BACKEND_CORS_ORIGINS) {
     $env:BACKEND_CORS_ORIGINS = "http://localhost:${FrontendPort},http://127.0.0.1:${FrontendPort},http://${HostIp}:${FrontendPort}"
+}
+if (-not $env:NEXT_ALLOWED_DEV_ORIGINS) {
+    $env:NEXT_ALLOWED_DEV_ORIGINS = "localhost,127.0.0.1,${HostIp}"
 }
 
 # Activate the local virtualenv if present so `python` resolves to it.

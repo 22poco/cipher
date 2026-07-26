@@ -228,6 +228,11 @@ For LAN testing with SSO, use one of these approaches:
 2. Use a stable HTTPS hostname that points to this machine.
 3. Use NetBird or another private network name that student devices can resolve.
 
+When NetBird is running, `./scripts/dev.sh` tries to detect this machine's
+NetBird IP and uses it as the advertised host. To force a value, run
+`NETBIRD_IP=<this-machine-netbird-ip> ./scripts/dev.sh` or set `HOST_IP`
+directly.
+
 For GitHub, create a separate OAuth App for local and LAN if you need both at once, because a GitHub OAuth App has only one callback URL [3].
 
 ## Verification Checklist
@@ -236,13 +241,14 @@ For GitHub, create a separate OAuth App for local and LAN if you need both at on
 2. `frontend/.env.local` exists and contains public client IDs.
 3. Provider callback URLs exactly match `GOOGLE_REDIRECT_URI` and `GITHUB_REDIRECT_URI`.
 4. `BACKEND_CORS_ORIGINS` includes the frontend origin being used.
-5. `NEXT_PUBLIC_API_BASE_URL` points to the backend URL being used.
-6. `docker compose up -d` is running Postgres.
-7. `python -m backend.seed_course` completes.
-8. `./scripts/dev.sh` starts both servers.
-9. Password login still works.
-10. Google SSO rejects non-`baisedu.org` accounts.
-11. GitHub SSO returns to the backend callback and produces a Cipher session.
+5. `NEXT_ALLOWED_DEV_ORIGINS` includes the frontend hostname/IP when using a LAN URL.
+6. `NEXT_PUBLIC_API_BASE_URL` points to the backend URL being used.
+7. `docker compose up -d` is running Postgres.
+8. `python -m backend.seed_course` completes.
+9. `./scripts/dev.sh` starts both servers.
+10. Password login still works.
+11. Google SSO rejects non-`baisedu.org` accounts.
+12. GitHub SSO returns to the backend callback and produces a Cipher session.
 
 ## References
 

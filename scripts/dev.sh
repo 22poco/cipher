@@ -21,7 +21,9 @@
 #   BACKEND_PORT   preferred backend port  (default 8000, scans upward if busy)
 #   FRONTEND_PORT  preferred frontend port (default 3000, scans upward if busy)
 #   BIND_HOST      interface to bind        (default 0.0.0.0 = all interfaces)
-#   HOST_IP        LAN IP to advertise      (default: auto-detected)
+#   HOST_IP        IP to advertise          (default: NetBird IP, then LAN IP)
+#   NETBIRD_IP     explicit NetBird IP      (default: auto-detected)
+#   NETBIRD_FQDN   explicit NetBird DNS name(default: auto-detected)
 #
 set -euo pipefail
 
@@ -75,7 +77,97 @@ find_free_port() {
   return 1
 }
 
-# --- LAN IP detection ------------------------------------------------------ #
+# --- host IP detection ----------------------------------------------------- #
+
+is_netbird_ipv4() {
+  local ip="$1"
+  [[ "$ip" =~ ^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.([0-9]{1,3})\.([0-9]{1,3})$ ]]
+}
+
+first_netbird_ipv4_from_stdin() {
+  local candidate=""
+  while IFS= read -r candidate; do
+    if is_netbird_ipv4 "$candidate"; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+detect_netbird_ip() {
+  local ip=""
+
+  if [ -n "${NETBIRD_IP:-}" ]; then
+    echo "$NETBIRD_IP"
+    return 0
+  fi
+
+  # Linux: NetBird commonly exposes a WireGuard-style tunnel interface.
+  if command -v ip >/dev/null 2>&1; then
+    ip="$(
+      ip -o -4 addr show up 2>/dev/null |
+        awk 'tolower($2) ~ /(netbird|wt|nb|tun)/ { split($4, a, "/"); print a[1] }' |
+        first_netbird_ipv4_from_stdin || true
+    )"
+    [ -n "$ip" ] && { echo "$ip"; return 0; }
+  fi
+
+  # macOS / BSD: VPN tunnels usually appear in ifconfig as utun*.
+  if command -v ifconfig >/dev/null 2>&1; then
+    ip="$(
+      ifconfig 2>/dev/null |
+        awk '
+          /^[[:alnum:]][[:alnum:]_.-]*:/ { iface=$1; sub(":", "", iface) }
+          tolower(iface) ~ /^(netbird|wt|nb|utun)/ && $1 == "inet" { print $2 }
+        ' |
+        first_netbird_ipv4_from_stdin || true
+    )"
+    [ -n "$ip" ] && { echo "$ip"; return 0; }
+  fi
+
+  if command -v netbird >/dev/null 2>&1; then
+    ip="$(
+      netbird status --json 2>/dev/null |
+        grep -Eo '"netbirdIp":"([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]+)?"' |
+        tail -n 1 |
+        sed -E 's/.*"netbirdIp":"(([0-9]{1,3}\.){3}[0-9]{1,3}).*/\1/' |
+        first_netbird_ipv4_from_stdin || true
+    )"
+    [ -n "$ip" ] && { echo "$ip"; return 0; }
+
+    ip="$(
+      netbird status 2>/dev/null |
+        awk '/NetBird IP|netbird IP|IP:/ { print }' |
+        grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}' |
+        first_netbird_ipv4_from_stdin || true
+    )"
+    [ -n "$ip" ] && { echo "$ip"; return 0; }
+  fi
+
+  return 1
+}
+
+detect_netbird_fqdn() {
+  local fqdn=""
+
+  if [ -n "${NETBIRD_FQDN:-}" ]; then
+    echo "$NETBIRD_FQDN"
+    return 0
+  fi
+
+  if command -v netbird >/dev/null 2>&1; then
+    fqdn="$(
+      netbird status --json 2>/dev/null |
+        grep -Eo '"fqdn":"[^"]+"' |
+        tail -n 1 |
+        sed -E 's/.*"fqdn":"([^"]+)".*/\1/' || true
+    )"
+    [ -n "$fqdn" ] && { echo "$fqdn"; return 0; }
+  fi
+
+  return 1
+}
 
 detect_host_ip() {
   local ip=""
@@ -99,6 +191,22 @@ detect_host_ip() {
   echo ""
 }
 
+add_csv_value() {
+  local current="$1" value="$2"
+  [ -z "$value" ] && { echo "$current"; return 0; }
+  [ -z "$current" ] && { echo "$value"; return 0; }
+  case ",$current," in
+    *",$value,"*) echo "$current" ;;
+    *) echo "${current},${value}" ;;
+  esac
+}
+
+add_frontend_origin_for_host() {
+  local current="$1" host="$2"
+  [ -z "$host" ] && { echo "$current"; return 0; }
+  add_csv_value "$current" "http://${host}:${FRONTEND_PORT}"
+}
+
 PREFERRED_BACKEND_PORT="${BACKEND_PORT:-8000}"
 PREFERRED_FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 
@@ -113,13 +221,40 @@ FRONTEND_PORT="$(find_free_port "$FE_START")"
 [ "$FRONTEND_PORT" != "$PREFERRED_FRONTEND_PORT" ] &&
   echo "note: frontend port ${PREFERRED_FRONTEND_PORT} busy -> using ${FRONTEND_PORT}"
 
-HOST_IP="${HOST_IP:-$(detect_host_ip)}"
+LAN_IP="$(detect_host_ip)"
+NETBIRD_DETECTED_IP="$(detect_netbird_ip || true)"
+NETBIRD_DETECTED_FQDN="$(detect_netbird_fqdn || true)"
+HOST_SOURCE="auto"
+
+if [ -n "${HOST_IP:-}" ]; then
+  HOST_SOURCE="override"
+elif [ -n "$NETBIRD_DETECTED_IP" ]; then
+  HOST_IP="$NETBIRD_DETECTED_IP"
+  HOST_SOURCE="netbird"
+else
+  HOST_IP="$LAN_IP"
+  HOST_SOURCE="lan"
+fi
 [ -z "$HOST_IP" ] && HOST_IP="127.0.0.1"
 
+DEFAULT_BACKEND_CORS_ORIGINS="http://localhost:${FRONTEND_PORT},http://127.0.0.1:${FRONTEND_PORT}"
+DEFAULT_BACKEND_CORS_ORIGINS="$(add_frontend_origin_for_host "$DEFAULT_BACKEND_CORS_ORIGINS" "$HOST_IP")"
+DEFAULT_BACKEND_CORS_ORIGINS="$(add_frontend_origin_for_host "$DEFAULT_BACKEND_CORS_ORIGINS" "$LAN_IP")"
+DEFAULT_BACKEND_CORS_ORIGINS="$(add_frontend_origin_for_host "$DEFAULT_BACKEND_CORS_ORIGINS" "$NETBIRD_DETECTED_IP")"
+DEFAULT_BACKEND_CORS_ORIGINS="$(add_frontend_origin_for_host "$DEFAULT_BACKEND_CORS_ORIGINS" "$NETBIRD_DETECTED_FQDN")"
+
+DEFAULT_NEXT_ALLOWED_DEV_ORIGINS="localhost,127.0.0.1"
+DEFAULT_NEXT_ALLOWED_DEV_ORIGINS="$(add_csv_value "$DEFAULT_NEXT_ALLOWED_DEV_ORIGINS" "$HOST_IP")"
+DEFAULT_NEXT_ALLOWED_DEV_ORIGINS="$(add_csv_value "$DEFAULT_NEXT_ALLOWED_DEV_ORIGINS" "$LAN_IP")"
+DEFAULT_NEXT_ALLOWED_DEV_ORIGINS="$(add_csv_value "$DEFAULT_NEXT_ALLOWED_DEV_ORIGINS" "$NETBIRD_DETECTED_IP")"
+DEFAULT_NEXT_ALLOWED_DEV_ORIGINS="$(add_csv_value "$DEFAULT_NEXT_ALLOWED_DEV_ORIGINS" "$NETBIRD_DETECTED_FQDN")"
+
 # Point the browser at the machine IP so API calls work both locally and from
-# other devices on the LAN, and allow that origin through CORS.
+# other devices on the LAN. Allow the frontend origin through backend CORS and
+# allow the LAN host through Next.js dev-only asset protection.
 export NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL:-http://${HOST_IP}:${BACKEND_PORT}}"
-export BACKEND_CORS_ORIGINS="${BACKEND_CORS_ORIGINS:-http://localhost:${FRONTEND_PORT},http://127.0.0.1:${FRONTEND_PORT},http://${HOST_IP}:${FRONTEND_PORT}}"
+export BACKEND_CORS_ORIGINS="${BACKEND_CORS_ORIGINS:-$DEFAULT_BACKEND_CORS_ORIGINS}"
+export NEXT_ALLOWED_DEV_ORIGINS="${NEXT_ALLOWED_DEV_ORIGINS:-$DEFAULT_NEXT_ALLOWED_DEV_ORIGINS}"
 
 # --- run both servers ------------------------------------------------------ #
 
@@ -152,10 +287,13 @@ frontend_pid=$!
 echo ""
 echo "  cipher is running (Ctrl+C to stop)"
 echo "  ────────────────────────────────────────────"
+echo "  host       source    ${HOST_SOURCE} (${HOST_IP})"
 echo "  frontend   local     http://localhost:${FRONTEND_PORT}"
 echo "             network   http://${HOST_IP}:${FRONTEND_PORT}"
+[ -n "$NETBIRD_DETECTED_FQDN" ] && echo "             netbird   http://${NETBIRD_DETECTED_FQDN}:${FRONTEND_PORT}"
 echo "  backend    local     http://localhost:${BACKEND_PORT}"
 echo "             network   http://${HOST_IP}:${BACKEND_PORT}"
+[ -n "$NETBIRD_DETECTED_FQDN" ] && echo "             netbird   http://${NETBIRD_DETECTED_FQDN}:${BACKEND_PORT}"
 echo "             api docs  http://${HOST_IP}:${BACKEND_PORT}/docs"
 echo "  ────────────────────────────────────────────"
 echo ""

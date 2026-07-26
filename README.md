@@ -98,9 +98,9 @@ once postgres, the venv, and the seed (steps 1–3) are ready, start the api and
 .\scripts\dev.ps1     # windows
 ```
 
-Both servers bind to all interfaces and the script auto-scans for free ports (starting from the preferred ones), so it won't fail with "address already in use". It prints both a **local** (`http://localhost:<port>`) and a **network** (`http://<your-machine-ip>:<port>`) URL — open the network URL from a phone or another computer on the same Wi-Fi. The frontend's API base URL and backend CORS are wired to that machine IP automatically.
+Both servers bind to all interfaces and the script auto-scans for free ports (starting from the preferred ones), so it won't fail with "address already in use". It prints both a **local** (`http://localhost:<port>`) and a **network** (`http://<your-machine-ip>:<port>`) URL — open the network URL from a phone or another computer on the same Wi-Fi. When NetBird is running, the Bash script prefers the machine's NetBird IP for the advertised network URL and still includes the LAN IP in the allowlists when it can detect one. The frontend's API base URL, backend CORS origins, and Next.js dev-origin allowlist are wired to the advertised IP automatically.
 
-Press `Ctrl+C` to stop both. Overrides: `BACKEND_PORT` / `FRONTEND_PORT` (preferred starting ports), `BIND_HOST` (default `0.0.0.0`), `HOST_IP` (override the advertised LAN IP).
+Press `Ctrl+C` to stop both. Overrides: `BACKEND_PORT` / `FRONTEND_PORT` (preferred starting ports), `BIND_HOST` (default `0.0.0.0`), `HOST_IP` (override the advertised IP), `NETBIRD_IP` (force a detected NetBird IP), `BACKEND_CORS_ORIGINS` (full frontend origins), `NEXT_ALLOWED_DEV_ORIGINS` (frontend dev hostnames/IPs).
 
 then open http://localhost:3000 and sign in with a dev account below. Public registration always creates a **student**; teacher/admin roles are seed- or admin-assigned only. After changing any backend model, reset the database so the new schema applies:
 
