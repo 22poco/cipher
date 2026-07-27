@@ -242,13 +242,14 @@ For GitHub, create a separate OAuth App for local and LAN if you need both at on
 3. Provider callback URLs exactly match `GOOGLE_REDIRECT_URI` and `GITHUB_REDIRECT_URI`.
 4. `BACKEND_CORS_ORIGINS` includes the frontend origin being used.
 5. `NEXT_ALLOWED_DEV_ORIGINS` includes the frontend hostname/IP when using a LAN URL.
-6. `NEXT_PUBLIC_API_BASE_URL` points to the backend URL being used.
-7. `docker compose up -d` is running Postgres.
-8. `python -m backend.seed_course` completes.
-9. `./scripts/dev.sh` starts both servers.
-10. Password login still works.
-11. Google SSO rejects non-`baisedu.org` accounts.
-12. GitHub SSO returns to the backend callback and produces a Cipher session.
+6. `NEXT_PUBLIC_API_BASE_URL` is `/api/backend` for LAN/NetBird dev, unless you intentionally bypass the Next proxy.
+7. `NEXT_BACKEND_PROXY_TARGET` points to the local FastAPI server, for example `http://127.0.0.1:8000`.
+8. `docker compose up -d` is running Postgres.
+9. `python -m backend.seed_course` completes.
+10. `./scripts/dev.sh` starts both servers.
+11. Password login still works.
+12. Google SSO rejects non-`baisedu.org` accounts.
+13. GitHub SSO returns to the backend callback and produces a Cipher session.
 
 ## References
 

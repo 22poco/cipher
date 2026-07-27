@@ -128,7 +128,12 @@ export class ApiError extends Error {
   }
 }
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/backend";
+
+function apiUrl(path: string): string {
+  const base = apiBaseUrl.replace(/\/$/, "");
+  return `${base}${path}`;
+}
 
 async function apiRequest<T>(
   path: string,
@@ -142,7 +147,7 @@ async function apiRequest<T>(
     headers.set("authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...options,
     headers,
   });

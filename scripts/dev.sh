@@ -49,6 +49,36 @@ command -v npm >/dev/null 2>&1 || {
   exit 1
 }
 
+assert_no_existing_next_dev() {
+  local lock_file="frontend/.next/dev/lock"
+  local pid="" port="" app_url=""
+
+  [ -f "$lock_file" ] || return 0
+
+  pid="$(sed -nE 's/.*"pid":([0-9]+).*/\1/p' "$lock_file" 2>/dev/null || true)"
+  port="$(sed -nE 's/.*"port":([0-9]+).*/\1/p' "$lock_file" 2>/dev/null || true)"
+  app_url="$(sed -nE 's/.*"appUrl":"([^"]+)".*/\1/p' "$lock_file" 2>/dev/null || true)"
+
+  if {
+    [ -n "$port" ] &&
+      command -v lsof >/dev/null 2>&1 &&
+      lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
+  } || {
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+  }; then
+    echo "error: an existing Next dev server is already running for this frontend." >&2
+    echo "       pid: ${pid}" >&2
+    [ -n "$port" ] && echo "       port: ${port}" >&2
+    [ -n "$app_url" ] && echo "       url: ${app_url}" >&2
+    echo "" >&2
+    echo "Stop it first, then rerun ./scripts/dev.sh:" >&2
+    echo "  kill ${pid}" >&2
+    exit 1
+  fi
+}
+
+assert_no_existing_next_dev
+
 # --- port scanning --------------------------------------------------------- #
 
 # Return success (0) if nothing is listening on the given TCP port.
@@ -252,7 +282,8 @@ DEFAULT_NEXT_ALLOWED_DEV_ORIGINS="$(add_csv_value "$DEFAULT_NEXT_ALLOWED_DEV_ORI
 # Point the browser at the machine IP so API calls work both locally and from
 # other devices on the LAN. Allow the frontend origin through backend CORS and
 # allow the LAN host through Next.js dev-only asset protection.
-export NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL:-http://${HOST_IP}:${BACKEND_PORT}}"
+export NEXT_BACKEND_PROXY_TARGET="http://127.0.0.1:${BACKEND_PORT}"
+export NEXT_PUBLIC_API_BASE_URL="/api/backend"
 export BACKEND_CORS_ORIGINS="${BACKEND_CORS_ORIGINS:-$DEFAULT_BACKEND_CORS_ORIGINS}"
 export NEXT_ALLOWED_DEV_ORIGINS="${NEXT_ALLOWED_DEV_ORIGINS:-$DEFAULT_NEXT_ALLOWED_DEV_ORIGINS}"
 
@@ -295,6 +326,7 @@ echo "  backend    local     http://localhost:${BACKEND_PORT}"
 echo "             network   http://${HOST_IP}:${BACKEND_PORT}"
 [ -n "$NETBIRD_DETECTED_FQDN" ] && echo "             netbird   http://${NETBIRD_DETECTED_FQDN}:${BACKEND_PORT}"
 echo "             api docs  http://${HOST_IP}:${BACKEND_PORT}/docs"
+echo "  api proxy  browser   ${NEXT_PUBLIC_API_BASE_URL} -> ${NEXT_BACKEND_PROXY_TARGET}"
 echo "  ────────────────────────────────────────────"
 echo ""
 

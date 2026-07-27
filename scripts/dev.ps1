@@ -103,9 +103,8 @@ $HostIp = Get-HostIp
 # Point the browser at the machine IP so API calls work both locally and from
 # other devices on the LAN. Allow the frontend origin through backend CORS and
 # allow the LAN host through Next.js dev-only asset protection.
-if (-not $env:NEXT_PUBLIC_API_BASE_URL) {
-    $env:NEXT_PUBLIC_API_BASE_URL = "http://${HostIp}:${BackendPort}"
-}
+$env:NEXT_BACKEND_PROXY_TARGET = "http://127.0.0.1:${BackendPort}"
+$env:NEXT_PUBLIC_API_BASE_URL = "/api/backend"
 if (-not $env:BACKEND_CORS_ORIGINS) {
     $env:BACKEND_CORS_ORIGINS = "http://localhost:${FrontendPort},http://127.0.0.1:${FrontendPort},http://${HostIp}:${FrontendPort}"
 }
@@ -153,6 +152,7 @@ try {
     Write-Host "  backend    local     http://localhost:$BackendPort"
     Write-Host "             network   http://${HostIp}:$BackendPort"
     Write-Host "             api docs  http://${HostIp}:$BackendPort/docs"
+    Write-Host "  api proxy  browser   $env:NEXT_PUBLIC_API_BASE_URL -> $env:NEXT_BACKEND_PROXY_TARGET"
     Write-Host "  --------------------------------------------"
     Write-Host ""
 

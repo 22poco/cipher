@@ -23,9 +23,20 @@ function isString(value: string | null): value is string {
 const allowedDevOrigins = Array.from(
   new Set(csv(process.env.NEXT_ALLOWED_DEV_ORIGINS).map(devOriginHost).filter(isString)),
 );
+const backendProxyTarget = (
+  process.env.NEXT_BACKEND_PROXY_TARGET || "http://127.0.0.1:8000"
+).replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
   ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),
+  async rewrites() {
+    return [
+      {
+        source: "/api/backend/:path*",
+        destination: `${backendProxyTarget}/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
