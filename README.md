@@ -7,25 +7,26 @@
 <h1 align="center">cipher</h1>
 
 <p align="center">
-  a full-stack AP cybersecurity learning platform for high school students.
+  an AP cybersecurity assessment platform for high school students.
 </p>
 
 ---
 
 ## overview
 
-cipher is built for a classroom AP cybersecurity course that needs structured lessons, videos, quizzes, case studies, and hands-on practice in one place.
+cipher is built for a classroom AP cybersecurity course that needs practice scenarios, quizzes, mock exams, and teacher review in one place.
 
-students use it to move through course content and track progress. the teacher uses it to manage lessons and quizzes without editing code.
+students use it to complete assessment modules and track scores. the teacher uses it to review attempts, manage assessments, and check progress.
 
 ## features
 
 - student accounts
-- units, modules, and lessons
-- quizzes and progress tracking
-- case studies
-- code editor
-- admin dashboard
+- five AP cybersecurity modules
+- quizzes and scoring
+- case scenarios
+- mock exam practice
+- attempt tracking
+- teacher/admin review dashboard
 
 ## tech stack
 
@@ -39,7 +40,7 @@ students use it to move through course content and track progress. the teacher u
 
 ## status
 
-week 5 learning features are in progress.
+assessment-only pivot is in progress.
 
 completed:
 
@@ -64,5 +65,14 @@ completed:
 
 current focus:
 
-- test quiz and progress flow through the browser
-- start deeper unit 1 content integration
+- pivot to assessment-only workflow
+- organize around five modules
+- prepare demo-ready assessment flow by july 31
+
+module map:
+
+1. securing accounts
+2. securing data
+3. securing systems
+4. securing software
+5. preserving privacy
