@@ -47,6 +47,65 @@ V1 should seed one simulated lab per existing AP-style unit.
 
 Each lab should include Analyze Risk, Mitigate Risk, and Detect Attacks rubric criteria. Collaborate remains available through the existing support timeline and reflection model.
 
+## Lab Content Pack Outline
+
+This outline defines the starter content structure for each unit lab. It intentionally stops short of full scripts, final copy, payloads, or exploit instructions. The purpose is to give teachers and curriculum writers a research scaffold for expanding each lab safely.
+
+### Unit 1: Credential Safety: Fake Portal Trap
+
+- **Scenario frame**: A student receives a school-service notice asking them to use a lab-only account on a look-alike portal.
+- **Student action**: Inspect the notice, decide whether to continue, and interact only with generated lab credentials.
+- **Simulated event**: The lab records whether the synthetic account was submitted and which warning indicators were missed or noticed.
+- **Debrief evidence**: Sender/domain mismatch, urgency cue, login form mismatch, missing institutional verification path, and MFA discussion point.
+- **Analysis prompts**: Identify the strongest indicators, explain the credential risk, and describe how the student should verify the request.
+- **Mitigation choices**: Report suspicious message, verify domain through a trusted path, use MFA, reset only compromised lab credential, notify teacher or support contact.
+- **Teacher aggregate cues**: Most missed indicator, rate of verification behavior, mitigation choices selected, and common reflection themes.
+- **Research focus**: Age-appropriate phishing examples, school-domain verification practices, MFA teaching language, and non-punitive debrief wording.
+
+### Unit 2: Badge Tailgating Incident
+
+- **Scenario frame**: A student reviews a simulated school entry sequence where an unknown person follows an authorized student through a controlled doorway.
+- **Student action**: Classify access events, identify policy gaps, and choose appropriate escalation or prevention steps.
+- **Simulated event**: The lab records which access-control indicators the student marked as normal, suspicious, or requiring escalation.
+- **Debrief evidence**: Door-held-open event, badge mismatch, missing visitor verification, unclear escort policy, and delayed reporting.
+- **Analysis prompts**: Explain the physical-space risk, identify the control failure, and recommend layered safeguards.
+- **Mitigation choices**: Visitor sign-in, badge verification, anti-tailgating reminder, door alarm review, staff reporting path, camera/log correlation.
+- **Teacher aggregate cues**: Indicator classification accuracy, most selected mitigation, reporting hesitation patterns, and reteaching topics.
+- **Research focus**: School-appropriate physical security policies, visitor-management language, privacy-sensitive surveillance discussion, and ethical reporting norms.
+
+### Unit 3: Traffic Anomaly And Segmentation Failure
+
+- **Scenario frame**: A student reviews a simplified network activity board showing routine service traffic mixed with suspicious cross-segment access.
+- **Student action**: Inspect synthetic traffic records, decide which flows are expected, and propose segmentation or monitoring improvements.
+- **Simulated event**: The lab records which traffic indicators the student classified as allowed, blocked, suspicious, or needing investigation.
+- **Debrief evidence**: Unexpected source/destination pair, unnecessary service exposure, missing deny rule, weak monitoring alert, and business-need exception.
+- **Analysis prompts**: Explain why the traffic pattern is risky, connect it to segmentation goals, and justify the best firewall or monitoring change.
+- **Mitigation choices**: Default-deny rule, explicit allowlist, segment separation, logging alert, service restriction, teacher-approved exception review.
+- **Teacher aggregate cues**: Commonly misunderstood flow, mitigation trade-off choices, rule-order confusion, and detection-vs-prevention balance.
+- **Research focus**: Conceptual network segmentation models, firewall-rule pedagogy, safe synthetic log examples, and AP-level terminology.
+
+### Unit 4: Endpoint Input-Capture Scenario
+
+- **Scenario frame**: A student uses a simulated shared workstation that displays lab-only prompts and later reveals how local input could be exposed.
+- **Student action**: Enter dummy lab text, inspect endpoint warning signs, and decide how to respond as a user and defender.
+- **Simulated event**: The lab records synthetic input-event labels and whether the student noticed device, process, or policy indicators.
+- **Debrief evidence**: Unknown helper application, suspicious permission request, unmanaged device cue, unexpected process label, and credential-entry warning.
+- **Analysis prompts**: Explain input-capture risk, identify detection evidence, and recommend endpoint hardening steps.
+- **Mitigation choices**: Do not enter real credentials, report device concern, use managed device, review application permissions, endpoint monitoring, least-privilege policy.
+- **Teacher aggregate cues**: Real-credential warning triggers, missed endpoint indicators, mitigation ranking, and student comfort with reporting.
+- **Research focus**: Safe explanation of input capture, endpoint hardening basics, student privacy considerations, and wording that avoids normalizing real keylogging.
+
+### Unit 5: Data Access Control Failure
+
+- **Scenario frame**: A student uses a toy records interface with synthetic data and discovers that the interface exposes a record they should not access.
+- **Student action**: Identify whether access is authorized, interpret the synthetic evidence, and recommend application/data protections.
+- **Simulated event**: The lab records which data-access warning signs the student identified and whether they attempted to proceed or report.
+- **Debrief evidence**: Unauthorized record visibility, missing server-side authorization, overbroad role, weak audit trail, and sensitive-data minimization issue.
+- **Analysis prompts**: Explain the access-control failure, evaluate data risk, and propose prevention and detection controls.
+- **Mitigation choices**: Server-side authorization check, least-privilege roles, audit logging, data minimization, error handling, report and stop workflow.
+- **Teacher aggregate cues**: Authorization-vs-authentication confusion, report/continue behavior, mitigation selection patterns, and evidence-use quality.
+- **Research focus**: Age-appropriate broken-access-control examples, synthetic data design, privacy framing, and safe application-security vocabulary.
+
 ## Mission Architecture
 
 V1 should extend the existing mission system instead of adding a parallel lab service.
