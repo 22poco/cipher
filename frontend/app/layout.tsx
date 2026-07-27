@@ -1,21 +1,30 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { AppNav } from "./components/app-nav";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import { config } from "@fortawesome/fontawesome-svg-core";
+import "@fortawesome/fontawesome-svg-core/styles.css";
+
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Font Awesome injects its own <style> at runtime by default; we ship the CSS
+// ourselves (imported above) so icons don't flash at their unstyled size.
+config.autoAddCss = false;
+
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "cipher",
-  description: "ap cybersecurity learning platform",
+  title: "Cipher — AP Cybersecurity Practice",
+  description:
+    "Practice-first AP Cybersecurity platform: missions, simulations, and teacher-graded evidence.",
 };
 
 export default function RootLayout({
@@ -26,14 +35,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full`}
     >
-      <body className="min-h-full bg-slate-50 text-slate-950">
-        <div className="flex min-h-screen flex-col">
-          <AppNav />
-          <div className="flex-1">{children}</div>
-        </div>
-      </body>
+      <body className="min-h-full bg-page text-ink">{children}</body>
     </html>
   );
 }

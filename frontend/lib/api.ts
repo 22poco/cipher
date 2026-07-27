@@ -1,4 +1,4 @@
-export type UserRole = "student" | "admin";
+export type UserRole = "student" | "teacher" | "admin";
 
 export type User = {
   id: number;
@@ -128,7 +128,12 @@ export class ApiError extends Error {
   }
 }
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/backend";
+
+function apiUrl(path: string): string {
+  const base = apiBaseUrl.replace(/\/$/, "");
+  return `${base}${path}`;
+}
 
 async function apiRequest<T>(
   path: string,
@@ -142,7 +147,7 @@ async function apiRequest<T>(
     headers.set("authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...options,
     headers,
   });
@@ -413,6 +418,696 @@ export function updateQuizOption(
   return apiRequest<QuizAdminOption>(
     `/admin/quiz-options/${optionId}`,
     { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+/* ===========================================================================
+   Practice-first mission platform (AP Cybersecurity foundation)
+   Types mirror the JSON returned by the FastAPI mission/attempt/teacher routers.
+=========================================================================== */
+
+export type SkillCode =
+  | "analyze_risk"
+  | "mitigate_risk"
+  | "detect_attacks"
+  | "collaborate";
+
+export type MissionType =
+  | "multiple_choice"
+  | "written_response"
+  | "case_investigation"
+  | "bash_simulation"
+  | "network_simulation"
+  | "attack_simulation";
+
+export type LabType =
+  | "credential_trap"
+  | "physical_tailgating"
+  | "network_anomaly"
+  | "device_input_capture"
+  | "app_data_access";
+
+export type LabDisclosureMode = "transparent" | "surprise";
+
+export type AttemptStatus =
+  | "not_started"
+  | "assigned"
+  | "started"
+  | "draft_saved"
+  | "submitted"
+  | "auto_checked"
+  | "needs_teacher_review"
+  | "graded"
+  | "returned";
+
+export type SupportSignal = "independent" | "ai" | "teacher" | "others";
+
+export type UnitRef = {
+  id: number;
+  order_index: number;
+  title: string;
+  accent: "green" | "blue" | "purple" | "orange" | "teal";
+};
+
+export type SkillTag = { code: SkillCode; title: string };
+
+export type MissionCard = {
+  id: number;
+  title: string;
+  summary: string;
+  mission_type: MissionType;
+  difficulty: string;
+  estimated_minutes: number;
+  unit: UnitRef;
+  skills: SkillTag[];
+  status: AttemptStatus;
+  attempt_id: number | null;
+  progress_percent: number;
+  due_at: string | null;
+  assignment_id?: number | null;
+  assigned?: boolean;
+};
+
+export type StudentDashboard = {
+  user: { id: number; name: string; role: UserRole };
+  sections: { id: number; name: string; period: string | null; term: string | null }[];
+  active_section: { id: number; name: string; period: string | null } | null;
+  metrics: {
+    streak_days: number;
+    missions_completed: number;
+    missions_assigned: number;
+    average_score: number;
+    support_used_week: number;
+  };
+  units: {
+    id: number;
+    order_index: number;
+    title: string;
+    accent: UnitRef["accent"];
+    progress_percent: number;
+    missions_total: number;
+    missions_completed: number;
+  }[];
+  recent_assignments: MissionCard[];
+  weekly_progress: {
+    points: { day: string; value: number }[];
+    time_practicing_minutes: number;
+    missions_attempted: number;
+    best_score: number;
+  };
+};
+
+export type MissionGroup = { unit: UnitRef; missions: MissionCard[] };
+
+export type SupportEvent = {
+  id: number;
+  from_signal: SupportSignal | null;
+  to_signal: SupportSignal;
+  note: string | null;
+  source: string;
+  created_at: string;
+};
+
+export type EvidenceEntry = {
+  id: number;
+  evidence_type: string;
+  payload: Record<string, unknown>;
+  updated_at: string;
+};
+
+export type MissionStep = { key: string; label: string; state: string };
+
+export type NetworkNode = {
+  id: string;
+  type: string;
+  label: string;
+  sub: string;
+  accent?: string;
+};
+export type FirewallRule = {
+  order: number;
+  action: "allow" | "deny";
+  source: string;
+  destination: string;
+  service: string;
+  port: string;
+};
+export type TrafficTest = {
+  source: string;
+  destination: string;
+  service: string;
+  expected: string;
+  actual: string;
+  passed: boolean;
+};
+export type NetworkPayload = {
+  topology: { nodes: NetworkNode[]; edges: [string, string][] };
+  firewall_rules: FirewallRule[];
+  traffic_tests: TrafficTest[];
+  notes: string;
+  steps?: MissionStep[];
+};
+
+export type AutoCheck = {
+  score: number;
+  max_score: number;
+  passed: boolean;
+  details: {
+    label?: string;
+    checks?: { name: string; passed: boolean }[];
+  };
+} | null;
+
+export type AttemptWorkspace = {
+  attempt: {
+    id: number;
+    status: AttemptStatus;
+    progress_percent: number;
+    active_support_signal: SupportSignal;
+    started_at: string | null;
+    submitted_at: string | null;
+    returned_at: string | null;
+    due_at: string | null;
+  };
+  mission: {
+    id: number;
+    title: string;
+    summary: string;
+    context_brief: string | null;
+    mission_type: MissionType;
+    difficulty: string;
+    estimated_minutes: number;
+    unit: UnitRef;
+    skills: SkillTag[];
+  };
+  steps: MissionStep[];
+  activity: MissionActivity;
+  evidence: EvidenceEntry[];
+  support: { signals: SupportSignal[]; active: SupportSignal; events: SupportEvent[] };
+  auto_check: AutoCheck;
+};
+
+export type MissionQuestion = {
+  id: number;
+  prompt: string;
+  options: string[];
+};
+
+export type MissionActivity = {
+  questions?: MissionQuestion[];
+  [key: string]: unknown;
+};
+
+/* ----- Simulated attack labs ---------------------------------------------- */
+
+export type LabIndicator = { id: string; title: string; detail: string };
+export type LabMitigationChoice = { id: string; label: string; rationale: string };
+export type LabAnalysisPrompt = {
+  id: string;
+  prompt: string;
+  skill_code: SkillCode;
+  required: boolean;
+};
+export type LabDummyIdentity = {
+  id: string;
+  display_name?: string;
+  username?: string;
+  passcode?: string;
+};
+export type LabSafeAction = { id: string; label: string };
+export type LabScenario = {
+  title?: string;
+  brief?: string;
+  task?: string;
+  [key: string]: unknown;
+};
+export type LabDebrief = {
+  summary: string;
+  timeline: { label: string; detail: string }[];
+  impact: string;
+  not_collected: string[];
+};
+export type LabEventRecord = {
+  event_type: string;
+  lab_type: string | null;
+  dummy_identity_id: string | null;
+  indicator_ids: string[];
+  choice_ids: string[];
+  debrief_unlocked: boolean;
+  at: string;
+};
+
+export type LabActivity = {
+  lab_type: LabType | null;
+  unit_alignment?: { unit: number; skills: SkillCode[] } | null;
+  disclosure_mode: LabDisclosureMode;
+  allowed_disclosure_modes: LabDisclosureMode[];
+  scenario: LabScenario | null;
+  dummy_identity?: LabDummyIdentity | null;
+  safe_actions: LabSafeAction[];
+  event_schema: { allowed_event_types: string[]; indicator_ids: string[] };
+  debrief_unlocked: boolean;
+  lab_events: LabEventRecord[];
+  transparency_notice: string | null;
+  debrief: LabDebrief | null;
+  indicators: LabIndicator[] | null;
+  mitigation_choices: LabMitigationChoice[] | null;
+  analysis_prompts: LabAnalysisPrompt[] | null;
+};
+
+export type LabEventSubmit = {
+  event_type: string;
+  lab_type?: string | null;
+  dummy_identity_id?: string | null;
+  indicator_ids?: string[];
+  choice_ids?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+export type LabAnalysisPayload = {
+  mitigation_choice_ids: string[];
+  responses: Record<string, string>;
+};
+
+export type LabSettings = {
+  section_id: number;
+  enabled: boolean;
+  enabled_by_user_id: number | null;
+  enabled_at: string | null;
+  acknowledgement_version: string;
+  retention_mode: string;
+  last_reset_at: string | null;
+  last_reset_by_user_id: number | null;
+};
+
+export type LabSettingsResponse = {
+  settings: LabSettings;
+  acknowledgement: { version: string; statements: string[] };
+};
+
+export type LabCatalogCard = MissionCard & {
+  lab_type: LabType | null;
+  default_disclosure_mode: LabDisclosureMode;
+  allowed_disclosure_modes: LabDisclosureMode[];
+  assigned: boolean;
+  assignment_id: number | null;
+  assigned_disclosure_mode: LabDisclosureMode | null;
+};
+
+export type LabCatalog = {
+  groups: { unit: UnitRef; labs: LabCatalogCard[] }[];
+  section_id: number | null;
+  lab_enabled: boolean;
+};
+
+export type LabSummary = {
+  section_id: number;
+  assignment_id: number | null;
+  total_attempts: number;
+  completed: number;
+  needs_review: number;
+  most_missed_indicators: { id: string; label: string; count: number }[];
+  mitigation_distribution: { id: string; label: string; count: number }[];
+  unit_coverage: {
+    unit_order: number;
+    unit_title: string;
+    attempts: number;
+    completed: number;
+  }[];
+  reset_state: { last_reset_at: string | null; last_reset_by_user_id: number | null };
+};
+
+export type AttemptListItem = {
+  attempt_id: number;
+  mission_id: number;
+  mission_title: string;
+  mission_type: MissionType;
+  unit: UnitRef;
+  skills: SkillTag[];
+  status: AttemptStatus;
+  active_support_signal: SupportSignal;
+  progress_percent: number;
+  started_at: string | null;
+  submitted_at: string | null;
+  returned_at: string | null;
+  due_at: string | null;
+  auto_check_passed: boolean | null;
+  final_score: number | null;
+};
+
+export type SupportSummary = {
+  counts: Record<SupportSignal, number>;
+  total_changes: number;
+  attempts_with_support: number;
+  threads: {
+    attempt_id: number;
+    mission_id: number;
+    mission_title: string;
+    unit: UnitRef;
+    status: AttemptStatus;
+    events: SupportEvent[];
+  }[];
+};
+
+export type AiSessionMessage = {
+  id: number;
+  role: "student" | "tutor";
+  content: string;
+  refused: boolean;
+  created_at: string;
+};
+
+export type AiSession = {
+  session: { id: number; model: string | null; assessment_mode: boolean; created_at: string } | null;
+  messages: AiSessionMessage[];
+};
+
+export type AuthConfig = {
+  google_enabled: boolean;
+  google_client_id: string | null;
+  google_allowed_domain: string;
+};
+
+export type CriterionScore = {
+  criterion_id: number;
+  skill_code: SkillCode;
+  skill_title: string;
+  criterion_title: string;
+  points_awarded: number;
+  points_possible: number;
+};
+
+export type GradeSummary = {
+  final_score: number | null;
+  max_score: number;
+  comment: string | null;
+  finalized_at: string | null;
+  criterion_scores: CriterionScore[];
+} | null;
+
+export type TeacherOverview = {
+  cards: {
+    active_sections: number;
+    missions_assigned: number;
+    awaiting_review: number;
+    returned_week: number;
+    average_score: number | null;
+  };
+  review_queue: ReviewQueueItem[];
+};
+
+export type ReviewQueueItem = {
+  attempt_id: number;
+  student: string;
+  mission: string;
+  unit: UnitRef;
+  section: string;
+  submitted_at: string | null;
+  auto_check_passed: boolean | null;
+  status: AttemptStatus;
+};
+
+export type SectionRow = {
+  id: number;
+  name: string;
+  period: string | null;
+  students: number;
+  missions_assigned: number;
+  average_score: number | null;
+  last_active: string | null;
+};
+
+export type TeacherSections = {
+  sections: SectionRow[];
+  recent_activity: { type: string; text: string; at: string | null }[];
+};
+
+export type GradebookRow = {
+  student_id: number;
+  student: string;
+  skills: Record<SkillCode, number | null>;
+  average: number | null;
+};
+
+export type Gradebook = {
+  sections: { id: number; name: string; period: string | null }[];
+  active_section_id: number | null;
+  skills: SkillTag[];
+  students: GradebookRow[];
+};
+
+export type AttemptReview = {
+  attempt: {
+    id: number;
+    status: AttemptStatus;
+    submitted_at: string | null;
+    active_support_signal: SupportSignal;
+  };
+  student: { id: number; name: string };
+  section: { id: number; name: string } | null;
+  mission: { id: number; title: string; mission_type: MissionType; unit: UnitRef };
+  evidence: EvidenceEntry[];
+  support_events: SupportEvent[];
+  auto_check: AutoCheck;
+  rubric: {
+    id: number;
+    title: string;
+    total_points: number;
+    criteria: {
+      id: number;
+      title: string;
+      description: string | null;
+      points: number;
+      skill_code: SkillCode;
+      skill_title: string;
+    }[];
+  } | null;
+  grade: GradeSummary;
+  grade_audit: {
+    old_value: Record<string, unknown> | null;
+    new_value: Record<string, unknown> | null;
+    reason: string | null;
+    created_at: string;
+  }[];
+};
+
+// ----- Student fetchers ---------------------------------------------------- //
+
+export function fetchStudentDashboard(token: string) {
+  return apiRequest<StudentDashboard>("/dashboard/student", {}, token);
+}
+
+export function fetchMissions(token: string) {
+  return apiRequest<{ groups: MissionGroup[] }>("/missions", {}, token);
+}
+
+export function fetchAttempt(attemptId: number, token: string) {
+  return apiRequest<AttemptWorkspace>(`/attempts/${attemptId}`, {}, token);
+}
+
+export function startAttempt(
+  payload: { mission_id: number; assignment_id?: number | null },
+  token: string,
+) {
+  return apiRequest<AttemptWorkspace>(
+    "/attempts",
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function saveAttemptDraft(
+  attemptId: number,
+  payload: { evidence_type: string; payload: Record<string, unknown>; progress_percent?: number },
+  token: string,
+) {
+  return apiRequest<{ status: string; attempt_status: AttemptStatus }>(
+    `/attempts/${attemptId}/draft`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function addSupportEvent(
+  attemptId: number,
+  payload: { to_signal: SupportSignal; note?: string | null },
+  token: string,
+) {
+  return apiRequest<SupportEvent>(
+    `/attempts/${attemptId}/support-events`,
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function submitAttempt(attemptId: number, token: string) {
+  return apiRequest<{ status: AttemptStatus; submitted_at: string }>(
+    `/attempts/${attemptId}/submit`,
+    { method: "POST" },
+    token,
+  );
+}
+
+export function submitLabEvent(
+  attemptId: number,
+  payload: LabEventSubmit,
+  token: string,
+) {
+  return apiRequest<{ event: LabEventRecord; activity: LabActivity }>(
+    `/attempts/${attemptId}/lab-events`,
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function sendTutorMessage(attemptId: number, content: string, token: string) {
+  return apiRequest<{ reply: string; refused: boolean; session_id: number }>(
+    `/ai/attempts/${attemptId}/messages`,
+    { method: "POST", body: JSON.stringify({ content }) },
+    token,
+  );
+}
+
+export function fetchAiSession(attemptId: number, token: string) {
+  return apiRequest<AiSession>(`/ai/attempts/${attemptId}/session`, {}, token);
+}
+
+export function fetchMyAttempts(token: string) {
+  return apiRequest<{ attempts: AttemptListItem[] }>("/attempts", {}, token);
+}
+
+export function fetchSupportSummary(token: string) {
+  return apiRequest<SupportSummary>("/attempts/support-summary", {}, token);
+}
+
+export function runAutoCheck(attemptId: number, token: string) {
+  return apiRequest<{ auto_check: AutoCheck; checked: boolean }>(
+    `/attempts/${attemptId}/auto-check`,
+    { method: "POST" },
+    token,
+  );
+}
+
+// ----- Auth / SSO ---------------------------------------------------------- //
+
+export function fetchAuthConfig() {
+  return apiRequest<AuthConfig>("/auth/config", {});
+}
+
+export function loginWithGoogle(credential: string) {
+  return apiRequest<AuthResponse>("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ credential }),
+  });
+}
+
+// ----- Teacher fetchers ---------------------------------------------------- //
+
+export function fetchTeacherOverview(token: string) {
+  return apiRequest<TeacherOverview>("/teacher/overview", {}, token);
+}
+
+export function fetchTeacherSections(token: string) {
+  return apiRequest<TeacherSections>("/teacher/sections", {}, token);
+}
+
+export function fetchGradebook(token: string, sectionId?: number) {
+  const query = sectionId ? `?section_id=${sectionId}` : "";
+  return apiRequest<Gradebook>(`/teacher/gradebook${query}`, {}, token);
+}
+
+export function fetchReviewQueue(token: string) {
+  return apiRequest<{ queue: ReviewQueueItem[] }>("/teacher/review-queue", {}, token);
+}
+
+export function fetchAttemptReview(attemptId: number, token: string) {
+  return apiRequest<AttemptReview>(`/teacher/attempts/${attemptId}`, {}, token);
+}
+
+export function gradeAttempt(
+  attemptId: number,
+  payload: {
+    final_score: number;
+    max_score?: number;
+    comment?: string | null;
+    criterion_scores?: { criterion_id: number; points_awarded: number }[];
+    finalize?: boolean;
+  },
+  token: string,
+) {
+  return apiRequest<{ status: AttemptStatus; grade: GradeSummary }>(
+    `/teacher/attempts/${attemptId}/grade`,
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+// ----- Teacher lab fetchers ------------------------------------------------ //
+
+export function fetchTeacherLabSettings(sectionId: number, token: string) {
+  return apiRequest<LabSettingsResponse>(
+    `/teacher/labs/sections/${sectionId}/settings`,
+    {},
+    token,
+  );
+}
+
+export function updateTeacherLabSettings(
+  sectionId: number,
+  payload: { enabled: boolean; acknowledgement_version?: string },
+  token: string,
+) {
+  return apiRequest<{ settings: LabSettings }>(
+    `/teacher/labs/sections/${sectionId}/settings`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function fetchTeacherLabCatalog(token: string, sectionId?: number) {
+  const query = sectionId ? `?section_id=${sectionId}` : "";
+  return apiRequest<LabCatalog>(`/teacher/labs/catalog${query}`, {}, token);
+}
+
+export function assignTeacherLab(
+  payload: {
+    mission_id: number;
+    section_id: number;
+    disclosure_mode: LabDisclosureMode;
+    due_at?: string | null;
+  },
+  token: string,
+) {
+  return apiRequest<{
+    assignment: {
+      id: number;
+      mission_id: number;
+      section_id: number;
+      disclosure_mode: LabDisclosureMode;
+      due_at: string | null;
+    };
+    mission: MissionCard;
+  }>("/teacher/labs/assignments", { method: "POST", body: JSON.stringify(payload) }, token);
+}
+
+export function fetchTeacherLabSummary(
+  token: string,
+  sectionId: number,
+  assignmentId?: number,
+) {
+  const query =
+    `?section_id=${sectionId}` + (assignmentId ? `&assignment_id=${assignmentId}` : "");
+  return apiRequest<LabSummary>(`/teacher/labs/summary${query}`, {}, token);
+}
+
+export function resetTeacherLabEvents(
+  payload: { section_id: number; assignment_id: number; confirm: boolean },
+  token: string,
+) {
+  return apiRequest<{ reset: { cleared_attempts: number; reset_at: string }; summary: LabSummary }>(
+    "/teacher/labs/reset",
+    { method: "POST", body: JSON.stringify(payload) },
     token,
   );
 }

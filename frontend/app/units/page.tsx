@@ -1,85 +1,119 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useCallback } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faArrowRight,
+  faDatabase,
+  faLaptop,
+  faLock,
+  faNetworkWired,
+  faShieldHalved,
+  type IconDefinition,
+} from "@fortawesome/free-solid-svg-icons";
 
-import { CourseLoader } from "../components/course-loader";
-import { fetchUnits, type Unit } from "@/lib/api";
+import { fetchMissions, type MissionGroup } from "@/lib/api";
+import { getToken } from "@/lib/auth";
+import { AppShell } from "../components/app-shell";
+import { Card, ProgressBar, UNIT_ACCENTS } from "../components/ui";
 
-export default function UnitsPage() {
-  const loadUnits = useCallback((token: string) => fetchUnits(token), []);
+const UNIT_ICONS: Record<number, IconDefinition> = {
+  1: faShieldHalved,
+  2: faLock,
+  3: faNetworkWired,
+  4: faLaptop,
+  5: faDatabase,
+};
+
+const COMPLETED = ["submitted", "auto_checked", "needs_teacher_review", "graded", "returned"];
+
+function unitProgress(group: MissionGroup) {
+  const total = group.missions.length;
+  const completed = group.missions.filter((m) => COMPLETED.includes(m.status)).length;
+  return { total, completed, percent: total ? Math.round((100 * completed) / total) : 0 };
+}
+
+function UnitsContent() {
+  const [groups, setGroups] = useState<MissionGroup[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    fetchMissions(token)
+      .then((res) => setGroups(res.groups))
+      .catch(() => setError("We couldn't load the units."));
+  }, []);
+
+  if (error) return <p className="p-6 text-sm text-rose-600">{error}</p>;
+  if (!groups) {
+    return (
+      <div className="space-y-4 p-6">
+        <div className="h-8 w-56 animate-pulse rounded bg-slate-200" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-40 animate-pulse rounded-2xl bg-slate-200" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <CourseLoader load={loadUnits}>
-      {(units: Unit[]) => (
-        <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
-          <div className="grid gap-2">
-            <p className="text-sm font-semibold text-emerald-700">course structure</p>
-            <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
-              units
-            </h1>
-            <p className="max-w-2xl text-sm leading-6 text-slate-600">
-              browse the course structure. unit 1 is seeded with placeholder
-              modules and lessons so content can be expanded next.
-            </p>
-          </div>
+    <div className="space-y-6 p-4 sm:p-6">
+      <header>
+        <h1 className="text-2xl font-bold text-ink sm:text-3xl">AP Cybersecurity Units</h1>
+        <p className="mt-1 text-sm text-muted">
+          Five units, each a set of hands-on missions. Open a unit to practice its missions.
+        </p>
+      </header>
 
-          {units.length === 0 ? (
-            <section className="rounded-md border border-slate-200 bg-white p-5 text-sm text-slate-600">
-              no units have been added yet. run the course seed script to add unit 1.
-            </section>
-          ) : (
-            <section className="grid gap-4">
-              {units.map((unit) => (
-                <article
-                  key={unit.id}
-                  className="rounded-md border border-slate-200 bg-white p-5"
-                >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-500">
-                        unit {unit.order_index}
-                      </p>
-                      <h2 className="mt-1 text-2xl font-semibold text-slate-950">
-                        {unit.title}
-                      </h2>
-                      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                        {unit.description}
-                      </p>
-                    </div>
-                    <Link
-                      href={`/units/${unit.id}`}
-                      className="flex h-10 w-fit items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-                    >
-                      open unit
-                    </Link>
-                  </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {groups.map((group) => {
+          const accent = UNIT_ACCENTS[group.unit.accent];
+          const { total, completed, percent } = unitProgress(group);
+          return (
+            <Link key={group.unit.id} href={`/units/${group.unit.id}`}>
+              <Card className="h-full p-5 transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="flex items-start justify-between">
+                  <span
+                    className={`grid h-11 w-11 place-items-center rounded-xl text-base font-bold text-white ${accent.bar}`}
+                  >
+                    {group.unit.order_index}
+                  </span>
+                  <span className={`grid h-9 w-9 place-items-center rounded-lg ${accent.iconBg}`}>
+                    <FontAwesomeIcon
+                      icon={UNIT_ICONS[group.unit.order_index] ?? faShieldHalved}
+                      aria-hidden="true"
+                    />
+                  </span>
+                </div>
+                <h2 className="mt-3 text-base font-semibold text-ink">{group.unit.title}</h2>
+                <p className="mt-1 text-xs text-muted">
+                  {completed} of {total} missions completed
+                </p>
+                <div className="mt-3 flex items-center gap-3">
+                  <ProgressBar value={percent} className="flex-1" barClassName={accent.bar} />
+                  <span className="text-xs font-semibold text-ink">{percent}%</span>
+                </div>
+                <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                  Open unit
+                  <FontAwesomeIcon icon={faArrowRight} className="text-xs" aria-hidden="true" />
+                </span>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
-                  <div className="mt-5 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                    <span className="rounded-md bg-slate-100 px-2 py-1">
-                      {unit.modules.length} modules
-                    </span>
-                    <span className="rounded-md bg-slate-100 px-2 py-1">
-                      {unit.modules.reduce(
-                        (lessonCount, module) => lessonCount + module.lessons.length,
-                        0,
-                      )}{" "}
-                      lessons
-                    </span>
-                  </div>
-                </article>
-              ))}
-            </section>
-          )}
-
-          <Link
-            href="/dashboard"
-            className="w-fit rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-          >
-            back to dashboard
-          </Link>
-        </main>
-      )}
-    </CourseLoader>
+export default function UnitsPage() {
+  return (
+    <AppShell active="units" expectRole="student">
+      <UnitsContent />
+    </AppShell>
   );
 }
