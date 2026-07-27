@@ -27,6 +27,7 @@ from ..models import (
     SupportEvent,
     User,
 )
+from ..services import labs
 from ..services.permissions import assert_teacher_can_review, teacher_section_ids
 from ..services.serializers import (
     grade_summary,
@@ -34,6 +35,15 @@ from ..services.serializers import (
     serialize_support_event,
     serialize_unit_ref,
 )
+
+
+def _serialize_review_evidence(evidence) -> dict:
+    """Serialize evidence for teacher review, re-projecting lab events to safe keys."""
+
+    payload = serialize_evidence(evidence)
+    if evidence.evidence_type == labs.LAB_EVENTS_EVIDENCE:
+        payload["payload"] = labs.sanitize_lab_events_payload(evidence.payload_json)
+    return payload
 
 router = APIRouter(prefix="/teacher", tags=["teacher"])
 
@@ -448,7 +458,7 @@ def review_attempt(
             "mission_type": mission.mission_type,
             "unit": serialize_unit_ref(mission.unit),
         },
-        "evidence": [serialize_evidence(e) for e in attempt.evidence],
+        "evidence": [_serialize_review_evidence(e) for e in attempt.evidence],
         "support_events": [serialize_support_event(e) for e in attempt.support_events],
         "auto_check": (
             {

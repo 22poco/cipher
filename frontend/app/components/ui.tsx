@@ -150,6 +150,7 @@ export const MISSION_TYPE_LABEL: Record<MissionType, string> = {
   case_investigation: "Case Investigation",
   bash_simulation: "Safe Bash Simulation",
   network_simulation: "Interactive Network Simulation",
+  attack_simulation: "Simulated Attack Lab",
 };
 
 /* Skill chips --------------------------------------------------------------- */

@@ -10,6 +10,7 @@ from .routers import (
     auth,
     courses,
     dashboard,
+    labs,
     missions,
     progress,
     quizzes,
@@ -34,6 +35,7 @@ app.include_router(dashboard.router)
 app.include_router(missions.router)
 app.include_router(attempts.router)
 app.include_router(teacher.router)
+app.include_router(labs.router)
 app.include_router(ai.router)
 
 @app.get("/")

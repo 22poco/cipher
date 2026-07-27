@@ -438,7 +438,17 @@ export type MissionType =
   | "written_response"
   | "case_investigation"
   | "bash_simulation"
-  | "network_simulation";
+  | "network_simulation"
+  | "attack_simulation";
+
+export type LabType =
+  | "credential_trap"
+  | "physical_tailgating"
+  | "network_anomaly"
+  | "device_input_capture"
+  | "app_data_access";
+
+export type LabDisclosureMode = "transparent" | "surprise";
 
 export type AttemptStatus =
   | "not_started"
@@ -607,6 +617,125 @@ export type MissionQuestion = {
 export type MissionActivity = {
   questions?: MissionQuestion[];
   [key: string]: unknown;
+};
+
+/* ----- Simulated attack labs ---------------------------------------------- */
+
+export type LabIndicator = { id: string; title: string; detail: string };
+export type LabMitigationChoice = { id: string; label: string; rationale: string };
+export type LabAnalysisPrompt = {
+  id: string;
+  prompt: string;
+  skill_code: SkillCode;
+  required: boolean;
+};
+export type LabDummyIdentity = {
+  id: string;
+  display_name?: string;
+  username?: string;
+  passcode?: string;
+};
+export type LabSafeAction = { id: string; label: string };
+export type LabScenario = {
+  title?: string;
+  brief?: string;
+  task?: string;
+  [key: string]: unknown;
+};
+export type LabDebrief = {
+  summary: string;
+  timeline: { label: string; detail: string }[];
+  impact: string;
+  not_collected: string[];
+};
+export type LabEventRecord = {
+  event_type: string;
+  lab_type: string | null;
+  dummy_identity_id: string | null;
+  indicator_ids: string[];
+  choice_ids: string[];
+  debrief_unlocked: boolean;
+  at: string;
+};
+
+export type LabActivity = {
+  lab_type: LabType | null;
+  unit_alignment?: { unit: number; skills: SkillCode[] } | null;
+  disclosure_mode: LabDisclosureMode;
+  allowed_disclosure_modes: LabDisclosureMode[];
+  scenario: LabScenario | null;
+  dummy_identity?: LabDummyIdentity | null;
+  safe_actions: LabSafeAction[];
+  event_schema: { allowed_event_types: string[]; indicator_ids: string[] };
+  debrief_unlocked: boolean;
+  lab_events: LabEventRecord[];
+  transparency_notice: string | null;
+  debrief: LabDebrief | null;
+  indicators: LabIndicator[] | null;
+  mitigation_choices: LabMitigationChoice[] | null;
+  analysis_prompts: LabAnalysisPrompt[] | null;
+};
+
+export type LabEventSubmit = {
+  event_type: string;
+  lab_type?: string | null;
+  dummy_identity_id?: string | null;
+  indicator_ids?: string[];
+  choice_ids?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+export type LabAnalysisPayload = {
+  mitigation_choice_ids: string[];
+  responses: Record<string, string>;
+};
+
+export type LabSettings = {
+  section_id: number;
+  enabled: boolean;
+  enabled_by_user_id: number | null;
+  enabled_at: string | null;
+  acknowledgement_version: string;
+  retention_mode: string;
+  last_reset_at: string | null;
+  last_reset_by_user_id: number | null;
+};
+
+export type LabSettingsResponse = {
+  settings: LabSettings;
+  acknowledgement: { version: string; statements: string[] };
+};
+
+export type LabCatalogCard = MissionCard & {
+  lab_type: LabType | null;
+  default_disclosure_mode: LabDisclosureMode;
+  allowed_disclosure_modes: LabDisclosureMode[];
+  assigned: boolean;
+  assignment_id: number | null;
+  assigned_disclosure_mode: LabDisclosureMode | null;
+};
+
+export type LabCatalog = {
+  groups: { unit: UnitRef; labs: LabCatalogCard[] }[];
+  section_id: number | null;
+  lab_enabled: boolean;
+};
+
+export type LabSummary = {
+  section_id: number;
+  assignment_id: number | null;
+  total_attempts: number;
+  completed: number;
+  needs_review: number;
+  most_missed_indicators: { id: string; label: string; count: number }[];
+  mitigation_distribution: { id: string; label: string; count: number }[];
+  unit_coverage: {
+    unit_order: number;
+    unit_title: string;
+    attempts: number;
+    completed: number;
+  }[];
+  reset_state: { last_reset_at: string | null; last_reset_by_user_id: number | null };
 };
 
 export type AttemptListItem = {
@@ -820,6 +949,18 @@ export function submitAttempt(attemptId: number, token: string) {
   );
 }
 
+export function submitLabEvent(
+  attemptId: number,
+  payload: LabEventSubmit,
+  token: string,
+) {
+  return apiRequest<{ event: LabEventRecord; activity: LabActivity }>(
+    `/attempts/${attemptId}/lab-events`,
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
 export function sendTutorMessage(attemptId: number, content: string, token: string) {
   return apiRequest<{ reply: string; refused: boolean; session_id: number }>(
     `/ai/attempts/${attemptId}/messages`,
@@ -897,6 +1038,75 @@ export function gradeAttempt(
 ) {
   return apiRequest<{ status: AttemptStatus; grade: GradeSummary }>(
     `/teacher/attempts/${attemptId}/grade`,
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+// ----- Teacher lab fetchers ------------------------------------------------ //
+
+export function fetchTeacherLabSettings(sectionId: number, token: string) {
+  return apiRequest<LabSettingsResponse>(
+    `/teacher/labs/sections/${sectionId}/settings`,
+    {},
+    token,
+  );
+}
+
+export function updateTeacherLabSettings(
+  sectionId: number,
+  payload: { enabled: boolean; acknowledgement_version?: string },
+  token: string,
+) {
+  return apiRequest<{ settings: LabSettings }>(
+    `/teacher/labs/sections/${sectionId}/settings`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function fetchTeacherLabCatalog(token: string, sectionId?: number) {
+  const query = sectionId ? `?section_id=${sectionId}` : "";
+  return apiRequest<LabCatalog>(`/teacher/labs/catalog${query}`, {}, token);
+}
+
+export function assignTeacherLab(
+  payload: {
+    mission_id: number;
+    section_id: number;
+    disclosure_mode: LabDisclosureMode;
+    due_at?: string | null;
+  },
+  token: string,
+) {
+  return apiRequest<{
+    assignment: {
+      id: number;
+      mission_id: number;
+      section_id: number;
+      disclosure_mode: LabDisclosureMode;
+      due_at: string | null;
+    };
+    mission: MissionCard;
+  }>("/teacher/labs/assignments", { method: "POST", body: JSON.stringify(payload) }, token);
+}
+
+export function fetchTeacherLabSummary(
+  token: string,
+  sectionId: number,
+  assignmentId?: number,
+) {
+  const query =
+    `?section_id=${sectionId}` + (assignmentId ? `&assignment_id=${assignmentId}` : "");
+  return apiRequest<LabSummary>(`/teacher/labs/summary${query}`, {}, token);
+}
+
+export function resetTeacherLabEvents(
+  payload: { section_id: number; assignment_id: number; confirm: boolean },
+  token: string,
+) {
+  return apiRequest<{ reset: { cleared_attempts: number; reset_at: string }; summary: LabSummary }>(
+    "/teacher/labs/reset",
     { method: "POST", body: JSON.stringify(payload) },
     token,
   );

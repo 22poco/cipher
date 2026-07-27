@@ -31,6 +31,7 @@ import {
   type AttemptWorkspace,
   type AutoCheck,
   type FirewallRule,
+  type LabActivity,
   type MissionQuestion,
   type NetworkNode,
   type NetworkPayload,
@@ -42,6 +43,7 @@ import { formatDueLabel, formatTime } from "@/lib/format";
 import { SUPPORT_META, SUPPORT_ORDER } from "@/lib/support";
 import { AppShell } from "../../components/app-shell";
 import { AiTutorPanel } from "../../components/ai-tutor-panel";
+import { AttackSimulationRenderer } from "../../components/attack-simulation-renderer";
 import { Card, ProgressBar, UNIT_ACCENTS } from "../../components/ui";
 
 const NODE_ICONS: Record<string, IconDefinition> = {
@@ -733,6 +735,7 @@ function Workspace() {
   const [events, setEvents] = useState<SupportEvent[]>([]);
   const [activeSignal, setActiveSignal] = useState<SupportSignal>("independent");
   const [submitState, setSubmitState] = useState<"idle" | "loading" | "done">("idle");
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const started = useRef(false);
 
   useEffect(() => {
@@ -767,13 +770,17 @@ function Workspace() {
     const token = getToken();
     if (!token) return;
     setSubmitState("loading");
+    setSubmitError(null);
     try {
       await submitAttempt(data.attempt.id, token);
       setSubmitState("done");
       const refreshed = await fetchAttempt(data.attempt.id, token);
       setData(refreshed);
-    } catch {
+    } catch (err) {
       setSubmitState("idle");
+      setSubmitError(
+        err instanceof Error ? err.message : "We couldn't submit this attempt.",
+      );
     }
   }
 
@@ -860,6 +867,9 @@ function Workspace() {
             </button>
           </div>
         </div>
+        {submitError && (
+          <p className="mt-2 text-right text-xs font-medium text-rose-600">{submitError}</p>
+        )}
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <span className="inline-flex items-center gap-1.5 text-xs text-muted">
             <FontAwesomeIcon icon={faLock} className="text-[10px]" aria-hidden="true" />
@@ -882,7 +892,17 @@ function Workspace() {
         </div>
 
         <div className="space-y-4">
-          {mission.mission_type === "multiple_choice" && mcqQuestions.length > 0 ? (
+          {mission.mission_type === "attack_simulation" ? (
+            <AttackSimulationRenderer
+              attemptId={attempt.id}
+              mission={mission}
+              activity={data.activity as unknown as LabActivity}
+              evidence={data.evidence}
+              token={token}
+              submitted={submitted}
+              onActivityUpdated={refresh}
+            />
+          ) : mission.mission_type === "multiple_choice" && mcqQuestions.length > 0 ? (
             <MCQRenderer
               attemptId={attempt.id}
               mission={mission}

@@ -272,6 +272,9 @@ class ClassSection(Base):
     enrollments: Mapped[list["SectionEnrollment"]] = relationship(
         cascade="all, delete-orphan", back_populates="section"
     )
+    lab_settings: Mapped["SectionLabSettings | None"] = relationship(
+        cascade="all, delete-orphan", back_populates="section", uselist=False
+    )
 
 
 class SectionTeacher(Base):
@@ -406,10 +409,44 @@ class MissionAssignment(Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     due_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # Nullable override used only by attack_simulation lab assignments:
+    # "transparent" | "surprise". Non-lab assignments leave this NULL.
+    lab_disclosure_mode: Mapped[str | None] = mapped_column(String(20))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 
     mission: Mapped[Mission] = relationship()
     section: Mapped[ClassSection] = relationship()
+
+
+class SectionLabSettings(Base):
+    """Per-section enablement for simulated attack labs.
+
+    Simulated attack labs require an explicit teacher acknowledgement before
+    they can be assigned or attempted in a section. One row per section.
+    """
+
+    __tablename__ = "section_lab_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    section_id: Mapped[int] = mapped_column(
+        ForeignKey("class_sections.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    enabled_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    enabled_at: Mapped[datetime | None] = mapped_column(DateTime)
+    acknowledgement_version: Mapped[str] = mapped_column(String(20), nullable=False, default="v1")
+    retention_mode: Mapped[str] = mapped_column(String(30), nullable=False, default="teacher_cleared")
+    last_reset_at: Mapped[datetime | None] = mapped_column(DateTime)
+    last_reset_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+
+    section: Mapped[ClassSection] = relationship(back_populates="lab_settings")
 
 
 class MissionAttempt(Base):

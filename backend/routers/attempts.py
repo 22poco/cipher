@@ -20,6 +20,7 @@ from ..models import (
     SupportEvent,
     User,
 )
+from ..services import labs
 from ..services.autocheck import run_auto_check
 from ..services.permissions import assert_owns_attempt
 from ..services.serializers import (
@@ -51,6 +52,17 @@ class DraftBody(BaseModel):
 class SupportEventBody(BaseModel):
     to_signal: str
     note: str | None = None
+
+
+class LabEventBody(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    event_type: str
+    lab_type: str | None = None
+    dummy_identity_id: str | None = None
+    indicator_ids: list[str] = []
+    choice_ids: list[str] = []
+    metadata: dict = {}
 
 
 def _now() -> datetime:
@@ -105,6 +117,41 @@ def _resolve_assignment_id(
     return resolved
 
 
+def _resolve_lab_assignment_id(
+    db: Session,
+    user: User,
+    mission_id: int,
+    assignment_id: int | None,
+) -> int | None:
+    """Resolve a lab attempt to an assignment in a *lab-enabled* section.
+
+    A student may have the same lab assigned in several sections; when the client
+    omits ``assignment_id`` we must pick one whose section has lab mode enabled,
+    otherwise a valid start (surfaced by ``/missions`` because another section is
+    enabled) would be wrongly rejected. Enrollment scoping still applies, so this
+    never resolves to a section the student isn't in.
+    """
+
+    rows = db.execute(
+        select(MissionAssignment.id, MissionAssignment.section_id)
+        .join(
+            SectionEnrollment,
+            SectionEnrollment.section_id == MissionAssignment.section_id,
+        )
+        .where(
+            MissionAssignment.mission_id == mission_id,
+            SectionEnrollment.student_user_id == user.id,
+            SectionEnrollment.status == "active",
+        )
+    ).all()
+    if assignment_id is not None:
+        rows = [row for row in rows if row[0] == assignment_id]
+    for aid, section_id in rows:
+        if labs.lab_mode_enabled(db, section_id):
+            return aid
+    return None
+
+
 def _workspace_payload(db: Session, attempt: MissionAttempt) -> dict:
     mission = attempt.mission
     evidence = {e.evidence_type: e.payload_json for e in attempt.evidence}
@@ -117,10 +164,19 @@ def _workspace_payload(db: Session, attempt: MissionAttempt) -> dict:
     if steps is None:
         steps = mission.steps_json or []
 
-    due_at = None
-    if attempt.assignment_id:
-        assignment = db.get(MissionAssignment, attempt.assignment_id)
-        due_at = assignment.due_at if assignment else None
+    assignment = (
+        db.get(MissionAssignment, attempt.assignment_id) if attempt.assignment_id else None
+    )
+    due_at = assignment.due_at if assignment else None
+
+    # Attack-simulation labs return server-filtered activity (surprise-reveal
+    # content stays hidden until a synthetic event unlocks the debrief); every
+    # other mission type returns its public activity JSON unchanged.
+    if labs.is_attack_simulation(mission):
+        disclosure_mode = labs.resolve_lab_disclosure_mode(mission, assignment)
+        activity = labs.student_lab_activity(mission, attempt, disclosure_mode)
+    else:
+        activity = public_activity(mission)
 
     auto = attempt.auto_check
     return {
@@ -149,7 +205,7 @@ def _workspace_payload(db: Session, attempt: MissionAttempt) -> dict:
             ],
         },
         "steps": steps,
-        "activity": public_activity(mission),
+        "activity": activity,
         "evidence": [serialize_evidence(e) for e in attempt.evidence],
         "support": {
             "signals": SUPPORT_SIGNALS,
@@ -181,12 +237,19 @@ def start_attempt(
 
     # Resolve the assignment for this mission in one of the student's sections so
     # the attempt is section-scoped and reachable by the section's teacher.
-    assignment_id = _resolve_assignment_id(
-        db,
-        current_user,
-        body.mission_id,
-        body.assignment_id,
-    )
+    # Attack-simulation labs resolve to a *lab-enabled* section (a multi-section
+    # student may have the same lab assigned in a disabled section too), then
+    # re-check lab mode on every start so a stale assignment can't reopen a lab
+    # after lab mode is later disabled.
+    if labs.is_attack_simulation(mission):
+        assignment_id = _resolve_lab_assignment_id(
+            db, current_user, body.mission_id, body.assignment_id
+        )
+        labs.assert_lab_enabled_for_assignment(db, mission, assignment_id)
+    else:
+        assignment_id = _resolve_assignment_id(
+            db, current_user, body.mission_id, body.assignment_id
+        )
 
     existing = (
         db.execute(
@@ -402,6 +465,14 @@ def save_draft(
     assert_owns_attempt(current_user, attempt)
     _ensure_editable(attempt)
 
+    # Lab events are synthetic evidence that must go through the sanitizing
+    # lab-event endpoint — never the generic draft writer.
+    if body.evidence_type == labs.LAB_EVENTS_EVIDENCE:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="lab events must be sent to the lab-event endpoint",
+        )
+
     evidence = db.execute(
         select(AttemptEvidence).where(
             AttemptEvidence.attempt_id == attempt.id,
@@ -458,6 +529,50 @@ def add_support_event(
     return serialize_support_event(event)
 
 
+@router.post("/{attempt_id}/lab-events", status_code=status.HTTP_201_CREATED)
+def add_lab_event(
+    attempt_id: int,
+    body: LabEventBody,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Record one sanitized, synthetic lab event and return refreshed activity.
+
+    Rejects anything but allow-listed event labels, indicator ids, choice ids,
+    and dummy identity ids from the mission's own config. Raw credentials, typed
+    input, tokens, and session material never reach the database.
+    """
+
+    attempt = _load_attempt(db, attempt_id)
+    assert_owns_attempt(current_user, attempt)
+    _ensure_editable(attempt)
+
+    mission = attempt.mission
+    if not labs.is_attack_simulation(mission):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="this mission is not a simulated attack lab",
+        )
+
+    # Re-check lab mode so events cannot be appended after lab mode is disabled.
+    labs.assert_lab_enabled_for_assignment(db, mission, attempt.assignment_id)
+
+    clean_event = labs.validate_lab_event(mission, body.model_dump())
+    labs.append_lab_event(db, attempt, clean_event)
+    if attempt.status in ("assigned", "started"):
+        attempt.status = "draft_saved"
+    db.commit()
+    db.refresh(attempt)
+
+    disclosure_mode = labs.resolve_lab_disclosure_mode(
+        mission, attempt.assignment if attempt.assignment_id else None
+    )
+    return {
+        "event": clean_event,
+        "activity": labs.student_lab_activity(mission, attempt, disclosure_mode),
+    }
+
+
 @router.post("/{attempt_id}/submit")
 def submit_attempt(
     attempt_id: int,
@@ -473,6 +588,18 @@ def submit_attempt(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="add your evidence before submitting",
         )
+
+    # Lab missions are graded on analysis, so written analysis is required before
+    # a lab attempt can enter the teacher-review lifecycle.
+    if labs.is_attack_simulation(attempt.mission):
+        has_analysis = any(
+            e.evidence_type == labs.LAB_ANALYSIS_EVIDENCE for e in attempt.evidence
+        )
+        if not has_analysis:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="complete the debrief analysis before submitting this lab",
+            )
 
     attempt.submitted_at = _now()
     attempt.progress_percent = 100

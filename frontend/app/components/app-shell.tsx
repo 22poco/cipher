@@ -77,6 +77,7 @@ const TEACHER_NAV: NavGroup[] = [
       { key: "sections", label: "Sections", icon: faUsersRectangle, href: "/teacher/sections" },
       { key: "assignments", label: "Assignments", icon: faClipboardList, href: "/teacher" },
       { key: "gradebook", label: "Gradebook", icon: faTableList, href: "/teacher/gradebook" },
+      { key: "labs", label: "Simulated Labs", icon: faShieldHalved, href: "/teacher/labs" },
       { key: "attempts", label: "Attempts", icon: faFileCircleCheck, href: "/teacher" },
       { key: "students", label: "Students", icon: faUsers, href: "/teacher/sections" },
       { key: "reports", label: "Reports", icon: faChartLine, href: "/teacher" },

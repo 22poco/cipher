@@ -16,6 +16,7 @@ from ..models import (
     Unit,
     User,
 )
+from ..services import labs
 from ..services.serializers import (
     mission_card,
     public_activity,
@@ -46,7 +47,13 @@ def list_missions(
     # Due dates from assignments to the student's sections.
     due_by_mission: dict[int, object] = {}
     assignment_by_mission: dict[int, int] = {}
+    # Missions assigned in a section that has lab mode enabled (attack_simulation
+    # labs are only visible to the student when this is true).
+    lab_enabled_missions: set[int] = set()
     if section_ids:
+        lab_enabled_sections = {
+            sid for sid in section_ids if labs.lab_mode_enabled(db, sid)
+        }
         assignments = (
             db.execute(
                 select(MissionAssignment).where(
@@ -59,6 +66,8 @@ def list_missions(
         for a in assignments:
             due_by_mission[a.mission_id] = a.due_at
             assignment_by_mission[a.mission_id] = a.id
+            if a.section_id in lab_enabled_sections:
+                lab_enabled_missions.add(a.mission_id)
 
     attempts = (
         db.execute(
@@ -92,6 +101,10 @@ def list_missions(
             continue
         cards = []
         for mission in unit_missions:
+            # Simulated attack labs appear only when assigned in a lab-enabled
+            # section; everything else lists as usual.
+            if labs.is_attack_simulation(mission) and mission.id not in lab_enabled_missions:
+                continue
             card = mission_card(
                 mission,
                 attempt_by_mission.get(mission.id),
@@ -99,6 +112,8 @@ def list_missions(
             )
             card["assignment_id"] = assignment_by_mission.get(mission.id)
             card["assigned"] = mission.id in assignment_by_mission
+            if labs.is_attack_simulation(mission):
+                card["lab_type"] = (mission.activity_json or {}).get("lab_type")
             cards.append(card)
         groups.append(
             {
@@ -118,6 +133,17 @@ def get_mission(
 ):
     mission = db.get(Mission, mission_id)
     if mission is None or not mission.published:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="mission not found")
+
+    # Simulated attack labs are gated: a student may only see one assigned in a
+    # lab-enabled section. Teachers/admins may inspect any lab. Either way, the
+    # detail read never exposes debrief triggers, indicators, or answer keys.
+    is_lab = labs.is_attack_simulation(mission)
+    if (
+        is_lab
+        and current_user.role == "student"
+        and not labs.student_can_access_lab(db, current_user, mission)
+    ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="mission not found")
 
     attempt = (
@@ -149,7 +175,7 @@ def get_mission(
         ],
         "rubric": serialize_rubric(mission),
         "steps": mission.steps_json or [],
-        "activity": public_activity(mission),
+        "activity": labs.lab_public_detail(mission) if is_lab else public_activity(mission),
         "attempt_id": attempt.id if attempt else None,
         "attempt_status": attempt.status if attempt else "not_started",
     }

@@ -20,7 +20,9 @@ from sqlalchemy.orm import Session
 
 from .auth import hash_password
 from .database import Base, SessionLocal, engine
+from .services import lab_content
 from .services.autocheck import run_auto_check
+from .services.labs import ATTACK_SIMULATION_TYPE
 from .models import (
     AiTutorMessage,
     AiTutorSession,
@@ -37,6 +39,7 @@ from .models import (
     MissionSkillLink,
     RubricCriterion,
     SectionEnrollment,
+    SectionLabSettings,
     SectionTeacher,
     SupportEvent,
     Unit,
@@ -171,6 +174,15 @@ MCQ_STEPS = [
     {"key": "review", "label": "Review & Submit", "state": "available"},
 ]
 
+# Task sidebar steps shared by every simulated attack lab.
+LAB_STEPS = [
+    {"key": "scenario", "label": "Scenario", "state": "current"},
+    {"key": "interaction", "label": "Interaction", "state": "available"},
+    {"key": "debrief", "label": "Debrief", "state": "available"},
+    {"key": "analysis", "label": "Analysis", "state": "available"},
+    {"key": "submit", "label": "Submit", "state": "available"},
+]
+
 PHISHING_MCQ = {
     "questions": [
         {
@@ -238,6 +250,138 @@ CRYPTO_MCQ = {
 
 def d(*args) -> datetime:
     return datetime(*args)
+
+
+# Per-unit disclosure mode for the Period 3 lab assignments (mixed for demo).
+LAB_DISCLOSURE_BY_UNIT = {1: "surprise", 2: "transparent", 3: "transparent", 4: "transparent", 5: "surprise"}
+
+# Dummy identity id per lab that carries one (credential / input-capture labs).
+LAB_DUMMY_IDENTITY = {"credential_trap": "lab-alex-042", "device_input_capture": "lab-workstation-07"}
+
+
+def _lab_event(mission: Mission, event_type: str, noticed: list[str], when: datetime) -> dict:
+    """A sanitized synthetic lab event — never any raw credential or typed input."""
+
+    config = mission.activity_json or {}
+    lab_type = config.get("lab_type")
+    return {
+        "event_type": event_type,
+        "lab_type": lab_type,
+        "dummy_identity_id": LAB_DUMMY_IDENTITY.get(lab_type),
+        "indicator_ids": noticed,
+        "choice_ids": [],
+        "debrief_unlocked": True,
+        "at": when.isoformat(),
+    }
+
+
+def seed_attack_labs(db, units, skills, teacher, students, period3) -> None:
+    """Seed five unit labs, enable Period 3 lab mode, assign them, and populate
+    a few synthetic attempts so the teacher dashboard has live aggregate data."""
+
+    # 1) Lab missions + rubrics.
+    lab_missions: dict[int, Mission] = {}
+    for unit_order, title, summary, brief, builder in lab_content.LAB_MISSIONS:
+        mission, created = get_or_create(
+            db, Mission,
+            {
+                "summary": summary, "context_brief": brief,
+                "mission_type": ATTACK_SIMULATION_TYPE, "difficulty": "Intermediate",
+                "estimated_minutes": 25, "order_index": 5,
+                "assessment_mode": True, "published": True,
+            },
+            unit_id=units[unit_order].id, title=title,
+        )
+        lab_missions[unit_order] = mission
+        if created or not mission.skill_links:
+            link_skills(db, mission, skills, ["analyze_risk", "mitigate_risk", "detect_attacks", "collaborate"])
+        build_rubric(db, mission, skills, points=25, total=100)
+        # Idempotent content refresh so re-seeding updates copy without a DB wipe.
+        mission.activity_json = builder()
+        mission.steps_json = LAB_STEPS
+    db.flush()
+
+    # 2) Enable lab mode for Period 3.
+    settings, _ = get_or_create(
+        db, SectionLabSettings,
+        {
+            "enabled": True, "enabled_by_user_id": teacher.id,
+            "enabled_at": d(2026, 7, 24, 8, 0), "acknowledgement_version": "v1",
+        },
+        section_id=period3.id,
+    )
+    settings.enabled = True
+
+    # 3) Assign all five labs to Period 3 with mixed disclosure modes.
+    lab_assignments: dict[int, MissionAssignment] = {}
+    for unit_order, mission in lab_missions.items():
+        assignment, _ = get_or_create(
+            db, MissionAssignment,
+            {
+                "assigned_by_user_id": teacher.id, "due_at": d(2026, 8, 8, 23, 59),
+                "created_at": d(2026, 7, 24, 8, 15),
+                "lab_disclosure_mode": LAB_DISCLOSURE_BY_UNIT[unit_order],
+            },
+            mission_id=mission.id, section_id=period3.id,
+        )
+        assignment.lab_disclosure_mode = LAB_DISCLOSURE_BY_UNIT[unit_order]
+        lab_assignments[unit_order] = assignment
+    db.flush()
+
+    # 4) Synthetic attempts (event labels + analysis only — no raw secrets).
+    cred_responses = {
+        "identify_indicators": "The look-alike domain and the 24-hour lockout urgency were the strongest signals.",
+        "explain_risk": "A real password entered here would be captured and reused on the genuine account.",
+        "verify_steps": "Navigate to the known official portal directly and confirm with IT before acting.",
+    }
+    tailgating_responses = {
+        "identify_control_failure": "The badge control failed: a second person entered with no badge scan while the door was held.",
+        "explain_risk": "An unverified person in a controlled space can reach equipment and data they shouldn't.",
+        "layered_controls": "Require visitor sign-in and enforce one-badge-per-entry, backed by held-open alarms.",
+    }
+
+    lab_attempt_specs = [
+        # (unit, student, status, primary_event, noticed_indicators, chosen_mitigations, responses)
+        (1, "Alex Rivera", "needs_teacher_review", "dummy_credential_submitted",
+         ["domain_mismatch", "urgency"], ["report_message", "use_mfa", "verify_domain"], cred_responses),
+        (1, "Morgan Chen", "needs_teacher_review", "notice_reported",
+         ["domain_mismatch", "urgency", "login_form_mismatch", "mfa_absent"],
+         ["report_message", "verify_domain"], cred_responses),
+        (1, "Casey Brown", "needs_teacher_review", "dummy_credential_submitted",
+         ["domain_mismatch"], ["use_mfa"], cred_responses),
+        (2, "Jordan Lee", "needs_teacher_review", "sequence_reviewed",
+         ["door_held_open", "badge_mismatch"], ["visitor_signin", "badge_verification"], tailgating_responses),
+    ]
+
+    for unit_order, name, status_value, primary_event, noticed, chosen, responses in lab_attempt_specs:
+        mission = lab_missions[unit_order]
+        assignment = lab_assignments[unit_order]
+        student = students[name]
+        attempt, created = get_or_create(
+            db, MissionAttempt,
+            {
+                "status": status_value, "active_support_signal": "independent",
+                "started_at": d(2026, 7, 25, 9, 0), "submitted_at": d(2026, 7, 25, 9, 25),
+                "progress_percent": 100,
+            },
+            mission_id=mission.id, assignment_id=assignment.id, student_user_id=student.id,
+        )
+        if not created:
+            continue
+        db.add(AttemptEvidence(
+            attempt_id=attempt.id, evidence_type="lab_events",
+            payload_json={"events": [_lab_event(mission, primary_event, noticed, d(2026, 7, 25, 9, 10))]},
+        ))
+        db.add(AttemptEvidence(
+            attempt_id=attempt.id, evidence_type="lab_analysis",
+            payload_json={"mitigation_choice_ids": chosen, "responses": responses},
+        ))
+        db.add(SupportEvent(
+            attempt_id=attempt.id, from_signal=None, to_signal="independent",
+            source="system", created_at=d(2026, 7, 25, 9, 0),
+        ))
+        db.flush()
+        run_auto_check(db, attempt)
 
 
 def seed_course() -> None:
@@ -745,6 +889,9 @@ def seed_course() -> None:
             ))
             db.flush()
             run_auto_check(db, taylor_attempt)
+
+        # ----- Simulated attack labs (unit-aligned, Period 3) ------------- #
+        seed_attack_labs(db, units, skills, teacher, students, period3)
 
         db.commit()
 

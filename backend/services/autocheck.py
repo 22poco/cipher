@@ -12,10 +12,11 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
+from . import labs
 from ..models import AutoCheckResult, MissionAttempt
 
 # Mission types that carry an objective, machine-checkable component.
-AUTO_CHECKED_TYPES = {"network_simulation", "multiple_choice"}
+AUTO_CHECKED_TYPES = {"network_simulation", "multiple_choice", "attack_simulation"}
 
 
 def _now() -> datetime:
@@ -90,6 +91,34 @@ def evaluate_network(
 # --------------------------------------------------------------------------- #
 
 
+def evaluate_lab(attempt: MissionAttempt) -> tuple[float, float, dict]:
+    """Completeness-only check for a simulated attack lab.
+
+    Scores whether the student produced the required analysis artifacts (debrief
+    unlocked, prompts answered, a mitigation chosen). It never scores whether the
+    student fell for the simulation — that is evidence, not a penalty.
+    """
+
+    report = labs.lab_analysis_complete(attempt.mission, attempt)
+    checks = report["checks"]
+    labels = {
+        "debrief_unlocked": "Reviewed the debrief",
+        "analysis_present": "Started the analysis",
+        "prompts_answered": "Answered the required analysis prompts",
+        "mitigations_selected": "Selected at least one mitigation",
+    }
+    detail_checks = [
+        {"name": labels.get(key, key), "passed": bool(value)}
+        for key, value in checks.items()
+    ]
+    passed = sum(1 for c in detail_checks if c["passed"])
+    return (
+        float(passed),
+        float(len(detail_checks)),
+        {"label": "Lab analysis completeness", "checks": detail_checks},
+    )
+
+
 def evaluate_mcq(activity: dict | None, payload: dict) -> tuple[float, float, dict]:
     questions = (activity or {}).get("questions") or []
     answers = payload.get("answers") or {}
@@ -130,6 +159,8 @@ def run_auto_check(db: Session, attempt: MissionAttempt) -> AutoCheckResult | No
         payload = _evidence_payload(attempt, "mcq")
         if payload is not None:
             scored = evaluate_mcq(attempt.mission.activity_json, payload)
+    elif mission_type == labs.ATTACK_SIMULATION_TYPE:
+        scored = evaluate_lab(attempt)
 
     if scored is None:
         return None

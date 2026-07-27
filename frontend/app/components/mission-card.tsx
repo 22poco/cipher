@@ -6,6 +6,7 @@ import {
   faListCheck,
   faMagnifyingGlassChart,
   faNetworkWired,
+  faShieldHalved,
   faTerminal,
   type IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
@@ -28,6 +29,7 @@ export const MISSION_TYPE_ICONS: Record<MissionType, IconDefinition> = {
   case_investigation: faMagnifyingGlassChart,
   bash_simulation: faTerminal,
   network_simulation: faNetworkWired,
+  attack_simulation: faShieldHalved,
 };
 
 export function MissionCard({ mission }: { mission: MissionCardType }) {

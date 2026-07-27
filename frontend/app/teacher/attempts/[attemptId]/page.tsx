@@ -106,6 +106,22 @@ function ReviewContent() {
     );
   }, [data]);
 
+  const isLab = data?.mission.mission_type === "attack_simulation";
+
+  const labAnalysis = useMemo(() => {
+    const payload = data?.evidence.find((e) => e.evidence_type === "lab_analysis")?.payload as
+      | { mitigation_choice_ids?: string[]; noticed_indicator_ids?: string[]; responses?: Record<string, string> }
+      | undefined;
+    return payload ?? null;
+  }, [data]);
+
+  const labEvents = useMemo(() => {
+    const payload = data?.evidence.find((e) => e.evidence_type === "lab_events")?.payload as
+      | { events?: { event_type: string; indicator_ids?: string[]; at?: string }[] }
+      | undefined;
+    return payload?.events ?? [];
+  }, [data]);
+
   async function handleFinalize() {
     if (!data) return;
     const token = getToken();
@@ -212,6 +228,78 @@ function ReviewContent() {
 
           {tab === "Student Evidence" && (
             <div className="space-y-4">
+              {isLab && (
+                <div className="space-y-4">
+                  {labAnalysis?.responses && Object.keys(labAnalysis.responses).length > 0 ? (
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-subtle">
+                        Lab Analysis
+                      </p>
+                      <div className="space-y-2.5">
+                        {Object.entries(labAnalysis.responses).map(([key, value]) => (
+                          <div key={key} className="rounded-xl bg-slate-50 p-3">
+                            <p className="text-xs font-semibold text-body">{key}</p>
+                            <p className="mt-1 text-sm leading-relaxed text-body">{value || "—"}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="rounded-xl bg-slate-50 p-4 text-sm text-muted">
+                      No written lab analysis submitted yet.
+                    </p>
+                  )}
+
+                  {(labAnalysis?.mitigation_choice_ids?.length ?? 0) > 0 && (
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-subtle">
+                        Selected Mitigations
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {labAnalysis?.mitigation_choice_ids?.map((id) => (
+                          <span
+                            key={id}
+                            className="inline-flex items-center rounded-md bg-primary-light px-2 py-0.5 text-xs font-medium text-primary"
+                          >
+                            {id}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle">
+                        Synthetic Lab Events
+                      </p>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                        <FontAwesomeIcon icon={faTriangleExclamation} aria-hidden="true" />
+                        Synthetic lab data
+                      </span>
+                    </div>
+                    {labEvents.length === 0 ? (
+                      <p className="text-xs text-muted">
+                        No lab events (cleared by reset or not yet recorded). Grades and analysis are unaffected.
+                      </p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {labEvents.map((event, i) => (
+                          <li
+                            key={i}
+                            className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                          >
+                            <span className="font-mono text-body">{event.event_type}</span>
+                            <span className="text-muted">
+                              {(event.indicator_ids ?? []).length} noticed
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
               {logLines && (
                 <div>
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-subtle">
@@ -234,7 +322,7 @@ function ReviewContent() {
                   </p>
                 </div>
               )}
-              {!logLines && !writtenResponse && (
+              {!isLab && !logLines && !writtenResponse && (
                 <p className="py-8 text-center text-sm text-muted">No evidence submitted.</p>
               )}
             </div>
