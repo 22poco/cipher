@@ -68,6 +68,8 @@ ASSESSMENT_UNITS = [
     },
 ]
 
+LEGACY_LESSON_TITLES = {"phishing signals"}
+
 
 def assessment_module(unit_data: dict) -> dict:
     return {
@@ -249,6 +251,18 @@ def upsert_option(db: Session, question: QuizQuestion, option_data: dict) -> Qui
     return option
 
 
+def remove_legacy_lessons(db: Session, module: Module) -> None:
+    legacy_lessons = db.scalars(
+        select(Lesson).where(
+            Lesson.module_id == module.id,
+            Lesson.title.in_(LEGACY_LESSON_TITLES),
+        )
+    )
+
+    for lesson in legacy_lessons:
+        db.delete(lesson)
+
+
 def seed_course() -> None:
     Base.metadata.create_all(bind=engine)
 
@@ -270,6 +284,8 @@ def seed_course() -> None:
 
                         for option_data in question_data["options"]:
                             upsert_option(db, question, option_data)
+
+            remove_legacy_lessons(db, module)
 
         db.commit()
 
