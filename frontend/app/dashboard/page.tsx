@@ -98,10 +98,10 @@ function StudentDashboard({
             </div>
           </div>
           <Link
-            href="/units"
+            href="/assessments"
             className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            view units
+            view assessments
           </Link>
         </div>
       </section>

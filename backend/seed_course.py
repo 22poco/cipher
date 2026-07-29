@@ -5,170 +5,137 @@ from .database import Base, SessionLocal, engine
 from .models import Lesson, Module, Quiz, QuizOption, QuizQuestion, Unit
 
 
-UNIT_ONE = {
-    "title": "cybersecurity foundations",
-    "description": "unit 1 introduces social engineering, basic security thinking, and linux command-line habits for hands-on cybersecurity work.",
-    "order_index": 1,
-    "modules": [
-        {
-            "title": "social engineering",
-            "description": "how attackers use trust, urgency, and human behavior to bypass technical defenses.",
-            "order_index": 1,
-            "lessons": [
-                {
-                    "title": "what is social engineering?",
-                    "lesson_type": "reading",
-                    "order_index": 1,
-                    "video_url": None,
-                    "content": """social engineering is the use of psychology and trust to influence people into taking unsafe actions.
+ASSESSMENT_UNITS = [
+    {
+        "title": "securing accounts",
+        "description": "assessment practice for identity, authentication, phishing, passwords, and account recovery risks.",
+        "order_index": 1,
+        "scenario": "a student receives a realistic password reset message claiming their school account will be locked in 15 minutes.",
+        "question": "what is the safest first response to a suspicious password reset message?",
+        "correct": "verify the request through a trusted school channel before clicking or entering credentials",
+        "wrong": [
+            "click the link quickly before the timer expires",
+            "reply with the current password to confirm identity",
+        ],
+    },
+    {
+        "title": "securing data",
+        "description": "assessment practice for data classification, encryption, backups, privacy, and safe sharing.",
+        "order_index": 2,
+        "scenario": "a club officer needs to share a spreadsheet containing student contact details with several volunteers.",
+        "question": "which action best reduces risk before sharing sensitive student data?",
+        "correct": "remove unnecessary fields and share only with approved people using access controls",
+        "wrong": [
+            "post the file in a public chat so everyone can download it",
+            "rename the file so it looks less important",
+        ],
+    },
+    {
+        "title": "securing systems",
+        "description": "assessment practice for devices, operating systems, networks, updates, and configuration risks.",
+        "order_index": 3,
+        "scenario": "a classroom laptop used for presentations has not installed updates for months and is shared by many students.",
+        "question": "what is the most important first step for reducing system risk?",
+        "correct": "apply security updates and review account/access settings",
+        "wrong": [
+            "disable the lock screen so class starts faster",
+            "install more browser extensions for convenience",
+        ],
+    },
+    {
+        "title": "securing software",
+        "description": "assessment practice for secure design, vulnerabilities, input handling, permissions, and software updates.",
+        "order_index": 4,
+        "scenario": "a student-built signup form accepts text input and stores account details for a school activity.",
+        "question": "which habit is most important when handling user input?",
+        "correct": "validate and sanitize input before using or storing it",
+        "wrong": [
+            "trust input if the user is from the school",
+            "hide errors by ignoring failed submissions",
+        ],
+    },
+    {
+        "title": "preserving privacy",
+        "description": "assessment practice for privacy choices, consent, tracking, metadata, and responsible data use.",
+        "order_index": 5,
+        "scenario": "a student wants to publish screenshots from a class project that include names, email addresses, and location metadata.",
+        "question": "what should happen before the screenshots are published?",
+        "correct": "remove identifying details and metadata, then confirm sharing is appropriate",
+        "wrong": [
+            "publish immediately because the screenshots are educational",
+            "crop only the top of the image and leave the rest unchanged",
+        ],
+    },
+]
 
-attackers may pretend to be a teacher, technician, friend, delivery service, or trusted company. the goal is usually to get a password, make someone click a link, reveal private information, or approve access.
+LEGACY_LESSON_TITLES = {"phishing signals"}
 
-key ideas:
 
-- attackers often target people before systems
-- urgency and fear are common pressure tactics
-- a convincing message can still be unsafe
-- verification matters more than confidence
+def assessment_module(unit_data: dict) -> dict:
+    return {
+        "title": "assessment practice",
+        "description": f"practice scenarios and quiz checks for {unit_data['title']}.",
+        "order_index": 1,
+        "lessons": [
+            {
+                "title": f"scenario: {unit_data['title']}",
+                "lesson_type": "case_study",
+                "order_index": 1,
+                "video_url": None,
+                "content": f"""scenario:
 
-for ap cybersecurity, this topic matters because security is not only about code and networks. people are part of every system.""",
-                    "quiz": {
-                        "title": "social engineering check",
-                        "description": "a short placeholder quiz for checking the first lesson.",
-                        "questions": [
-                            {
-                                "question_text": "what is the main idea behind social engineering?",
-                                "order_index": 1,
-                                "options": [
-                                    {
-                                        "option_text": "using trust or pressure to influence people",
-                                        "is_correct": True,
-                                    },
-                                    {
-                                        "option_text": "only breaking passwords with code",
-                                        "is_correct": False,
-                                    },
-                                    {
-                                        "option_text": "installing operating system updates",
-                                        "is_correct": False,
-                                    },
-                                ],
-                            },
-                            {
-                                "question_text": "which signal can make a message suspicious?",
-                                "order_index": 2,
-                                "options": [
-                                    {
-                                        "option_text": "the message creates urgency",
-                                        "is_correct": True,
-                                    },
-                                    {
-                                        "option_text": "the message has a normal subject line",
-                                        "is_correct": False,
-                                    },
-                                    {
-                                        "option_text": "the sender uses punctuation",
-                                        "is_correct": False,
-                                    },
-                                ],
-                            },
-                        ],
-                    },
+{unit_data['scenario']}
+
+tasks:
+
+1. identify the main security or privacy risk.
+2. choose the safest response.
+3. explain which detail in the scenario influenced your decision.
+
+this is placeholder assessment content for the july 31 demo. real AP-aligned wording can replace it later.""",
+                "quiz": {
+                    "title": f"{unit_data['title']} check",
+                    "description": "a short multiple-choice check for this assessment module.",
+                    "questions": [
+                        {
+                            "question_text": unit_data["question"],
+                            "order_index": 1,
+                            "options": [
+                                {
+                                    "option_text": unit_data["correct"],
+                                    "is_correct": True,
+                                },
+                                {
+                                    "option_text": unit_data["wrong"][0],
+                                    "is_correct": False,
+                                },
+                                {
+                                    "option_text": unit_data["wrong"][1],
+                                    "is_correct": False,
+                                },
+                            ],
+                        }
+                    ],
                 },
-                {
-                    "title": "phishing signals",
-                    "lesson_type": "reading",
-                    "order_index": 2,
-                    "video_url": "https://www.youtube.com/results?search_query=phishing+awareness",
-                    "content": """phishing is a social engineering attack that uses messages, links, or forms to trick users.
-
-common warning signs:
-
-- the message creates urgency
-- the sender address looks slightly wrong
-- the link does not match the claimed website
-- the message asks for passwords or codes
-- the tone feels unusual for the sender
-- attachments arrive without context
-
-students should practice slowing down, checking the source, and using a second trusted channel before responding.""",
-                },
-            ],
-        },
-        {
-            "title": "linux basics",
-            "description": "command-line basics students will need for future cybersecurity labs.",
-            "order_index": 2,
-            "lessons": [
-                {
-                    "title": "navigating the terminal",
-                    "lesson_type": "code_activity",
-                    "order_index": 1,
-                    "video_url": None,
-                    "content": """many cybersecurity tools run in a terminal, so students need basic linux navigation.
-
-starter commands:
-
-- `pwd` shows the current directory
-- `ls` lists files
-- `cd` changes directories
-- `mkdir` creates a folder
-- `cat` prints a file
-- `man` opens documentation for a command
-
-practice task:
-
-1. print your current directory
-2. list the files
-3. create a folder named `cipher-practice`
-4. move into that folder
-5. explain what each command did""",
-                }
-            ],
-        },
-        {
-            "title": "unit 1 case study",
-            "description": "a short scenario for analyzing social engineering risks and defenses.",
-            "order_index": 3,
-            "lessons": [
-                {
-                    "title": "case study: urgent password reset",
-                    "lesson_type": "case_study",
-                    "order_index": 1,
-                    "video_url": None,
-                    "content": """scenario:
-
-a student receives an email that says their school account will be locked in 15 minutes unless they reset their password. the email uses the school logo and links to a page that looks similar to the login portal.
-
-questions:
-
-1. what details make this message feel convincing?
-2. what details should make the student suspicious?
-3. what should the student do before entering a password?
-4. what could the school do to reduce this risk?
-
-write a short response that identifies the attack, explains the pressure tactic, and recommends a safe response.""",
-                }
-            ],
-        },
-    ],
-}
+            }
+        ],
+    }
 
 
-def upsert_unit(db: Session) -> Unit:
-    unit = db.scalar(select(Unit).where(Unit.order_index == UNIT_ONE["order_index"]))
+def upsert_unit(db: Session, unit_data: dict) -> Unit:
+    unit = db.scalar(select(Unit).where(Unit.order_index == unit_data["order_index"]))
 
     if unit is None:
         unit = Unit(
-            title=UNIT_ONE["title"],
-            description=UNIT_ONE["description"],
-            order_index=UNIT_ONE["order_index"],
+            title=unit_data["title"],
+            description=unit_data["description"],
+            order_index=unit_data["order_index"],
         )
         db.add(unit)
         db.flush()
     else:
-        unit.title = UNIT_ONE["title"]
-        unit.description = UNIT_ONE["description"]
+        unit.title = unit_data["title"]
+        unit.description = unit_data["description"]
 
     return unit
 
@@ -284,13 +251,26 @@ def upsert_option(db: Session, question: QuizQuestion, option_data: dict) -> Qui
     return option
 
 
+def remove_legacy_lessons(db: Session, module: Module) -> None:
+    legacy_lessons = db.scalars(
+        select(Lesson).where(
+            Lesson.module_id == module.id,
+            Lesson.title.in_(LEGACY_LESSON_TITLES),
+        )
+    )
+
+    for lesson in legacy_lessons:
+        db.delete(lesson)
+
+
 def seed_course() -> None:
     Base.metadata.create_all(bind=engine)
 
     with SessionLocal() as db:
-        unit = upsert_unit(db)
+        for unit_data in ASSESSMENT_UNITS:
+            unit = upsert_unit(db, unit_data)
 
-        for module_data in UNIT_ONE["modules"]:
+            module_data = assessment_module(unit_data)
             module = upsert_module(db, unit, module_data)
 
             for lesson_data in module_data["lessons"]:
@@ -304,6 +284,8 @@ def seed_course() -> None:
 
                         for option_data in question_data["options"]:
                             upsert_option(db, question, option_data)
+
+            remove_legacy_lessons(db, module)
 
         db.commit()
 

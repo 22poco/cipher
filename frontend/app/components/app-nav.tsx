@@ -33,6 +33,7 @@ export function AppNav() {
         <nav className="flex flex-wrap items-center gap-2 text-sm">
           {[
             ...publicLinks,
+            ...(user ? [{ href: "/assessments", label: "assessments" }] : []),
             ...(user ? [{ href: "/units", label: "units" }] : []),
             ...(user ? [{ href: "/dashboard", label: "dashboard" }] : []),
             ...(user?.role === "admin" ? [{ href: "/admin", label: "admin" }] : []),
