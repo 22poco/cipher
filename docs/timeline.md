@@ -2,292 +2,155 @@
 
 ## goal
 
-target: complete platform with all planned AP cybersecurity units by august
+target: deliver a working AP cybersecurity assessment platform by july 31.
 
-minimum: complete platform with unit 1 fully implemented by august
+the project has pivoted from a full in-house learning platform to an assessment-first tool. cipher should host practice scenarios, quizzes, and mock exams instead of trying to host every lesson and course material directly.
 
 ## priority rule
 
 if time becomes limited, prioritize:
 
-1. student accounts
-2. authentication
-3. course structure
-4. lesson pages
-5. admin content editing
-6. quizzes
-7. progress tracking
-8. unit 1 content
+1. student login
+2. five AP cybersecurity modules
+3. assessment cards/scenarios
+4. quiz and mock exam flow
+5. attempt saving and scoring
+6. teacher/admin review dashboard
+7. netbird-ready local demo
 
-advanced features like the code editor, full curriculum completion, and extra polish should come after the minimum deliverable is working.
+nice-to-have learning content, code editor work, full lesson hosting, and extra polish come after the assessment flow is usable.
 
 ---
 
-## june
+## final sprint
 
-### week 1
+### monday, july 27
 
-project setup
+planning and repo alignment
 
-- github repository
-- project planning
-- project overview
-- timeline
-- netbird setup
-- development environment setup
-- database setup
+- review pak john's assessment-only pivot
+- review PR #9 without merging blindly
+- update project docs around the new scope
+- create the july 27-31 delivery plan
+- define the five module structure
 
 definition of done:
 
-- project repository exists
-- frontend and backend folders exist
-- database schema is drafted
-- docker compose has postgres service
-- project overview and timeline are written
-- local development environment is ready
+- repo docs describe the assessment-first direction
+- timeline is compressed to the july 31 target
+- PR #9 has a clear decision path
+- pak john gets a short update message
 
 status:
 
-- mostly complete
+- in progress
 
 ---
 
-### week 2
+### tuesday, july 28
 
-core architecture
+assessment foundation
 
-- frontend setup
-- backend setup
-- database connection
-- authentication system
-- basic navigation
+- decide whether to clean/merge PR #9 or rebuild only the needed pieces
+- implement or keep assessment-focused navigation
+- create the five module structure:
+  - securing accounts
+  - securing data
+  - securing systems
+  - securing software
+  - preserving privacy
+- add scenario/assessment data model if needed
+- seed placeholder assessments for all five modules
+- make student assessment list usable
 
 definition of done:
 
-- fastapi backend can connect to postgresql
-- backend has a health check endpoint
-- users can register with name, email, and password
-- passwords are hashed before storage
-- users can log in and receive a JWT
-- protected backend routes can identify the current user
-- student and admin roles exist
-- frontend default Next.js page is replaced
-- frontend has basic navigation
-- frontend has login and registration pages
-- logged-in users can reach a basic student dashboard
-- admin users can reach a basic admin dashboard placeholder
-
-status:
-
-- implementation complete
-- end-to-end smoke test complete
-- manual browser test documented in `docs/week-2-test-plan.md`
+- students can see all five modules
+- each module has at least one assessment scenario
+- assessment pages open from the student dashboard
+- seed script can populate placeholder assessments safely
 
 ---
 
-### week 3
+### wednesday, july 29
 
-course structure
+attempts and scoring
 
-- units
-- modules
-- lessons
-- lesson pages
-- content rendering
+- make students start assessment attempts
+- save answers/responses
+- score multiple-choice questions
+- support written/case scenario responses as submitted attempts
+- show attempt status
+- add basic mock exam structure
 
 definition of done:
 
-- database supports units, modules, and lessons
-- backend has endpoints for reading units, modules, and lessons
-- frontend can display a list of units
-- frontend can display modules inside a unit
-- frontend can display lessons inside a module
-- lesson pages can render written content
-- lesson pages can show video links or embedded videos
-- unit 1 structure is added with placeholder lessons
-
-status:
-
-- implementation complete
-- unit 1 placeholder content seeded through `backend.seed_course`
-- manual browser test documented in `docs/week-3-test-plan.md`
+- students can complete at least one quiz assessment
+- students can submit at least one case scenario
+- attempts are saved to postgresql
+- student dashboard shows recent attempts and scores
+- mock exam placeholder exists
 
 ---
 
-### week 4
+### thursday, july 30
 
-admin dashboard
+teacher review
 
-- create lessons
-- edit lessons
-- delete lessons
-- manage course structure
+- add teacher/admin assessment dashboard
+- show submitted attempts
+- show student names, module, score/status, and submission time
+- allow teacher/admin to review written scenario submissions
+- add basic grading/comment field if time allows
+- clean up role separation
 
 definition of done:
 
-- admin dashboard is protected by admin role
-- admin can create units
-- admin can create modules
-- admin can create lessons
-- admin can edit lessons
-- admin can delete lessons
-- admin can reorder or organize course structure
-- student users cannot access admin tools
-- admin-created content appears on student lesson pages
-
-status:
-
-- implementation complete
-- admin can create, edit, and delete units, modules, and lessons
-- admin-created content appears on student course pages
-- manual browser test documented in `docs/week-4-test-plan.md`
+- teacher/admin can see submitted assessments
+- teacher/admin can inspect a student's submitted response
+- students cannot access teacher/admin pages
+- teacher/admin flow is demo-ready
 
 ---
 
-## july
+### friday, july 31
 
-### week 1
+demo readiness
 
-learning features
-
-- quizzes
-- quiz scoring
-- progress tracking
+- run full end-to-end testing
+- polish the most visible student and teacher pages
+- fix critical bugs
+- update readme and test instructions
+- prepare demo script for pak john
+- run netbird/local access test
 
 definition of done:
 
-- quizzes can be attached to lessons
-- quiz questions support multiple choice
-- quiz answers can be submitted
-- backend calculates quiz score
-- quiz attempts are saved
-- students can mark lessons complete
-- lesson progress is saved
-- student dashboard shows basic progress
-- unit 1 has at least one working quiz
-
-status:
-
-- implementation complete
-- multiple-choice quiz api added
-- quiz attempts and lesson progress are saved
-- student dashboard shows basic progress
-- admin can manage simple lesson quizzes
-- unit 1 has one seeded placeholder quiz
-- manual browser test documented in `docs/week-5-test-plan.md`
+- student can register/login
+- student can open five modules
+- student can complete quizzes and scenarios
+- student can take a mock exam placeholder or short exam
+- teacher/admin can review attempts
+- local/netbird demo links work
+- docs explain how to run and test the project
 
 ---
 
-### week 2
+## module map
 
-advanced learning features
+cipher uses the five-section structure pak john requested, matching the CS50 cybersecurity structure and the AP course direction:
 
-- case studies
-- code editor
-- improved student dashboard
+1. securing accounts
+2. securing data
+3. securing systems
+4. securing software
+5. preserving privacy
 
-definition of done:
+each module should focus on assessments first:
 
-- case study lessons can be displayed
-- students can submit written case study responses
-- case study responses are saved
-- basic code editor page exists
-- code editor can be used for simple activities
-- student dashboard shows lessons completed, quiz scores, and current unit progress
+- scenario-based questions
+- multiple-choice checks
+- case investigations
+- mock exam items
 
-note:
-
-- if behind schedule, code editor can be simplified or moved after unit 1 is complete
-
----
-
-### week 3
-
-content integration
-
-- add AP cybersecurity curriculum
-- add videos
-- add quizzes
-- add case studies
-
-definition of done:
-
-- unit 1 lessons are fully written
-- unit 1 quizzes are added
-- unit 1 case studies are added
-- unit 1 videos or video links are added
-- lesson content is reviewed for clarity
-- placeholder content is removed from unit 1
-- additional units are started if time allows
-
----
-
-### week 4
-
-testing and refinement
-
-- bug fixes
-- ui improvements
-- performance testing
-- user testing
-
-definition of done:
-
-- full student flow is tested
-- full admin flow is tested
-- registration and login are tested
-- lesson completion is tested
-- quizzes are tested
-- progress tracking is tested
-- unit 1 is reviewed from start to finish
-- UI is cleaned up for classroom use
-- major bugs are fixed
-- deployment setup is tested locally and through NetBird
-
----
-
-## august
-
-### week 1
-
-minimum deliverable finalization
-
-- complete platform architecture
-- student accounts
-- admin dashboard
-- quizzes
-- progress tracking
-- code editor
-- unit 1 fully completed
-
-definition of done:
-
-- students can register and log in
-- students can access unit 1
-- students can complete lessons
-- students can take quizzes
-- students can track progress
-- admin can manage unit 1 content
-- teacher can use the platform without editing code
-- platform is usable in a classroom setting
-
----
-
-### week 2 and beyond
-
-target deliverable expansion
-
-- all planned units completed
-- fully populated course content
-- deployment ready
-- classroom ready
-
-definition of done:
-
-- remaining AP cybersecurity units are added
-- quizzes are added across units
-- case studies are added across units
-- code activities are added where useful
-- platform is tested with real users
-- deployment process is documented
-- classroom launch checklist is complete
+lesson content can stay minimal or be replaced with short context briefs for each assessment.
