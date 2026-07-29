@@ -251,6 +251,20 @@ class LessonProgressRead(BaseModel):
     completed_at: datetime | None = None
 
 
+class CaseStudyResponseCreate(BaseModel):
+    response_text: str = Field(min_length=20)
+
+
+class CaseStudyResponseRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    lesson_id: int
+    response_text: str
+    submitted_at: datetime
+
+
 class ProgressSummary(BaseModel):
     completed_lessons: int
     total_lessons: int

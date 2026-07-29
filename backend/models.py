@@ -221,3 +221,29 @@ class LessonProgress(Base):
 
     user: Mapped[User] = relationship(back_populates="lesson_progress")
     lesson: Mapped[Lesson] = relationship(back_populates="progress_entries")
+
+
+class CaseStudyResponse(Base):
+    __tablename__ = "case_study_responses"
+    __table_args__ = (UniqueConstraint("user_id", "lesson_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    lesson_id: Mapped[int] = mapped_column(
+        ForeignKey("lessons.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    response_text: Mapped[str] = mapped_column(Text, nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    user: Mapped[User] = relationship()
+    lesson: Mapped[Lesson] = relationship()
