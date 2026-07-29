@@ -14,9 +14,9 @@
 
 ## overview
 
-cipher is built for a classroom AP cybersecurity course that needs practice scenarios, quizzes, mock exams, and teacher review in one place.
+cipher is built for a classroom AP cybersecurity course that needs AP-aligned practice scenarios, quizzes, psets, mock exams, and teacher review in one place.
 
-students use it to complete assessment modules and track scores. the teacher uses it to review attempts, manage assessments, and check progress.
+students use it to complete assessment modules and track scores. the teacher uses it to create and review assessments, manage submissions, and check progress.
 
 ## features
 
@@ -24,6 +24,7 @@ students use it to complete assessment modules and track scores. the teacher use
 - five AP cybersecurity modules
 - quizzes and scoring
 - case scenarios
+- pset-style written responses
 - mock exam practice
 - attempt tracking
 - teacher/admin review dashboard
@@ -49,7 +50,6 @@ completed:
 - backend health check
 - authentication api
 - frontend auth and navigation flow
-- protected unit 1 placeholder page
 - end-to-end smoke test
 - week 2 test plan
 - read-only course structure api
@@ -62,17 +62,21 @@ completed:
 - lesson completion tracking
 - student progress dashboard
 - admin quiz management tools
+- assessment-only pivot docs
+- five AP CED module seed structure
+- student assessment browsing page
 
 current focus:
 
-- pivot to assessment-only workflow
-- organize around five modules
+- replace remaining lesson/course wording with assessment wording
+- add AP-aligned case scenarios and psets
+- add admin creation/review for assessment submissions
 - prepare demo-ready assessment flow by july 31
 
 module map:
 
-1. securing accounts
-2. securing data
-3. securing systems
-4. securing software
-5. preserving privacy
+1. introduction to security
+2. securing spaces
+3. securing networks
+4. securing devices
+5. securing applications and data
