@@ -34,7 +34,7 @@ export function AppNav() {
           {[
             ...publicLinks,
             ...(user ? [{ href: "/assessments", label: "assessments" }] : []),
-            ...(user ? [{ href: "/units", label: "units" }] : []),
+            ...(user ? [{ href: "/units", label: "modules" }] : []),
             ...(user ? [{ href: "/dashboard", label: "dashboard" }] : []),
             ...(user?.role === "admin" ? [{ href: "/admin", label: "admin" }] : []),
           ].map((link) => {
