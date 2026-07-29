@@ -12,6 +12,7 @@ import {
   fetchLesson,
   fetchLessonQuiz,
   fetchMyProgress,
+  fetchUnits,
   submitCaseStudyResponse,
   type CaseStudyResponse,
   submitQuiz,
@@ -19,6 +20,7 @@ import {
   type ProgressSummary,
   type Quiz,
   type QuizSubmitResult,
+  type Unit,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
@@ -80,20 +82,30 @@ function renderContent(content: string | null) {
 export default function LessonDetailPage() {
   const params = useParams<{ lessonId: string }>();
   const lessonId = params.lessonId;
-  const loadLesson = useCallback(
-    (token: string) => fetchLesson(lessonId, token),
+  const loadAssessment = useCallback(
+    async (token: string) => {
+      const [lesson, units] = await Promise.all([
+        fetchLesson(lessonId, token),
+        fetchUnits(token),
+      ]);
+
+      return { lesson, units };
+    },
     [lessonId],
   );
 
   return (
-    <CourseLoader load={loadLesson}>
-      {(lesson: Lesson) => (
+    <CourseLoader load={loadAssessment}>
+      {({ lesson, units }: { lesson: Lesson; units: Unit[] }) => {
+        const assessmentPath = findAssessmentPath(units, lesson.id);
+
+        return (
         <main className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/assessments" className="font-medium text-slate-700 hover:text-slate-950">
-              assessments
+              module {assessmentPath?.unit.order_index ?? ""}
             </Link>{" "}
-            / assessment {lesson.order_index}
+            / {lesson.title}
           </nav>
 
           <article className="rounded-md border border-slate-200 bg-white p-5 sm:p-7">
@@ -119,14 +131,33 @@ export default function LessonDetailPage() {
             <div className="mt-6 grid gap-5">{renderContent(lesson.content)}</div>
           </article>
 
-          <AssessmentWorkPanel lessonId={lesson.id.toString()} />
+          <AssessmentWorkPanel lesson={lesson} units={units} />
         </main>
-      )}
+        );
+      }}
     </CourseLoader>
   );
 }
 
-function AssessmentWorkPanel({ lessonId }: { lessonId: string }) {
+function flattenAssessments(units: Unit[]) {
+  return units.flatMap((unit) =>
+    unit.modules
+      .filter((module) => module.title.toLowerCase() === "topic assessments")
+      .flatMap((module) =>
+        module.lessons.map((lesson) => ({
+          unit,
+          lesson,
+        })),
+      ),
+  );
+}
+
+function findAssessmentPath(units: Unit[], lessonId: number) {
+  return flattenAssessments(units).find((entry) => entry.lesson.id === lessonId);
+}
+
+function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] }) {
+  const lessonId = lesson.id.toString();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [progress, setProgress] = useState<ProgressSummary | null>(null);
   const [writtenResponse, setWrittenResponse] = useState<CaseStudyResponse | null>(null);
@@ -145,6 +176,20 @@ function AssessmentWorkPanel({ lessonId }: { lessonId: string }) {
       ) ?? false,
     [lessonId, progress],
   );
+  const hasQuizAttempt = useMemo(
+    () =>
+      Boolean(
+        quiz &&
+          progress?.quiz_attempts.some((attempt) => attempt.quiz_id === quiz.id),
+      ),
+    [progress, quiz],
+  );
+  const assessments = useMemo(() => flattenAssessments(units), [units]);
+  const currentAssessmentIndex = assessments.findIndex(
+    (entry) => entry.lesson.id === lesson.id,
+  );
+  const nextAssessment = assessments[currentAssessmentIndex + 1]?.lesson;
+  const currentModule = assessments[currentAssessmentIndex]?.unit;
 
   const loadLearningState = useCallback(async () => {
     const token = getToken();
@@ -194,30 +239,6 @@ function AssessmentWorkPanel({ lessonId }: { lessonId: string }) {
     return () => window.clearTimeout(timeout);
   }, [loadLearningState]);
 
-  async function handleCompleteLesson() {
-    const token = getToken();
-
-    if (!token) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    setMessage("");
-    setError("");
-
-    try {
-      await completeLesson(lessonId, token);
-      setProgress(await fetchMyProgress(token));
-      setMessage("assessment marked complete");
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof Error ? caughtError.message : "could not update progress",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
   async function handleSubmitResponse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -243,7 +264,15 @@ function AssessmentWorkPanel({ lessonId }: { lessonId: string }) {
         token,
       );
       setWrittenResponse(response);
-      setMessage("pset response submitted");
+      if (hasQuizAttempt || result) {
+        await completeLesson(lessonId, token);
+        setProgress(await fetchMyProgress(token));
+      }
+      setMessage(
+        hasQuizAttempt || result
+          ? "pset response submitted. assessment is now complete."
+          : "pset response submitted. submit the quiz to complete this assessment.",
+      );
     } catch (caughtError) {
       setError(
         caughtError instanceof Error ? caughtError.message : "could not submit response",
@@ -287,8 +316,15 @@ function AssessmentWorkPanel({ lessonId }: { lessonId: string }) {
         token,
       );
       setResult(quizResult);
+      if (writtenResponse) {
+        await completeLesson(lessonId, token);
+      }
       setProgress(await fetchMyProgress(token));
-      setMessage("quiz submitted");
+      setMessage(
+        writtenResponse
+          ? "quiz submitted. assessment is now complete."
+          : "quiz submitted. submit the pset response to complete this assessment.",
+      );
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "could not submit quiz");
     } finally {
@@ -306,23 +342,6 @@ function AssessmentWorkPanel({ lessonId }: { lessonId: string }) {
 
   return (
     <section className="grid gap-5 rounded-md border border-slate-200 bg-white p-5 sm:p-7">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-emerald-700">progress</p>
-          <h2 className="mt-1 text-xl font-semibold text-slate-950">
-            {isComplete ? "assessment complete" : "mark this assessment complete"}
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={handleCompleteLesson}
-          disabled={isSubmitting || isComplete}
-          className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-        >
-          {isComplete ? "completed" : "complete assessment"}
-        </button>
-      </div>
-
       {message ? (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {message}
@@ -398,9 +417,13 @@ function AssessmentWorkPanel({ lessonId }: { lessonId: string }) {
           })}
 
           {result ? (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4">
+            <div className="grid gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-4">
               <p className="text-sm font-semibold text-emerald-900">
                 score: {result.score}% ({result.correct_count}/{result.total_questions})
+              </p>
+              <p className="text-sm text-emerald-800">
+                review the highlighted answers, then finish the written response if
+                you have not submitted it yet.
               </p>
             </div>
           ) : (
@@ -440,9 +463,10 @@ function AssessmentWorkPanel({ lessonId }: { lessonId: string }) {
         />
 
         {writtenResponse ? (
-          <p className="text-sm text-slate-600">
-            submitted. you can revise and resubmit this response.
-          </p>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+            submitted. your response stays editable so you can revise before admin
+            review.
+          </div>
         ) : null}
 
         <button
@@ -453,6 +477,52 @@ function AssessmentWorkPanel({ lessonId }: { lessonId: string }) {
           {isSubmitting ? "submitting..." : writtenResponse ? "update response" : "submit response"}
         </button>
       </form>
+
+      <div className="grid gap-4 border-t border-slate-100 pt-5">
+        <div>
+          <p className="text-sm font-semibold text-emerald-700">status</p>
+          <h2 className="mt-1 text-xl font-semibold text-slate-950">
+            {isComplete ? "assessment complete" : "finish quiz and pset response"}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            {isComplete
+              ? "nice. your quiz attempt and written response are saved."
+              : "cipher marks this complete automatically after both required parts are submitted."}
+          </p>
+        </div>
+
+        <div className="grid gap-2 text-sm sm:grid-cols-2">
+          <div className="rounded-md border border-slate-200 p-3">
+            <p className="font-semibold text-slate-950">quiz</p>
+            <p className="mt-1 text-slate-600">
+              {hasQuizAttempt || result ? "submitted" : "not submitted yet"}
+            </p>
+          </div>
+          <div className="rounded-md border border-slate-200 p-3">
+            <p className="font-semibold text-slate-950">pset response</p>
+            <p className="mt-1 text-slate-600">
+              {writtenResponse ? "submitted" : "not submitted yet"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {nextAssessment ? (
+            <Link
+              href={`/lessons/${nextAssessment.id}`}
+              className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              next assessment
+            </Link>
+          ) : null}
+          <Link
+            href={currentModule ? `/units/${currentModule.id}` : "/assessments"}
+            className="flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+          >
+            back to module
+          </Link>
+        </div>
+      </div>
     </section>
   );
 }
