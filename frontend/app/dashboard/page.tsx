@@ -114,8 +114,8 @@ function StudentDashboard({
       </section>
 
       <section className="rounded-md border border-slate-200 bg-white p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="min-w-0 lg:max-w-3xl">
             <h2 className="text-lg font-semibold text-slate-950">module progress</h2>
             <div className="mt-4 grid gap-3">
               {moduleProgress.map(({ unit, completed, total, percent }) => (
@@ -140,7 +140,7 @@ function StudentDashboard({
           </div>
           <Link
             href="/assessments"
-            className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+            className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 lg:justify-self-end"
           >
             view assessments
           </Link>

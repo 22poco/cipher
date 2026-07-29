@@ -18,19 +18,19 @@ export default function UnitDetailPage() {
         <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/units" className="font-medium text-slate-700 hover:text-slate-950">
-              units
+              modules
             </Link>{" "}
-            / unit {unit.order_index}
+            / module {unit.order_index}
           </nav>
 
           <div className="grid gap-2">
             <p className="text-sm font-semibold text-emerald-700">
-              unit {unit.order_index}
+              module {unit.order_index}
             </p>
             <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
               {unit.title}
             </h1>
-            <p className="max-w-3xl text-sm leading-6 text-slate-600">
+            <p className="max-w-5xl text-sm leading-6 text-slate-600">
               {unit.description}
             </p>
           </div>
@@ -38,7 +38,7 @@ export default function UnitDetailPage() {
           <section className="grid gap-4">
             {unit.modules.length === 0 ? (
               <div className="rounded-md border border-slate-200 bg-white p-5 text-sm text-slate-600">
-                no modules have been added to this unit yet.
+                no assessments have been added to this module yet.
               </div>
             ) : (
               unit.modules.map((module) => (
@@ -46,24 +46,18 @@ export default function UnitDetailPage() {
                   key={module.id}
                   className="rounded-md border border-slate-200 bg-white p-5"
                 >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="grid gap-2">
                     <div>
-                      <p className="text-sm font-medium text-slate-500">
-                        module {module.order_index}
-                      </p>
+                      <p className="text-sm font-medium text-slate-500">assessment set</p>
                       <h2 className="mt-1 text-xl font-semibold text-slate-950">
-                        {module.title}
+                        {module.title === "topic assessments"
+                          ? "topic assessments"
+                          : module.title}
                       </h2>
-                      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                      <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-600">
                         {module.description}
                       </p>
                     </div>
-                    <Link
-                      href={`/modules/${module.id}`}
-                      className="flex h-10 w-fit items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-                    >
-                      open module
-                    </Link>
                   </div>
 
                   <div className="mt-5 grid gap-2">
@@ -77,7 +71,7 @@ export default function UnitDetailPage() {
                           {lesson.title}
                         </span>
                         <span className="w-fit rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
-                          {lesson.lesson_type}
+                          assessment
                         </span>
                       </Link>
                     ))}
