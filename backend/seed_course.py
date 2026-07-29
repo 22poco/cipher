@@ -6,6 +6,7 @@ from .models import Lesson, Module, Quiz, QuizOption, QuizQuestion, Unit
 
 
 ASSESSMENT_MODULE_TITLE = "topic assessments"
+LEGACY_MODULE_TITLES = {"linux basics", "unit 1 case study", "assessment practice"}
 
 
 AP_MODULES = [
@@ -552,6 +553,18 @@ def remove_stale_seed_content(
         db.delete(lesson)
 
 
+def remove_legacy_modules(db: Session, unit: Unit, active_module: Module) -> None:
+    legacy_modules = db.scalars(
+        select(Module).where(
+            Module.unit_id == unit.id,
+            Module.id != active_module.id,
+            Module.title.in_(LEGACY_MODULE_TITLES),
+        )
+    )
+    for module in legacy_modules:
+        db.delete(module)
+
+
 def seed_course() -> None:
     Base.metadata.create_all(bind=engine)
 
@@ -571,6 +584,7 @@ def seed_course() -> None:
                     upsert_options(db, question, question_data["options"])
 
             remove_stale_seed_content(db, module, module_data["lessons"])
+            remove_legacy_modules(db, unit, module)
 
         db.commit()
 
