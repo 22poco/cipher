@@ -110,6 +110,14 @@ export type LessonProgress = {
   completed_at: string | null;
 };
 
+export type CaseStudyResponse = {
+  id: number;
+  user_id: number;
+  lesson_id: number;
+  response_text: string;
+  submitted_at: string;
+};
+
 export type ProgressSummary = {
   completed_lessons: number;
   total_lessons: number;
@@ -222,6 +230,26 @@ export function completeLesson(lessonId: string, token: string) {
   return apiRequest<LessonProgress>(
     `/progress/lessons/${lessonId}/complete`,
     { method: "POST" },
+    token,
+  );
+}
+
+export function fetchMyCaseStudyResponse(lessonId: string, token: string) {
+  return apiRequest<CaseStudyResponse>(
+    `/responses/lessons/${lessonId}/me`,
+    {},
+    token,
+  );
+}
+
+export function submitCaseStudyResponse(
+  lessonId: string,
+  payload: { response_text: string },
+  token: string,
+) {
+  return apiRequest<CaseStudyResponse>(
+    `/responses/lessons/${lessonId}`,
+    { method: "POST", body: JSON.stringify(payload) },
     token,
   );
 }
