@@ -18,7 +18,7 @@ roles:
 
 ## units
 
-stores major course units.
+stores the five AP cybersecurity modules.
 
 fields:
 - id
@@ -29,7 +29,7 @@ fields:
 
 ## modules
 
-stores sections inside each unit.
+stores assessment groupings inside each AP module.
 
 fields:
 - id
@@ -41,7 +41,7 @@ fields:
 
 ## lessons
 
-stores individual lesson content.
+stores individual assessment pages. the project still uses the `lessons` table internally from the original course-platform foundation, but student-facing UI should present these as assessments, case scenarios, psets, or mock exam items.
 
 fields:
 - id
@@ -53,15 +53,21 @@ fields:
 - order_index
 - created_at
 
-lesson types:
+current page types:
 - reading
 - video
 - case_study
 - code_activity
 
+planned assessment-facing types:
+- case_scenario
+- pset
+- quiz
+- mock_exam
+
 ## quizzes
 
-stores quizzes attached to lessons or modules.
+stores quizzes attached to assessment pages.
 
 fields:
 - id
@@ -108,7 +114,7 @@ fields:
 
 ## lesson_progress
 
-tracks student lesson completion.
+tracks student assessment-page completion.
 
 fields:
 - id
@@ -119,7 +125,7 @@ fields:
 
 ## case_study_responses
 
-stores student responses to case studies.
+planned table for student written responses to case studies or pset-style prompts.
 
 fields:
 - id
