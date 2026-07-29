@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { ProtectedPage } from "../components/protected-page";
-import { fetchMyProgress, type ProgressSummary } from "@/lib/api";
+import { fetchMyProgress, fetchUnits, type ProgressSummary, type Unit } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
 export default function DashboardPage() {
@@ -25,6 +25,7 @@ function StudentDashboard({
   role: string;
 }) {
   const [progress, setProgress] = useState<ProgressSummary | null>(null);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -34,15 +35,44 @@ function StudentDashboard({
       return;
     }
 
-    fetchMyProgress(token)
-      .then(setProgress)
+    Promise.all([fetchMyProgress(token), fetchUnits(token)])
+      .then(([progressData, unitsData]) => {
+        setProgress(progressData);
+        setUnits(unitsData);
+      })
       .catch((caughtError) =>
         setError(caughtError instanceof Error ? caughtError.message : "could not load progress"),
       );
   }, []);
 
   const latestAttempt = progress?.quiz_attempts[0];
-  const progressPercent = progress?.unit_1_progress_percent ?? 0;
+  const completedLessonIds = new Set(
+    progress?.lesson_progress.map((entry) => entry.lesson_id) ?? [],
+  );
+  const moduleProgress = units.map((unit) => {
+    const assessments = unit.modules
+      .filter((module) => module.title.toLowerCase() === "topic assessments")
+      .flatMap((module) => module.lessons);
+    const completed = assessments.filter((lesson) => completedLessonIds.has(lesson.id)).length;
+    const percent = assessments.length
+      ? Math.round((completed / assessments.length) * 100)
+      : 0;
+
+    return {
+      unit,
+      completed,
+      total: assessments.length,
+      percent,
+    };
+  });
+  const totalAssessments = moduleProgress.reduce((sum, item) => sum + item.total, 0);
+  const completedAssessments = moduleProgress.reduce(
+    (sum, item) => sum + item.completed,
+    0,
+  );
+  const overallPercent = totalAssessments
+    ? Math.round((completedAssessments / totalAssessments) * 100)
+    : 0;
 
   return (
     <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
@@ -64,11 +94,11 @@ function StudentDashboard({
 
       <section className="grid gap-4 md:grid-cols-3">
         {[
-          ["unit 1 progress", `${progressPercent}% complete`],
+          ["overall progress", `${overallPercent}% complete`],
           [
-            "lesson progress",
+            "assessment progress",
             progress
-              ? `${progress.completed_lessons}/${progress.total_lessons} lessons complete`
+              ? `${completedAssessments}/${totalAssessments} assessments complete`
               : "loading progress...",
           ],
           [
@@ -86,15 +116,26 @@ function StudentDashboard({
       <section className="rounded-md border border-slate-200 bg-white p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-slate-950">unit 1</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              social engineering, linux basics, and the first quiz are ready.
-            </p>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-emerald-600"
-                style={{ width: `${Math.min(progressPercent, 100)}%` }}
-              />
+            <h2 className="text-lg font-semibold text-slate-950">module progress</h2>
+            <div className="mt-4 grid gap-3">
+              {moduleProgress.map(({ unit, completed, total, percent }) => (
+                <div key={unit.id}>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-medium text-slate-700">
+                      module {unit.order_index}: {unit.title}
+                    </span>
+                    <span className="text-slate-500">
+                      {completed}/{total}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-emerald-600"
+                      style={{ width: `${Math.min(percent, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           <Link
@@ -121,7 +162,7 @@ function StudentDashboard({
             ))
           ) : (
             <p className="text-sm text-slate-600">
-              no quiz attempts yet. take the unit 1 quiz to see scores here.
+              no quiz attempts yet. open an assessment to see scores here.
             </p>
           )}
         </div>

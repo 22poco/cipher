@@ -8,7 +8,7 @@ import { fetchUnits, type Unit } from "@/lib/api";
 
 function assessmentLessons(unit: Unit) {
   return unit.modules
-    .filter((module) => module.title.toLowerCase() === "assessment practice")
+    .filter((module) => module.title.toLowerCase() === "topic assessments")
     .flatMap((module) => module.lessons);
 }
 
@@ -22,11 +22,11 @@ export default function AssessmentsPage() {
           <div className="grid gap-2">
             <p className="text-sm font-semibold text-emerald-700">assessment hub</p>
             <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
-              practice modules
+              AP cybersecurity modules
             </h1>
             <p className="max-w-3xl text-sm leading-6 text-slate-600">
-              complete scenario checks across the five AP cybersecurity areas. each
-              module starts with placeholder assessment content for the july 31 demo.
+              complete AP CED-aligned scenario checks, quizzes, and pset responses.
+              each module follows the same assessment pattern so practice feels predictable.
             </p>
           </div>
 
@@ -69,7 +69,7 @@ export default function AssessmentsPage() {
                                 {lesson.title}
                               </span>
                               <span className="mt-1 block text-xs text-slate-500">
-                                scenario + quiz check
+                                scenario + quiz + pset response
                               </span>
                             </span>
                             <span className="w-fit rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
