@@ -8,9 +8,12 @@ import { CourseLoader } from "../../components/course-loader";
 import {
   ApiError,
   completeLesson,
+  fetchMyCaseStudyResponse,
   fetchLesson,
   fetchLessonQuiz,
   fetchMyProgress,
+  submitCaseStudyResponse,
+  type CaseStudyResponse,
   submitQuiz,
   type Lesson,
   type ProgressSummary,
@@ -21,7 +24,7 @@ import { getToken } from "@/lib/auth";
 
 function renderContent(content: string | null) {
   if (!content) {
-    return <p className="text-sm text-slate-600">lesson content is not ready yet.</p>;
+    return <p className="text-sm text-slate-600">assessment content is not ready yet.</p>;
   }
 
   return content.split("\n\n").map((paragraph) => {
@@ -29,6 +32,21 @@ function renderContent(content: string | null) {
 
     if (!trimmed) {
       return null;
+    }
+
+    if (
+      [
+        "scenario/context",
+        "evidence",
+        "why this matters",
+        "pset response",
+      ].includes(trimmed.toLowerCase())
+    ) {
+      return (
+        <h2 key={trimmed} className="pt-2 text-lg font-semibold text-slate-950">
+          {trimmed}
+        </h2>
+      );
     }
 
     if (trimmed.startsWith("- ")) {
@@ -72,10 +90,10 @@ export default function LessonDetailPage() {
       {(lesson: Lesson) => (
         <main className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
-            <Link href="/units" className="font-medium text-slate-700 hover:text-slate-950">
-              units
+            <Link href="/assessments" className="font-medium text-slate-700 hover:text-slate-950">
+              assessments
             </Link>{" "}
-            / lesson {lesson.order_index}
+            / assessment {lesson.order_index}
           </nav>
 
           <article className="rounded-md border border-slate-200 bg-white p-5 sm:p-7">
@@ -101,16 +119,18 @@ export default function LessonDetailPage() {
             <div className="mt-6 grid gap-5">{renderContent(lesson.content)}</div>
           </article>
 
-          <LessonLearningPanel lessonId={lesson.id.toString()} />
+          <AssessmentWorkPanel lessonId={lesson.id.toString()} />
         </main>
       )}
     </CourseLoader>
   );
 }
 
-function LessonLearningPanel({ lessonId }: { lessonId: string }) {
+function AssessmentWorkPanel({ lessonId }: { lessonId: string }) {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [progress, setProgress] = useState<ProgressSummary | null>(null);
+  const [writtenResponse, setWrittenResponse] = useState<CaseStudyResponse | null>(null);
+  const [responseText, setResponseText] = useState("");
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [result, setResult] = useState<QuizSubmitResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -137,9 +157,16 @@ function LessonLearningPanel({ lessonId }: { lessonId: string }) {
     setError("");
 
     try {
-      const [progressData, quizData] = await Promise.all([
+      const [progressData, quizData, responseData] = await Promise.all([
         fetchMyProgress(token),
         fetchLessonQuiz(lessonId, token).catch((caughtError) => {
+          if (caughtError instanceof ApiError && caughtError.status === 404) {
+            return null;
+          }
+
+          throw caughtError;
+        }),
+        fetchMyCaseStudyResponse(lessonId, token).catch((caughtError) => {
           if (caughtError instanceof ApiError && caughtError.status === 404) {
             return null;
           }
@@ -150,6 +177,8 @@ function LessonLearningPanel({ lessonId }: { lessonId: string }) {
 
       setProgress(progressData);
       setQuiz(quizData);
+      setWrittenResponse(responseData);
+      setResponseText(responseData?.response_text ?? "");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "could not load quiz");
     } finally {
@@ -179,10 +208,45 @@ function LessonLearningPanel({ lessonId }: { lessonId: string }) {
     try {
       await completeLesson(lessonId, token);
       setProgress(await fetchMyProgress(token));
-      setMessage("lesson marked complete");
+      setMessage("assessment marked complete");
     } catch (caughtError) {
       setError(
         caughtError instanceof Error ? caughtError.message : "could not update progress",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleSubmitResponse(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (responseText.trim().length < 20) {
+      setError("write at least 20 characters for the pset response");
+      return;
+    }
+
+    const token = getToken();
+
+    if (!token) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await submitCaseStudyResponse(
+        lessonId,
+        { response_text: responseText.trim() },
+        token,
+      );
+      setWrittenResponse(response);
+      setMessage("pset response submitted");
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error ? caughtError.message : "could not submit response",
       );
     } finally {
       setIsSubmitting(false);
@@ -235,7 +299,7 @@ function LessonLearningPanel({ lessonId }: { lessonId: string }) {
   if (isLoading) {
     return (
       <section className="rounded-md border border-slate-200 bg-white p-5 text-sm text-slate-500">
-        loading quiz and progress...
+        loading assessment work...
       </section>
     );
   }
@@ -246,7 +310,7 @@ function LessonLearningPanel({ lessonId }: { lessonId: string }) {
         <div>
           <p className="text-sm font-semibold text-emerald-700">progress</p>
           <h2 className="mt-1 text-xl font-semibold text-slate-950">
-            {isComplete ? "lesson complete" : "mark this lesson complete"}
+            {isComplete ? "assessment complete" : "mark this assessment complete"}
           </h2>
         </div>
         <button
@@ -255,7 +319,7 @@ function LessonLearningPanel({ lessonId }: { lessonId: string }) {
           disabled={isSubmitting || isComplete}
           className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {isComplete ? "completed" : "complete lesson"}
+          {isComplete ? "completed" : "complete assessment"}
         </button>
       </div>
 
@@ -351,9 +415,44 @@ function LessonLearningPanel({ lessonId }: { lessonId: string }) {
         </form>
       ) : (
         <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-          no quiz has been added to this lesson yet.
+          no quiz has been added to this assessment yet.
         </div>
       )}
+
+      <form onSubmit={handleSubmitResponse} className="grid gap-4 border-t border-slate-100 pt-5">
+        <div>
+          <p className="text-sm font-semibold text-emerald-700">pset response</p>
+          <h2 className="mt-1 text-xl font-semibold text-slate-950">
+            written evidence response
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            answer the pset prompt from the assessment above. cite scenario evidence
+            and explain your reasoning like an AP free-response practice answer.
+          </p>
+        </div>
+
+        <textarea
+          value={responseText}
+          onChange={(event) => setResponseText(event.target.value)}
+          rows={6}
+          className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+          placeholder="write your response here..."
+        />
+
+        {writtenResponse ? (
+          <p className="text-sm text-slate-600">
+            submitted. you can revise and resubmit this response.
+          </p>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {isSubmitting ? "submitting..." : writtenResponse ? "update response" : "submit response"}
+        </button>
+      </form>
     </section>
   );
 }
