@@ -4,7 +4,7 @@
 
 cipher is an AP cybersecurity assessment platform for high school students.
 
-the platform is now assessment-first. instead of hosting full course materials in-house, cipher should give students practice scenarios, quizzes, case investigations, and mock exams.
+the platform is now assessment-first. instead of hosting full course materials in-house, cipher should give students AP-aligned practice scenarios, quizzes, psets, case investigations, and mock exams.
 
 teachers use cipher to review student attempts, check scores, and see class progress.
 
@@ -14,7 +14,7 @@ teachers use cipher to review student attempts, check scores, and see class prog
 
 - provide AP cybersecurity practice in one focused platform
 - organize assessments into five main modules
-- support scenario-based practice, quizzes, and mock exams
+- support scenario-based practice, quizzes, psets, and mock exams
 - save student attempts and quiz scores
 - give teachers/admins a way to review assessment results
 - support local and netbird access for demos and classroom testing
@@ -23,19 +23,20 @@ teachers use cipher to review student attempts, check scores, and see class prog
 
 ## five modules
 
-the platform follows the five-section structure requested for the pivot:
+the platform follows the AP Cybersecurity Course and Exam Description five-unit structure:
 
-1. securing accounts
-2. securing data
-3. securing systems
-4. securing software
-5. preserving privacy
+1. introduction to security
+2. securing spaces
+3. securing networks
+4. securing devices
+5. securing applications and data
 
 each module should include:
 
-- short context briefs
-- multiple-choice quizzes
 - case scenarios
+- pset-style written questions
+- multiple-choice checks
+- short context/evidence briefs
 - mock exam-style questions
 
 ---
@@ -51,6 +52,7 @@ students can:
 - open the assessment modules
 - complete quizzes
 - submit case scenario responses
+- submit pset-style written answers
 - take mock exam practice
 - view scores and attempt history
 
@@ -61,7 +63,7 @@ teacher/admin can:
 - manage assessment content
 - review submitted attempts
 - see quiz scores
-- inspect written scenario responses
+- inspect written scenario and pset responses
 - monitor class progress
 
 ---
@@ -79,6 +81,7 @@ teacher/admin can:
 - five assessment modules
 - scenario cards
 - multiple-choice quizzes
+- pset-style written responses
 - case investigations
 - mock exam practice
 - attempt saving
@@ -126,6 +129,6 @@ students and teachers access the platform through a web browser.
 
 ## current status
 
-the original course platform foundation is working: authentication, course pages, admin content editing, quizzes, scoring, and lesson progress tracking.
+the original course platform foundation is working: authentication, course pages, admin content editing, quizzes, scoring, and progress tracking.
 
-the current sprint is the assessment-only pivot requested on july 17. the goal is to deliver a demo-ready assessment platform by july 31.
+the current sprint is the assessment-only pivot requested on july 17. the goal is to deliver a demo-ready AP-aligned assessment platform by july 31.

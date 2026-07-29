@@ -4,7 +4,7 @@
 
 target: deliver a working AP cybersecurity assessment platform by july 31.
 
-the project has pivoted from a full in-house learning platform to an assessment-first tool. cipher should host practice scenarios, quizzes, and mock exams instead of trying to host every lesson and course material directly.
+the project has pivoted from a full in-house learning platform to an assessment-first tool. cipher should host AP-aligned practice scenarios, quizzes, psets, and mock exams instead of trying to host every lesson and course material directly.
 
 ## priority rule
 
@@ -43,7 +43,7 @@ definition of done:
 
 status:
 
-- in progress
+- completed
 
 ---
 
@@ -54,11 +54,11 @@ assessment foundation
 - decide whether to clean/merge PR #9 or rebuild only the needed pieces
 - implement or keep assessment-focused navigation
 - create the five module structure:
-  - securing accounts
-  - securing data
-  - securing systems
-  - securing software
-  - preserving privacy
+  - introduction to security
+  - securing spaces
+  - securing networks
+  - securing devices
+  - securing applications and data
 - add scenario/assessment data model if needed
 - seed placeholder assessments for all five modules
 - make student assessment list usable
@@ -70,12 +70,19 @@ definition of done:
 - assessment pages open from the student dashboard
 - seed script can populate placeholder assessments safely
 
+status:
+
+- completed
+
 ---
 
 ### wednesday, july 29
 
-attempts and scoring
+AP alignment and attempt flow
 
+- replace CS50 module labels with AP CED module labels
+- seed AP topic structure from the CED
+- update student-facing wording from lessons/course content to assessments
 - make students start assessment attempts
 - save answers/responses
 - score multiple-choice questions
@@ -85,19 +92,25 @@ attempts and scoring
 
 definition of done:
 
+- students see the AP CED module names
 - students can complete at least one quiz assessment
-- students can submit at least one case scenario
+- students can submit at least one case scenario or pset response
 - attempts are saved to postgresql
 - student dashboard shows recent attempts and scores
 - mock exam placeholder exists
+
+status:
+
+- current focus
 
 ---
 
 ### thursday, july 30
 
-teacher review
+teacher review and assessment authoring
 
 - add teacher/admin assessment dashboard
+- add admin tools for case scenarios and psets
 - show submitted attempts
 - show student names, module, score/status, and submission time
 - allow teacher/admin to review written scenario submissions
@@ -108,6 +121,7 @@ definition of done:
 
 - teacher/admin can see submitted assessments
 - teacher/admin can inspect a student's submitted response
+- teacher/admin can create or edit assessment prompts
 - students cannot access teacher/admin pages
 - teacher/admin flow is demo-ready
 
@@ -128,7 +142,7 @@ definition of done:
 
 - student can register/login
 - student can open five modules
-- student can complete quizzes and scenarios
+- student can complete quizzes, scenarios, and psets
 - student can take a mock exam placeholder or short exam
 - teacher/admin can review attempts
 - local/netbird demo links work
@@ -138,19 +152,20 @@ definition of done:
 
 ## module map
 
-cipher uses the five-section structure pak john requested, matching the CS50 cybersecurity structure and the AP course direction:
+cipher uses the five-unit AP Cybersecurity structure while borrowing CS50's clean assignment-style flow:
 
-1. securing accounts
-2. securing data
-3. securing systems
-4. securing software
-5. preserving privacy
+1. introduction to security
+2. securing spaces
+3. securing networks
+4. securing devices
+5. securing applications and data
 
 each module should focus on assessments first:
 
 - scenario-based questions
 - multiple-choice checks
 - case investigations
+- pset-style written responses
 - mock exam items
 
-lesson content can stay minimal or be replaced with short context briefs for each assessment.
+lesson content should stay minimal and be replaced with short context/evidence briefs for each assessment.
