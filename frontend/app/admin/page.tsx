@@ -17,6 +17,7 @@ import {
   deleteQuiz,
   deleteQuizQuestion,
   deleteUnit,
+  fetchAdminReviewDashboard,
   fetchAdminLessonQuiz,
   fetchUnits,
   fetchLesson,
@@ -25,13 +26,19 @@ import {
   updateQuizQuestion,
   updateLesson,
   updateModule,
+  updateAdminPsetReview,
   updateUnit,
+  type AdminGradebookRow,
+  type AdminPsetResponse,
+  type AdminQuizAttempt,
+  type AdminReviewDashboard,
   type CourseModule,
   type LessonPayload,
   type LessonSummary,
   type LessonType,
   type ModulePayload,
   type QuizAdmin,
+  type QuizAttemptAnswer,
   type QuizAdminQuestion,
   type Unit,
   type UnitPayload,
@@ -164,6 +171,7 @@ export default function AdminPage() {
 
 function AdminDashboard({ email }: { email: string }) {
   const [units, setUnits] = useState<Unit[]>([]);
+  const [reviewDashboard, setReviewDashboard] = useState<AdminReviewDashboard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -192,7 +200,7 @@ function AdminDashboard({ email }: { email: string }) {
     [units],
   );
 
-  const loadUnits = useCallback(async () => {
+  const loadAdminData = useCallback(async () => {
     const token = getToken();
 
     if (!token) {
@@ -203,10 +211,15 @@ function AdminDashboard({ email }: { email: string }) {
     setError("");
 
     try {
-      setUnits(await fetchUnits(token));
+      const [unitData, reviewData] = await Promise.all([
+        fetchUnits(token),
+        fetchAdminReviewDashboard(token),
+      ]);
+      setUnits(unitData);
+      setReviewDashboard(reviewData);
     } catch (caughtError) {
       setError(
-        caughtError instanceof Error ? caughtError.message : "could not load course data",
+        caughtError instanceof Error ? caughtError.message : "could not load admin data",
       );
     } finally {
       setIsLoading(false);
@@ -215,11 +228,11 @@ function AdminDashboard({ email }: { email: string }) {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      void loadUnits();
+      void loadAdminData();
     }, 0);
 
     return () => window.clearTimeout(timeout);
-  }, [loadUnits]);
+  }, [loadAdminData]);
 
   const loadSelectedQuiz = useCallback(async () => {
     const token = getToken();
@@ -289,6 +302,36 @@ function AdminDashboard({ email }: { email: string }) {
     setQuestionForm(emptyQuizQuestionForm);
   }
 
+  async function refreshReviewDashboard() {
+    const token = getToken();
+
+    if (!token) {
+      return;
+    }
+
+    setReviewDashboard(await fetchAdminReviewDashboard(token));
+  }
+
+  async function togglePsetReview(response: AdminPsetResponse) {
+    const token = getToken();
+
+    if (!token) {
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      await updateAdminPsetReview(response.id, { reviewed: !response.reviewed }, token);
+      await refreshReviewDashboard();
+      showResult(response.reviewed ? "pset marked pending" : "pset marked reviewed");
+    } catch (caughtError) {
+      showError(caughtError);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function submitUnit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = getToken();
@@ -309,7 +352,7 @@ function AdminDashboard({ email }: { email: string }) {
       }
 
       resetForms();
-      await loadUnits();
+      await loadAdminData();
     } catch (caughtError) {
       showError(caughtError);
     } finally {
@@ -337,7 +380,7 @@ function AdminDashboard({ email }: { email: string }) {
       }
 
       resetForms();
-      await loadUnits();
+      await loadAdminData();
     } catch (caughtError) {
       showError(caughtError);
     } finally {
@@ -365,7 +408,7 @@ function AdminDashboard({ email }: { email: string }) {
       }
 
       resetForms();
-      await loadUnits();
+      await loadAdminData();
     } catch (caughtError) {
       showError(caughtError);
     } finally {
@@ -480,8 +523,8 @@ function AdminDashboard({ email }: { email: string }) {
 
     try {
       await deleteUnit(unit.id, token);
-      showResult("unit deleted");
-      await loadUnits();
+      showResult("module deleted");
+      await loadAdminData();
     } catch (caughtError) {
       showError(caughtError);
     }
@@ -501,14 +544,14 @@ function AdminDashboard({ email }: { email: string }) {
     try {
       await deleteModule(module.id, token);
       showResult("module deleted");
-      await loadUnits();
+      await loadAdminData();
     } catch (caughtError) {
       showError(caughtError);
     }
   }
 
   async function removeLesson(lesson: LessonSummary) {
-    if (!confirm(`delete lesson "${lesson.title}"?`)) {
+    if (!confirm(`delete case study "${lesson.title}"?`)) {
       return;
     }
 
@@ -520,8 +563,8 @@ function AdminDashboard({ email }: { email: string }) {
 
     try {
       await deleteLesson(lesson.id, token);
-      showResult("lesson deleted");
-      await loadUnits();
+      showResult("case study deleted");
+      await loadAdminData();
     } catch (caughtError) {
       showError(caughtError);
     }
@@ -644,18 +687,18 @@ function AdminDashboard({ email }: { email: string }) {
       <div className="grid gap-2">
         <p className="text-sm font-semibold text-emerald-700">admin dashboard</p>
         <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
-          course management
+          assessment admin
         </h1>
         <p className="text-sm text-slate-600">
-          signed in as {email}. create, edit, and delete course structure here.
+          signed in as {email}. review student work and manage assessment structure here.
         </p>
       </div>
 
       <section className="grid gap-4 md:grid-cols-3">
         {[
-          ["units", units.length],
-          ["modules", modules.length],
-          ["lessons", lessons.length],
+          ["ap modules", units.length],
+          ["assessment sets", modules.length],
+          ["case studies", lessons.length],
         ].map(([label, value]) => (
           <div key={label} className="rounded-md border border-slate-200 bg-white p-5">
             <p className="text-sm font-medium text-slate-500">{label}</p>
@@ -676,13 +719,25 @@ function AdminDashboard({ email }: { email: string }) {
         </div>
       ) : null}
 
+      {reviewDashboard ? (
+        <AdminReviewPanel
+          dashboard={reviewDashboard}
+          isSaving={isSaving}
+          onTogglePsetReview={(response) => void togglePsetReview(response)}
+        />
+      ) : (
+        <section className="rounded-md border border-slate-200 bg-white p-5 text-sm text-slate-500">
+          loading review queue...
+        </section>
+      )}
+
       <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <form
           onSubmit={submitUnit}
           className="min-w-0 rounded-md border border-slate-200 bg-white p-5"
         >
           <h2 className="text-lg font-semibold text-slate-950">
-            {editTarget?.type === "unit" ? "edit unit" : "create unit"}
+            {editTarget?.type === "unit" ? "edit module" : "create module"}
           </h2>
           <div className="mt-4 grid gap-3">
             <TextField
@@ -725,7 +780,7 @@ function AdminDashboard({ email }: { email: string }) {
               onChange={(value) => setModuleForm({ ...moduleForm, unit_id: value })}
               required
             >
-              <option value="">select unit</option>
+              <option value="">select ap module</option>
               {units.map((unit) => (
                 <option key={unit.id} value={unit.id}>
                   {unit.title}
@@ -763,7 +818,7 @@ function AdminDashboard({ email }: { email: string }) {
           className="min-w-0 rounded-md border border-slate-200 bg-white p-5"
         >
           <h2 className="text-lg font-semibold text-slate-950">
-            {editTarget?.type === "lesson" ? "edit lesson" : "create lesson"}
+            {editTarget?.type === "lesson" ? "edit case study" : "create case study"}
           </h2>
           <div className="mt-4 grid gap-3">
             <SelectField
@@ -834,7 +889,7 @@ function AdminDashboard({ email }: { email: string }) {
           <div>
             <h2 className="text-lg font-semibold text-slate-950">current structure</h2>
             <p className="mt-1 text-sm text-slate-600">
-              changes here appear on student course pages after refresh.
+              changes here appear on student assessment pages after refresh.
             </p>
           </div>
           <Link
@@ -872,7 +927,7 @@ function AdminDashboard({ email }: { email: string }) {
           <div>
             <h2 className="text-lg font-semibold text-slate-950">quiz management</h2>
             <p className="mt-1 text-sm text-slate-600">
-              add the first version of multiple-choice quizzes to lessons.
+              add or edit multiple-choice checks for case studies.
             </p>
           </div>
           {selectedQuiz ? (
@@ -889,14 +944,14 @@ function AdminDashboard({ email }: { email: string }) {
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           <form onSubmit={submitQuiz} className="grid min-w-0 gap-3">
             <SelectField
-              label="lesson"
+              label="case study"
               value={quizForm.lesson_id}
               onChange={(value) =>
                 setQuizForm({ ...emptyQuizForm, lesson_id: value })
               }
               required
             >
-              <option value="">select lesson</option>
+              <option value="">select case study</option>
               {lessons.map((lesson) => (
                 <option key={lesson.id} value={lesson.id}>
                   {lesson.unit.title} / {lesson.module.title} / {lesson.title}
@@ -989,7 +1044,7 @@ function AdminDashboard({ email }: { email: string }) {
         <div className="mt-5 grid gap-3">
           {!quizForm.lesson_id ? (
             <p className="text-sm text-slate-500">
-              select a lesson to create or edit its quiz.
+              select a case study to create or edit its quiz.
             </p>
           ) : selectedQuiz ? (
             selectedQuiz.questions.length > 0 ? (
@@ -1033,12 +1088,241 @@ function AdminDashboard({ email }: { email: string }) {
               <p className="text-sm text-slate-500">this quiz has no questions yet.</p>
             )
           ) : (
-            <p className="text-sm text-slate-500">this lesson does not have a quiz yet.</p>
+            <p className="text-sm text-slate-500">this case study does not have a quiz yet.</p>
           )}
         </div>
       </section>
     </main>
   );
+}
+
+function AdminReviewPanel({
+  dashboard,
+  isSaving,
+  onTogglePsetReview,
+}: {
+  dashboard: AdminReviewDashboard;
+  isSaving: boolean;
+  onTogglePsetReview: (response: AdminPsetResponse) => void;
+}) {
+  return (
+    <section className="grid gap-5 rounded-md border border-slate-200 bg-white p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-950">review queue</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            review pset responses, quiz attempts, and student progress from one place.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
+          <span className="rounded-md bg-slate-100 px-2 py-1">
+            {dashboard.total_students} students
+          </span>
+          <span className="rounded-md bg-slate-100 px-2 py-1">
+            {dashboard.pending_psets} pending psets
+          </span>
+          <span className="rounded-md bg-emerald-50 px-2 py-1 text-emerald-700">
+            {dashboard.reviewed_psets} reviewed
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="rounded-md border border-slate-200 p-4 xl:col-span-2">
+          <h3 className="font-semibold text-slate-950">gradebook foundation</h3>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
+                <tr>
+                  <th className="py-2 pr-3">student</th>
+                  <th className="py-2 pr-3">progress</th>
+                  <th className="py-2 pr-3">latest quiz</th>
+                  <th className="py-2 pr-3">quiz attempts</th>
+                  <th className="py-2 pr-3">psets</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboard.gradebook.length > 0 ? (
+                  dashboard.gradebook.map((row) => (
+                    <GradebookRow key={row.student_id} row={row} />
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-4 text-slate-500">
+                      no student accounts yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="rounded-md border border-slate-200 p-4">
+          <h3 className="font-semibold text-slate-950">pset review</h3>
+          <div className="mt-4 grid max-h-[34rem] gap-3 overflow-auto pr-1">
+            {dashboard.pset_responses.length > 0 ? (
+              dashboard.pset_responses.map((response) => (
+                <PsetReviewCard
+                  key={response.id}
+                  response={response}
+                  isSaving={isSaving}
+                  onToggleReview={onTogglePsetReview}
+                />
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">no pset responses submitted yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-md border border-slate-200 p-4">
+        <h3 className="font-semibold text-slate-950">quiz attempt review</h3>
+        <div className="mt-4 grid gap-3">
+          {dashboard.quiz_attempts.length > 0 ? (
+            dashboard.quiz_attempts.slice(0, 12).map((attempt) => (
+              <QuizAttemptReview key={attempt.id} attempt={attempt} />
+            ))
+          ) : (
+            <p className="text-sm text-slate-500">no quiz attempts submitted yet.</p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function GradebookRow({ row }: { row: AdminGradebookRow }) {
+  return (
+    <tr className="border-b border-slate-100 last:border-0">
+      <td className="py-3 pr-3">
+        <p className="font-semibold text-slate-950">{row.student_name}</p>
+        <p className="mt-1 text-xs text-slate-500">{row.student_email}</p>
+      </td>
+      <td className="py-3 pr-3 text-slate-700">
+        {row.completed_assessments}/{row.total_assessments} complete
+      </td>
+      <td className="py-3 pr-3 text-slate-700">
+        {row.latest_quiz_score === null ? "none" : `${row.latest_quiz_score}%`}
+      </td>
+      <td className="py-3 pr-3 text-slate-700">{row.quiz_attempts}</td>
+      <td className="py-3 pr-3 text-slate-700">
+        {row.pset_submissions} submitted, {row.pending_psets} pending
+      </td>
+    </tr>
+  );
+}
+
+function PsetReviewCard({
+  response,
+  isSaving,
+  onToggleReview,
+}: {
+  response: AdminPsetResponse;
+  isSaving: boolean;
+  onToggleReview: (response: AdminPsetResponse) => void;
+}) {
+  return (
+    <article
+      className={`rounded-md border p-3 ${
+        response.reviewed
+          ? "border-emerald-200 bg-emerald-50"
+          : "border-slate-200 bg-slate-50"
+      }`}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold text-emerald-700">
+            module {response.module_order_index}: {response.module_title}
+          </p>
+          <h4 className="mt-1 font-semibold text-slate-950">
+            {response.assessment_title}
+          </h4>
+          <p className="mt-1 text-xs text-slate-500">
+            {response.student_name} / {response.student_email}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            submitted {formatDate(response.submitted_at)}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={isSaving}
+          onClick={() => onToggleReview(response)}
+          className={`h-9 w-fit rounded-md px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:bg-slate-300 ${
+            response.reviewed
+              ? "border border-slate-300 bg-white text-slate-700 hover:border-slate-950"
+              : "bg-slate-950 text-white hover:bg-slate-800"
+          }`}
+        >
+          {response.reviewed ? "mark pending" : "mark reviewed"}
+        </button>
+      </div>
+      <details className="mt-3">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-700">
+          view response
+        </summary>
+        <p className="mt-3 whitespace-pre-wrap rounded-md border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700">
+          {response.response_text}
+        </p>
+      </details>
+    </article>
+  );
+}
+
+function QuizAttemptReview({ attempt }: { attempt: AdminQuizAttempt }) {
+  return (
+    <details className="rounded-md border border-slate-200 bg-slate-50 p-3">
+      <summary className="cursor-pointer">
+        <span className="font-semibold text-slate-950">
+          {attempt.student_name} scored {attempt.score}% on {attempt.assessment_title}
+        </span>
+        <span className="ml-2 text-xs text-slate-500">
+          module {attempt.module_order_index} / {formatDate(attempt.submitted_at)}
+        </span>
+      </summary>
+      <div className="mt-3 grid gap-2">
+        {attempt.answers.length > 0 ? (
+          attempt.answers.map((answer, index) => (
+            <QuizAnswerReview key={answer.id} answer={answer} index={index} />
+          ))
+        ) : (
+          <p className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-500">
+            this older attempt does not have stored answer history.
+          </p>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function QuizAnswerReview({
+  answer,
+  index,
+}: {
+  answer: QuizAttemptAnswer;
+  index: number;
+}) {
+  return (
+    <div
+      className={`rounded-md border p-3 text-sm ${
+        answer.is_correct ? "border-emerald-200 bg-white" : "border-red-200 bg-red-50"
+      }`}
+    >
+      <p className="font-semibold text-slate-950">
+        {index + 1}. {answer.question_text}
+      </p>
+      <p className="mt-2 text-slate-700">student answer: {answer.selected_option_text}</p>
+      {!answer.is_correct && answer.correct_option_text ? (
+        <p className="mt-1 text-red-700">correct answer: {answer.correct_option_text}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleString();
 }
 
 function TextField({
@@ -1218,7 +1502,9 @@ function CourseStructureItem({
     <article className="rounded-md border border-slate-200 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-medium text-slate-500">unit {unit.order_index}</p>
+          <p className="text-xs font-medium text-slate-500">
+            ap module {unit.order_index}
+          </p>
           <h3 className="text-lg font-semibold text-slate-950">{unit.title}</h3>
           <p className="mt-1 text-sm leading-6 text-slate-600">{unit.description}</p>
         </div>
@@ -1253,7 +1539,7 @@ function CourseStructureItem({
                   <div>
                     <p className="font-medium text-slate-950">{lesson.title}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      lesson {lesson.order_index} / {lesson.lesson_type}
+                      case study {lesson.order_index} / {lesson.lesson_type}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
