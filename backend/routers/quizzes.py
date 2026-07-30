@@ -4,8 +4,22 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import Lesson, Quiz, QuizAttempt, QuizOption, QuizQuestion, User
-from ..schemas import QuizRead, QuizSubmit, QuizSubmitResult
+from ..models import (
+    Lesson,
+    Quiz,
+    QuizAttempt,
+    QuizAttemptAnswer,
+    QuizOption,
+    QuizQuestion,
+    User,
+)
+from ..schemas import (
+    QuizAttemptAnswerRead,
+    QuizAttemptDetailRead,
+    QuizRead,
+    QuizSubmit,
+    QuizSubmitResult,
+)
 
 
 router = APIRouter(prefix="/quizzes", tags=["quizzes"])
@@ -58,6 +72,63 @@ def read_lesson_quiz(
         )
 
     return quiz
+
+
+@router.get("/lesson/{lesson_id}/attempts", response_model=list[QuizAttemptDetailRead])
+def read_lesson_quiz_attempts(
+    lesson_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    quiz = db.scalar(select(Quiz).where(Quiz.lesson_id == lesson_id))
+
+    if quiz is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="quiz not found",
+        )
+
+    attempts = db.scalars(
+        select(QuizAttempt)
+        .where(
+            QuizAttempt.quiz_id == quiz.id,
+            QuizAttempt.user_id == current_user.id,
+        )
+        .options(
+            selectinload(QuizAttempt.answers).selectinload(QuizAttemptAnswer.question),
+            selectinload(QuizAttempt.answers).selectinload(QuizAttemptAnswer.selected_option),
+            selectinload(QuizAttempt.answers).selectinload(QuizAttemptAnswer.correct_option),
+        )
+        .order_by(QuizAttempt.submitted_at.desc())
+    ).all()
+
+    return [
+        QuizAttemptDetailRead(
+            id=attempt.id,
+            quiz_id=attempt.quiz_id,
+            score=attempt.score,
+            submitted_at=attempt.submitted_at,
+            answers=[
+                QuizAttemptAnswerRead(
+                    id=answer.id,
+                    question_id=answer.question_id,
+                    question_text=answer.question.question_text,
+                    selected_option_id=answer.selected_option_id,
+                    selected_option_text=answer.selected_option.option_text,
+                    correct_option_id=answer.correct_option_id,
+                    correct_option_text=answer.correct_option.option_text
+                    if answer.correct_option
+                    else None,
+                    is_correct=answer.is_correct,
+                )
+                for answer in sorted(
+                    attempt.answers,
+                    key=lambda item: item.question.order_index,
+                )
+            ],
+        )
+        for attempt in attempts
+    ]
 
 
 @router.post("/{quiz_id}/submit", response_model=QuizSubmitResult)
@@ -119,6 +190,19 @@ def submit_quiz(
         score=score,
     )
     db.add(attempt)
+    db.flush()
+
+    for result in results:
+        db.add(
+            QuizAttemptAnswer(
+                attempt_id=attempt.id,
+                question_id=result["question_id"],
+                selected_option_id=result["selected_option_id"],
+                correct_option_id=result["correct_option_id"],
+                is_correct=result["is_correct"],
+            )
+        )
+
     db.commit()
     db.refresh(attempt)
 

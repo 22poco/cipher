@@ -38,7 +38,10 @@ export function AppNav() {
             ...(user ? [{ href: "/dashboard", label: "dashboard" }] : []),
             ...(user?.role === "admin" ? [{ href: "/admin", label: "admin" }] : []),
           ].map((link) => {
-            const isActive = pathname === link.href;
+            const isActive =
+              pathname === link.href ||
+              (link.href === "/units" &&
+                (pathname.startsWith("/units/") || pathname.startsWith("/modules/")));
 
             return (
               <Link

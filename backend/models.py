@@ -159,6 +159,10 @@ class QuizQuestion(Base):
         cascade="all, delete-orphan",
         order_by="QuizOption.id",
     )
+    attempt_answers: Mapped[list["QuizAttemptAnswer"]] = relationship(
+        back_populates="question",
+        cascade="all, delete-orphan",
+    )
 
 
 class QuizOption(Base):
@@ -174,6 +178,10 @@ class QuizOption(Base):
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     question: Mapped[QuizQuestion] = relationship(back_populates="options")
+    attempt_answers: Mapped[list["QuizAttemptAnswer"]] = relationship(
+        back_populates="selected_option",
+        foreign_keys="QuizAttemptAnswer.selected_option_id",
+    )
 
 
 class QuizAttempt(Base):
@@ -199,6 +207,45 @@ class QuizAttempt(Base):
 
     user: Mapped[User] = relationship(back_populates="quiz_attempts")
     quiz: Mapped[Quiz] = relationship(back_populates="attempts")
+    answers: Mapped[list["QuizAttemptAnswer"]] = relationship(
+        back_populates="attempt",
+        cascade="all, delete-orphan",
+    )
+
+
+class QuizAttemptAnswer(Base):
+    __tablename__ = "quiz_attempt_answers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    attempt_id: Mapped[int] = mapped_column(
+        ForeignKey("quiz_attempts.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("quiz_questions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    selected_option_id: Mapped[int] = mapped_column(
+        ForeignKey("quiz_options.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    correct_option_id: Mapped[int | None] = mapped_column(
+        ForeignKey("quiz_options.id", ondelete="SET NULL"),
+    )
+    is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    attempt: Mapped[QuizAttempt] = relationship(back_populates="answers")
+    question: Mapped[QuizQuestion] = relationship(back_populates="attempt_answers")
+    selected_option: Mapped[QuizOption] = relationship(
+        foreign_keys=[selected_option_id],
+        back_populates="attempt_answers",
+    )
+    correct_option: Mapped[QuizOption | None] = relationship(
+        foreign_keys=[correct_option_id],
+    )
 
 
 class LessonProgress(Base):
