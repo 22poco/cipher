@@ -297,6 +297,6 @@ class CaseStudyResponse(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
     )
 
-    user: Mapped[User] = relationship()
+    user: Mapped[User] = relationship(foreign_keys=[user_id])
     lesson: Mapped[Lesson] = relationship()
     reviewed_by: Mapped[User | None] = relationship(foreign_keys=[reviewed_by_id])
