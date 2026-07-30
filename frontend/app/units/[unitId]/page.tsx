@@ -5,16 +5,35 @@ import { useParams } from "next/navigation";
 import { useCallback } from "react";
 
 import { CourseLoader } from "../../components/course-loader";
-import { fetchUnit, type Unit } from "@/lib/api";
+import {
+  fetchMyProgress,
+  fetchUnit,
+  type ProgressSummary,
+  type Unit,
+} from "@/lib/api";
 
 export default function UnitDetailPage() {
   const params = useParams<{ unitId: string }>();
   const unitId = params.unitId;
-  const loadUnit = useCallback((token: string) => fetchUnit(unitId, token), [unitId]);
+  const loadModuleState = useCallback(async (token: string) => {
+    const [unit, progress] = await Promise.all([
+      fetchUnit(unitId, token),
+      fetchMyProgress(token),
+    ]);
+
+    return { unit, progress };
+  }, [unitId]);
 
   return (
-    <CourseLoader load={loadUnit}>
-      {(unit: Unit) => (
+    <CourseLoader load={loadModuleState}>
+      {({ unit, progress }: { unit: Unit; progress: ProgressSummary }) => {
+        const completedLessonIds = new Set(
+          progress.lesson_progress
+            .filter((entry) => entry.completed)
+            .map((entry) => entry.lesson_id),
+        );
+
+        return (
         <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/units" className="font-medium text-slate-700 hover:text-slate-950">
@@ -61,27 +80,43 @@ export default function UnitDetailPage() {
                   </div>
 
                   <div className="mt-5 grid gap-2">
-                    {module.lessons.map((lesson) => (
-                      <Link
-                        key={lesson.id}
-                        href={`/lessons/${lesson.id}`}
-                        className="flex flex-col gap-1 rounded-md border border-slate-200 px-3 py-2 transition hover:border-emerald-600 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <span className="font-medium text-slate-950">
-                          {lesson.title}
-                        </span>
-                        <span className="w-fit rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
-                          assessment
-                        </span>
-                      </Link>
-                    ))}
+                    {module.lessons.map((lesson) => {
+                      const isComplete = completedLessonIds.has(lesson.id);
+
+                      return (
+                        <Link
+                          key={lesson.id}
+                          href={`/lessons/${lesson.id}`}
+                          className="flex flex-col gap-2 rounded-md border border-slate-200 px-3 py-2 transition hover:border-emerald-600 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <span className="font-medium text-slate-950">
+                            {lesson.title}
+                          </span>
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="w-fit rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+                              case study
+                            </span>
+                            <span
+                              className={`w-fit rounded-md px-2 py-1 text-xs font-semibold ${
+                                isComplete
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              {isComplete ? "complete" : "start"}
+                            </span>
+                          </span>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </article>
               ))
             )}
           </section>
         </main>
-      )}
+        );
+      }}
     </CourseLoader>
   );
 }
