@@ -54,7 +54,7 @@ students can:
 - submit case scenario responses
 - submit pset-style written answers
 - take mock exam practice
-- view scores and attempt history
+- view scores, saved answers, and response status
 
 ### teacher/admin
 
@@ -64,6 +64,7 @@ teacher/admin can:
 - review submitted attempts
 - see quiz scores
 - inspect written scenario and pset responses
+- mark pset responses pending or reviewed
 - monitor class progress
 
 ---
@@ -93,6 +94,7 @@ teacher/admin can:
 - submitted attempt review
 - quiz score overview
 - basic gradebook/reporting
+- pset review queue
 
 ---
 
@@ -129,6 +131,6 @@ students and teachers access the platform through a web browser.
 
 ## current status
 
-the original course platform foundation is working: authentication, course pages, admin content editing, quizzes, scoring, and progress tracking.
+the assessment platform foundation is working: authentication, AP modules, student assessment flow, quiz scoring, saved answers, pset responses, student progress, admin content editing, pset review, quiz attempt review, and a basic gradebook.
 
-the current sprint is the assessment-only pivot requested on july 17. the goal is to deliver a demo-ready AP-aligned assessment platform by july 31.
+the current goal is to deliver a demo-ready AP-aligned assessment platform, with mock exams and real AP CED-aligned content as the next focus.

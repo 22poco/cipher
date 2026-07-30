@@ -1,34 +1,23 @@
-# assessment pivot plan
+# assessment platform scope
 
-## decision
+## direction
 
-do not merge PR #9 directly yet.
+cipher is an assessment platform, not a full lesson-hosting LMS.
 
-the PR is aligned with the new assessment direction, but it is too large to merge without cleanup. it adds useful mission, lab, attempt, teacher, gradebook, and netbird/dev setup ideas, but it also changes many core files at once. useful pieces should be rebuilt or selectively adopted into the current codebase.
-
-best path:
-
-1. keep PR #9 open
-2. use it as the main reference for the assessment pivot
-3. cleanly adopt or cherry-pick the useful pieces into the project
-4. avoid breaking the already-working auth, quiz, progress, and admin foundation
-
-## product direction
-
-cipher is now an assessment platform, not a full lesson-hosting LMS.
-
-the product should focus on:
+the product should help students practice AP cybersecurity through focused assessment work:
 
 - case scenarios
-- quizzes
-- psets
+- multiple-choice checks
+- pset-style written responses
 - mock exams
-- attempt tracking
+- saved attempts
 - teacher/admin review
 
-course materials should be short context/evidence briefs attached to assessments. the system does not need to host full lessons for the july 31 demo.
+course material should stay lightweight. each assessment can include short context, evidence, and instructions, but cipher should not try to replace the full course textbook or lecture content.
 
-## five module structure
+## module structure
+
+cipher follows the five-unit AP Cybersecurity structure:
 
 1. introduction to security
 2. securing spaces
@@ -36,69 +25,43 @@ course materials should be short context/evidence briefs attached to assessments
 4. securing devices
 5. securing applications and data
 
-## july 27-31 plan
+## assessment pattern
 
-### monday, july 27
+each topic assessment should follow a predictable structure:
 
-- review PR #9
-- decide not to merge it blindly
-- update repo docs for assessment-only pivot
-- create final sprint plan
-- send pak john update
+- scenario/context
+- evidence or artifacts
+- multiple-choice check
+- pset-style written response
+- saved completion/review state
 
-### tuesday, july 28
+this keeps the product simple for students and makes review easier for teachers.
 
-- clean/merge PR #9 if practical, or rebuild only needed assessment pieces
-- create five-module assessment structure
-- seed placeholder assessments across all five modules
-- make student assessment browsing work
+## current platform shape
 
-### wednesday, july 29
+students can:
 
-- correct module names to the AP CED structure
-- seed AP topic structure
-- replace remaining visible lesson/course wording where practical
-- implement attempt flow
-- save assessment responses
-- score multiple-choice quizzes
-- support pset-style written responses
-- add mock exam placeholder or short mock exam
-- show student attempt history
+- create an account
+- open the five AP modules
+- complete case-study assessments
+- submit and retake quizzes
+- review saved quiz answers
+- submit and revise pset responses
+- track module progress
 
-### thursday, july 30
+admins can:
 
-- add admin tools for scenarios and psets
-- implement teacher/admin review dashboard
-- show submitted attempts and scores
-- support reviewing written scenario responses
-- polish role separation
+- manage AP modules, assessment sets, and case studies
+- manage quiz questions
+- review pset submissions
+- mark psets pending or reviewed
+- inspect quiz attempts and answer history
+- view a simple gradebook summary
 
-### friday, july 31
+## next product work
 
-- run full demo test
-- fix critical bugs
-- polish visible UI
-- update readme/test instructions
-- test local/netbird access
-- prepare final update/demo message
-
-## minimum demo by july 31
-
-- student can register and log in
-- student can see five assessment modules
-- student can complete quizzes
-- student can submit scenario responses
-- student can submit pset responses
-- student can take a short mock exam
-- teacher/admin can see submitted attempts
-- teacher/admin can review scores/responses
-- project runs locally and through netbird
-
-## not required for july 31
-
-- full in-house lesson content
-- full AP curriculum writing
-- code editor
-- advanced analytics
-- polished production deployment
-- AI tutor unless PR #9 makes it easy and stable
+- add a mock exam flow
+- replace placeholder prompts with stronger AP CED-aligned assessments
+- improve pset grading with scores/rubrics/feedback
+- add full attempt history views
+- polish the admin authoring workflow

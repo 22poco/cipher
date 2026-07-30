@@ -1,0 +1,9 @@
+<svg width="1200" height="240" viewBox="0 0 1200 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="240" rx="24" fill="#07111F"/>
+  <g transform="translate(432 70)">
+    <path d="M50 4L90 20V51C90 75 75 93 50 106C25 93 10 75 10 51V20L50 4Z" stroke="#F8FAFC" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M63 36C58 31 51 29 44 31C34 34 28 43 29 54C30 65 38 73 49 74C55 75 61 73 66 69" stroke="#F8FAFC" stroke-width="8" stroke-linecap="round"/>
+    <path d="M68 44H50" stroke="#F8FAFC" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <text x="562" y="143" fill="#F8FAFC" font-family="Aptos Display, Segoe UI, Inter, Arial, sans-serif" font-size="70" font-weight="600" letter-spacing="0">cipher</text>
+</svg>
