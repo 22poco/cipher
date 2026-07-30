@@ -280,6 +280,66 @@ class CaseStudyResponseRead(BaseModel):
     lesson_id: int
     response_text: str
     submitted_at: datetime
+    reviewed: bool = False
+    reviewed_at: datetime | None = None
+    reviewed_by_id: int | None = None
+
+
+class AdminPsetResponseRead(BaseModel):
+    id: int
+    student_id: int
+    student_name: str
+    student_email: EmailStr
+    module_title: str
+    module_order_index: int
+    assessment_id: int
+    assessment_title: str
+    response_text: str
+    submitted_at: datetime
+    reviewed: bool
+    reviewed_at: datetime | None = None
+
+
+class AdminPsetReviewUpdate(BaseModel):
+    reviewed: bool = True
+
+
+class AdminQuizAttemptRead(BaseModel):
+    id: int
+    student_id: int
+    student_name: str
+    student_email: EmailStr
+    module_title: str
+    module_order_index: int
+    assessment_id: int
+    assessment_title: str
+    quiz_id: int
+    score: float
+    submitted_at: datetime
+    answers: list[QuizAttemptAnswerRead] = []
+
+
+class AdminGradebookRow(BaseModel):
+    student_id: int
+    student_name: str
+    student_email: EmailStr
+    completed_assessments: int
+    total_assessments: int
+    latest_quiz_score: float | None = None
+    quiz_attempts: int
+    pset_submissions: int
+    pending_psets: int
+    reviewed_psets: int
+
+
+class AdminReviewDashboard(BaseModel):
+    total_students: int
+    total_assessments: int
+    pending_psets: int
+    reviewed_psets: int
+    pset_responses: list[AdminPsetResponseRead]
+    quiz_attempts: list[AdminQuizAttemptRead]
+    gradebook: list[AdminGradebookRow]
 
 
 class ProgressSummary(BaseModel):

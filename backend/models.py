@@ -291,6 +291,12 @@ class CaseStudyResponse(Base):
         server_default=func.now(),
         nullable=False,
     )
+    reviewed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    reviewed_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
 
     user: Mapped[User] = relationship()
     lesson: Mapped[Lesson] = relationship()
+    reviewed_by: Mapped[User | None] = relationship(foreign_keys=[reviewed_by_id])
