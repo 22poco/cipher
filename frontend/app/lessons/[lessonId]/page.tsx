@@ -195,6 +195,19 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
     () => quizAttempts[0] ?? null,
     [quizAttempts],
   );
+  const latestQuizScore = useMemo(() => {
+    if (latestQuizAttempt) {
+      return latestQuizAttempt.score;
+    }
+
+    if (result) {
+      return result.score;
+    }
+
+    return quiz
+      ? progress?.quiz_attempts.find((attempt) => attempt.quiz_id === quiz.id)?.score ?? null
+      : null;
+  }, [latestQuizAttempt, progress, quiz, result]);
   const assessments = useMemo(() => flattenAssessments(units), [units]);
   const currentAssessmentIndex = assessments.findIndex(
     (entry) => entry.lesson.id === lesson.id,
@@ -348,7 +361,15 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         await completeLesson(lessonId, token);
       }
       setProgress(await fetchMyProgress(token));
-      setQuizAttempts(await fetchLessonQuizAttempts(lessonId, token));
+      setQuizAttempts(
+        await fetchLessonQuizAttempts(lessonId, token).catch((caughtError) => {
+          if (caughtError instanceof ApiError && caughtError.status === 404) {
+            return [];
+          }
+
+          throw caughtError;
+        }),
+      );
       setMessage(
         writtenResponse
           ? "quiz submitted. assessment is now complete."
@@ -435,29 +456,31 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             ) : null}
           </div>
 
-          {latestQuizAttempt && !result && !isRetakingQuiz ? (
+          {latestQuizScore !== null && !result && !isRetakingQuiz ? (
             <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                <p className="text-sm font-semibold text-slate-950">
-                  latest quiz score: {latestQuizAttempt.score}%
-                </p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  your latest attempt is saved. retake the quiz to submit a new
-                  score for this case study.
-                </p>
+                  <p className="text-sm font-semibold text-slate-950">
+                    latest quiz score: {latestQuizScore}%
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    your latest attempt is saved. retake the quiz to submit a new
+                    score for this case study.
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowQuizReview(!showQuizReview)}
-                  className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-                >
-                  {showQuizReview ? "hide answers" : "review answers"}
-                </button>
+                {latestQuizAttempt ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowQuizReview(!showQuizReview)}
+                    className="min-h-10 w-fit rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+                  >
+                    {showQuizReview ? "hide answers" : "review answers"}
+                  </button>
+                ) : null}
               </div>
               {showQuizReview ? (
                 <div className="grid gap-3">
-                  {latestQuizAttempt.answers.length > 0 ? (
+                  {latestQuizAttempt && latestQuizAttempt.answers.length > 0 ? (
                     latestQuizAttempt.answers.map((answer, index) => (
                       <div
                         key={answer.id}
@@ -505,7 +528,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             </div>
           ) : null}
 
-          {(!latestQuizAttempt || result || isRetakingQuiz) ? quiz.questions.map((question) => {
+          {(latestQuizScore === null || result || isRetakingQuiz) ? quiz.questions.map((question) => {
             const questionResult = result?.results.find(
               (entry) => entry.question_id === question.id,
             );
@@ -567,7 +590,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                 you have not submitted it yet.
               </p>
             </div>
-          ) : !latestQuizAttempt || isRetakingQuiz ? (
+          ) : latestQuizScore === null || isRetakingQuiz ? (
             <button
               type="submit"
               disabled={isSubmitting}
@@ -610,15 +633,20 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
               <button
                 type="button"
                 onClick={() => setShowPsetReview(!showPsetReview)}
-                className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+                className="min-h-10 w-fit min-w-36 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
               >
                 {showPsetReview ? "hide response" : "view response"}
               </button>
             </div>
             {showPsetReview ? (
-              <p className="whitespace-pre-wrap rounded-md border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700">
-                {writtenResponse.response_text}
-              </p>
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-xs font-semibold uppercase text-emerald-700">
+                  your submitted response
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-800">
+                  {writtenResponse.response_text}
+                </p>
+              </div>
             ) : null}
             <button
               type="button"
