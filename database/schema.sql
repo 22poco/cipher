@@ -89,5 +89,8 @@ CREATE TABLE case_study_responses (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
     response_text TEXT NOT NULL,
-    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed BOOLEAN NOT NULL DEFAULT FALSE,
+    reviewed_at TIMESTAMP,
+    reviewed_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
