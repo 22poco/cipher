@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from .database import Base, SessionLocal, engine
@@ -567,6 +567,7 @@ def remove_legacy_modules(db: Session, unit: Unit, active_module: Module) -> Non
 
 def seed_course() -> None:
     Base.metadata.create_all(bind=engine)
+    ensure_review_columns()
 
     with SessionLocal() as db:
         for unit_data in AP_MODULES:
@@ -587,6 +588,29 @@ def seed_course() -> None:
             remove_legacy_modules(db, unit, module)
 
         db.commit()
+
+
+def ensure_review_columns() -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "ALTER TABLE case_study_responses "
+                "ADD COLUMN IF NOT EXISTS reviewed BOOLEAN NOT NULL DEFAULT FALSE"
+            )
+        )
+        connection.execute(
+            text(
+                "ALTER TABLE case_study_responses "
+                "ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP"
+            )
+        )
+        connection.execute(
+            text(
+                "ALTER TABLE case_study_responses "
+                "ADD COLUMN IF NOT EXISTS reviewed_by_id INTEGER "
+                "REFERENCES users(id) ON DELETE SET NULL"
+            )
+        )
 
 
 if __name__ == "__main__":
