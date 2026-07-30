@@ -241,6 +241,23 @@ class QuizAttemptRead(BaseModel):
     submitted_at: datetime
 
 
+class QuizAttemptAnswerRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    question_id: int
+    question_text: str
+    selected_option_id: int
+    selected_option_text: str
+    correct_option_id: int | None
+    correct_option_text: str | None
+    is_correct: bool
+
+
+class QuizAttemptDetailRead(QuizAttemptRead):
+    answers: list[QuizAttemptAnswerRead] = []
+
+
 class LessonProgressRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

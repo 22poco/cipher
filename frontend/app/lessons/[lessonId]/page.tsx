@@ -11,6 +11,7 @@ import {
   fetchMyCaseStudyResponse,
   fetchLesson,
   fetchLessonQuiz,
+  fetchLessonQuizAttempts,
   fetchMyProgress,
   fetchUnits,
   submitCaseStudyResponse,
@@ -19,8 +20,10 @@ import {
   type Lesson,
   type ProgressSummary,
   type Quiz,
+  type QuizAttemptDetail,
   type QuizSubmitResult,
   type Unit,
+  type QuizQuestion,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
@@ -100,7 +103,7 @@ export default function LessonDetailPage() {
         const assessmentPath = findAssessmentPath(units, lesson.id);
 
         return (
-        <main className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-10 sm:px-6">
+        <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/assessments" className="font-medium text-slate-700 hover:text-slate-950">
               module {assessmentPath?.unit.order_index ?? ""}
@@ -159,11 +162,16 @@ function findAssessmentPath(units: Unit[], lessonId: number) {
 function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] }) {
   const lessonId = lesson.id.toString();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [quizAttempts, setQuizAttempts] = useState<QuizAttemptDetail[]>([]);
   const [progress, setProgress] = useState<ProgressSummary | null>(null);
   const [writtenResponse, setWrittenResponse] = useState<CaseStudyResponse | null>(null);
   const [responseText, setResponseText] = useState("");
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [result, setResult] = useState<QuizSubmitResult | null>(null);
+  const [isRetakingQuiz, setIsRetakingQuiz] = useState(false);
+  const [isEditingResponse, setIsEditingResponse] = useState(false);
+  const [showQuizReview, setShowQuizReview] = useState(false);
+  const [showPsetReview, setShowPsetReview] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -184,12 +192,35 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
       ),
     [progress, quiz],
   );
+  const latestQuizAttempt = useMemo(
+    () => quizAttempts[0] ?? null,
+    [quizAttempts],
+  );
+  const latestQuizScore = useMemo(() => {
+    if (latestQuizAttempt) {
+      return latestQuizAttempt.score;
+    }
+
+    if (result) {
+      return result.score;
+    }
+
+    return quiz
+      ? progress?.quiz_attempts.find((attempt) => attempt.quiz_id === quiz.id)?.score ?? null
+      : null;
+  }, [latestQuizAttempt, progress, quiz, result]);
   const assessments = useMemo(() => flattenAssessments(units), [units]);
   const currentAssessmentIndex = assessments.findIndex(
     (entry) => entry.lesson.id === lesson.id,
   );
   const nextAssessment = assessments[currentAssessmentIndex + 1]?.lesson;
   const currentModule = assessments[currentAssessmentIndex]?.unit;
+  const completionState = isComplete
+    ? "complete"
+    : hasQuizAttempt || result || writtenResponse
+      ? "in progress"
+      : "not started";
+  const hasResponseChanged = responseText.trim() !== (writtenResponse?.response_text ?? "");
 
   const loadLearningState = useCallback(async () => {
     const token = getToken();
@@ -202,7 +233,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
     setError("");
 
     try {
-      const [progressData, quizData, responseData] = await Promise.all([
+      const [progressData, quizData, responseData, attemptData] = await Promise.all([
         fetchMyProgress(token),
         fetchLessonQuiz(lessonId, token).catch((caughtError) => {
           if (caughtError instanceof ApiError && caughtError.status === 404) {
@@ -218,12 +249,21 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
           throw caughtError;
         }),
+        fetchLessonQuizAttempts(lessonId, token).catch((caughtError) => {
+          if (caughtError instanceof ApiError && caughtError.status === 404) {
+            return [];
+          }
+
+          throw caughtError;
+        }),
       ]);
 
       setProgress(progressData);
       setQuiz(quizData);
+      setQuizAttempts(attemptData);
       setWrittenResponse(responseData);
       setResponseText(responseData?.response_text ?? "");
+      setIsEditingResponse(!responseData);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "could not load quiz");
     } finally {
@@ -264,6 +304,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         token,
       );
       setWrittenResponse(response);
+      setIsEditingResponse(false);
       if (hasQuizAttempt || result) {
         await completeLesson(lessonId, token);
         setProgress(await fetchMyProgress(token));
@@ -316,10 +357,23 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         token,
       );
       setResult(quizResult);
+      setIsRetakingQuiz(false);
+      setShowQuizReview(true);
       if (writtenResponse) {
         await completeLesson(lessonId, token);
       }
       setProgress(await fetchMyProgress(token));
+      setQuizAttempts(
+        await fetchLessonQuizAttempts(lessonId, token).catch((caughtError) => {
+          if (caughtError instanceof ApiError && caughtError.status === 404) {
+            return [];
+          }
+
+          throw caughtError;
+        }),
+      );
+      setSelectedAnswers({});
+      setResult(null);
       setMessage(
         writtenResponse
           ? "quiz submitted. assessment is now complete."
@@ -342,6 +396,48 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
   return (
     <section className="grid gap-5 rounded-md border border-slate-200 bg-white p-5 sm:p-7">
+      <div
+        className={`rounded-md border p-4 ${
+          isComplete
+            ? "border-emerald-200 bg-emerald-50"
+            : "border-slate-200 bg-slate-50"
+        }`}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p
+              className={`text-xs font-semibold uppercase ${
+                isComplete ? "text-emerald-700" : "text-slate-500"
+              }`}
+            >
+              {completionState}
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950">
+              {isComplete ? "assessment complete" : "submission checklist"}
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              {isComplete
+                ? "your quiz attempt and written response are saved."
+                : "submit both required parts to complete this case study."}
+            </p>
+          </div>
+          <div className="grid min-w-44 gap-2 text-sm">
+            <span className="flex items-center justify-between gap-4 rounded-md bg-white px-3 py-2 text-slate-700">
+              quiz
+              <strong className="font-semibold text-slate-950">
+                {hasQuizAttempt || result ? "submitted" : "pending"}
+              </strong>
+            </span>
+            <span className="flex items-center justify-between gap-4 rounded-md bg-white px-3 py-2 text-slate-700">
+              pset
+              <strong className="font-semibold text-slate-950">
+                {writtenResponse ? "submitted" : "pending"}
+              </strong>
+            </span>
+          </div>
+        </div>
+      </div>
+
       {message ? (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {message}
@@ -364,69 +460,100 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             ) : null}
           </div>
 
-          {quiz.questions.map((question) => {
+          {latestQuizScore !== null && !result && !isRetakingQuiz ? (
+            <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">
+                    latest quiz score: {latestQuizScore}%
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    your latest attempt is saved. retake the quiz to submit a new
+                    score for this case study.
+                  </p>
+                </div>
+                {latestQuizAttempt ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowQuizReview(!showQuizReview)}
+                    className="min-h-10 w-fit rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+                  >
+                    {showQuizReview ? "hide response" : "view response"}
+                  </button>
+                ) : null}
+              </div>
+              {showQuizReview ? (
+                <div className="grid gap-3">
+                  {latestQuizAttempt && latestQuizAttempt.answers.length > 0 ? (
+                    quiz.questions.map((question) => {
+                      const answer = latestQuizAttempt.answers.find(
+                        (entry) => entry.question_id === question.id,
+                      );
+
+                      return (
+                        <QuizQuestionCard
+                          key={question.id}
+                          question={question}
+                          selectedOptionId={answer?.selected_option_id ?? null}
+                          correctOptionId={answer?.correct_option_id ?? null}
+                          isSubmitted
+                        />
+                      );
+                    })
+                  ) : (
+                    <p className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-600">
+                      answer history was not stored for this older attempt. retake
+                      the quiz to save reviewable answers.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRetakingQuiz(true);
+                  setSelectedAnswers({});
+                  setResult(null);
+                  setShowQuizReview(false);
+                  setMessage("");
+                  setError("");
+                }}
+                className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                retake quiz
+              </button>
+            </div>
+          ) : null}
+
+          {(latestQuizScore === null || result || isRetakingQuiz) ? quiz.questions.map((question) => {
             const questionResult = result?.results.find(
               (entry) => entry.question_id === question.id,
             );
 
             return (
-              <fieldset key={question.id} className="rounded-md border border-slate-200 p-4">
-                <legend className="px-1 text-sm font-semibold text-slate-950">
-                  {question.order_index}. {question.question_text}
-                </legend>
-                <div className="mt-3 grid gap-2">
-                  {question.options.map((option) => {
-                    const isSelected = selectedAnswers[question.id] === option.id;
-                    const isCorrect = questionResult?.correct_option_id === option.id;
-                    const isWrongSelection =
-                      questionResult &&
-                      isSelected &&
-                      questionResult.correct_option_id !== option.id;
-
-                    return (
-                      <label
-                        key={option.id}
-                        className={`flex gap-3 rounded-md border px-3 py-2 text-sm ${
-                          isCorrect
-                            ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                            : isWrongSelection
-                              ? "border-red-200 bg-red-50 text-red-800"
-                              : "border-slate-200 text-slate-700"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name={`question-${question.id}`}
-                          value={option.id}
-                          checked={isSelected}
-                          disabled={Boolean(result)}
-                          onChange={() =>
-                            setSelectedAnswers({
-                              ...selectedAnswers,
-                              [question.id]: option.id,
-                            })
-                          }
-                        />
-                        {option.option_text}
-                      </label>
-                    );
-                  })}
-                </div>
-              </fieldset>
+              <QuizQuestionCard
+                key={question.id}
+                question={question}
+                selectedOptionId={selectedAnswers[question.id] ?? null}
+                correctOptionId={questionResult?.correct_option_id ?? null}
+                isSubmitted={Boolean(result)}
+                onSelect={(optionId) =>
+                  setSelectedAnswers({
+                    ...selectedAnswers,
+                    [question.id]: optionId,
+                  })
+                }
+              />
             );
-          })}
+          }) : null}
 
           {result ? (
             <div className="grid gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-4">
               <p className="text-sm font-semibold text-emerald-900">
                 score: {result.score}% ({result.correct_count}/{result.total_questions})
               </p>
-              <p className="text-sm text-emerald-800">
-                review the highlighted answers, then finish the written response if
-                you have not submitted it yet.
-              </p>
             </div>
-          ) : (
+          ) : latestQuizScore === null || isRetakingQuiz ? (
             <button
               type="submit"
               disabled={isSubmitting}
@@ -434,7 +561,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             >
               {isSubmitting ? "submitting..." : "submit quiz"}
             </button>
-          )}
+          ) : null}
         </form>
       ) : (
         <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
@@ -454,75 +581,165 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           </p>
         </div>
 
-        <textarea
-          value={responseText}
-          onChange={(event) => setResponseText(event.target.value)}
-          rows={6}
-          className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-          placeholder="write your response here..."
-        />
-
-        {writtenResponse ? (
-          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-            submitted. your response stays editable so you can revise before admin
-            review.
+        {writtenResponse && !isEditingResponse ? (
+          <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-950">
+                  submitted for admin review
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  your latest written response is saved. view it or revise it
+                  before teacher review.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPsetReview(!showPsetReview)}
+                className="min-h-10 w-fit min-w-36 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+              >
+                {showPsetReview ? "hide response" : "view response"}
+              </button>
+            </div>
+            {showPsetReview ? (
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-xs font-semibold uppercase text-emerald-700">
+                  your submitted response
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-800">
+                  {writtenResponse.response_text}
+                </p>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditingResponse(true);
+                setMessage("");
+                setError("");
+              }}
+              className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              revise response
+            </button>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <textarea
+              value={responseText}
+              onChange={(event) => setResponseText(event.target.value)}
+              rows={6}
+              className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              placeholder="write your response here..."
+            />
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-        >
-          {isSubmitting ? "submitting..." : writtenResponse ? "update response" : "submit response"}
-        </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {writtenResponse ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResponseText(writtenResponse.response_text);
+                    setIsEditingResponse(false);
+                    setMessage("");
+                    setError("");
+                  }}
+                  className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+                >
+                  cancel
+                </button>
+              ) : null}
+              <button
+                type="submit"
+                disabled={isSubmitting || (Boolean(writtenResponse) && !hasResponseChanged)}
+                className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {isSubmitting
+                  ? "submitting..."
+                  : writtenResponse
+                    ? "submit revision"
+                    : "submit response"}
+              </button>
+            </div>
+          </>
+        )}
       </form>
 
-      <div className="grid gap-4 border-t border-slate-100 pt-5">
-        <div>
-          <p className="text-sm font-semibold text-emerald-700">status</p>
-          <h2 className="mt-1 text-xl font-semibold text-slate-950">
-            {isComplete ? "assessment complete" : "finish quiz and pset response"}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            {isComplete
-              ? "nice. your quiz attempt and written response are saved."
-              : "cipher marks this complete automatically after both required parts are submitted."}
-          </p>
-        </div>
-
-        <div className="grid gap-2 text-sm sm:grid-cols-2">
-          <div className="rounded-md border border-slate-200 p-3">
-            <p className="font-semibold text-slate-950">quiz</p>
-            <p className="mt-1 text-slate-600">
-              {hasQuizAttempt || result ? "submitted" : "not submitted yet"}
-            </p>
-          </div>
-          <div className="rounded-md border border-slate-200 p-3">
-            <p className="font-semibold text-slate-950">pset response</p>
-            <p className="mt-1 text-slate-600">
-              {writtenResponse ? "submitted" : "not submitted yet"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row">
-          {nextAssessment ? (
-            <Link
-              href={`/lessons/${nextAssessment.id}`}
-              className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              next assessment
-            </Link>
-          ) : null}
+      <div className="flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <Link
+          href={currentModule ? `/units/${currentModule.id}` : "/assessments"}
+          className="flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+        >
+          back to module
+        </Link>
+        {nextAssessment ? (
           <Link
-            href={currentModule ? `/units/${currentModule.id}` : "/assessments"}
-            className="flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+            href={`/lessons/${nextAssessment.id}`}
+            className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            back to module
+            next assessment
           </Link>
-        </div>
+        ) : (
+          <Link
+            href="/assessments"
+            className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            all modules
+          </Link>
+        )}
       </div>
     </section>
+  );
+}
+
+function QuizQuestionCard({
+  question,
+  selectedOptionId,
+  correctOptionId,
+  isSubmitted,
+  onSelect,
+}: {
+  question: QuizQuestion;
+  selectedOptionId: number | null;
+  correctOptionId: number | null;
+  isSubmitted: boolean;
+  onSelect?: (optionId: number) => void;
+}) {
+  return (
+    <fieldset className="rounded-md border border-slate-200 p-4">
+      <legend className="px-1 text-sm font-semibold text-slate-950">
+        {question.order_index}. {question.question_text}
+      </legend>
+      <div className="mt-3 grid gap-2">
+        {question.options.map((option) => {
+          const isSelected = selectedOptionId === option.id;
+          const isCorrect = correctOptionId === option.id;
+          const isWrongSelection =
+            isSubmitted && isSelected && correctOptionId !== option.id;
+
+          return (
+            <label
+              key={option.id}
+              className={`flex gap-3 rounded-md border px-3 py-2 text-sm ${
+                isCorrect
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                  : isWrongSelection
+                    ? "border-red-200 bg-red-50 text-red-800"
+                    : "border-slate-200 text-slate-700"
+              }`}
+            >
+              <input
+                type="radio"
+                name={`question-${question.id}`}
+                value={option.id}
+                checked={isSelected}
+                disabled={isSubmitted}
+                onChange={() => onSelect?.(option.id)}
+              />
+              {option.option_text}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }

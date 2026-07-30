@@ -102,6 +102,21 @@ export type QuizAttempt = {
   submitted_at: string;
 };
 
+export type QuizAttemptAnswer = {
+  id: number;
+  question_id: number;
+  question_text: string;
+  selected_option_id: number;
+  selected_option_text: string;
+  correct_option_id: number | null;
+  correct_option_text: string | null;
+  is_correct: boolean;
+};
+
+export type QuizAttemptDetail = QuizAttempt & {
+  answers: QuizAttemptAnswer[];
+};
+
 export type LessonProgress = {
   id: number;
   user_id: number;
@@ -212,6 +227,14 @@ export function fetchLesson(lessonId: string, token: string) {
 
 export function fetchLessonQuiz(lessonId: string, token: string) {
   return apiRequest<Quiz>(`/quizzes/lesson/${lessonId}`, {}, token);
+}
+
+export function fetchLessonQuizAttempts(lessonId: string, token: string) {
+  return apiRequest<QuizAttemptDetail[]>(
+    `/quizzes/lesson/${lessonId}/attempts`,
+    {},
+    token,
+  );
 }
 
 export function submitQuiz(
