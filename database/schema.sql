@@ -66,6 +66,15 @@ CREATE TABLE quiz_attempts (
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE quiz_attempt_answers (
+    id SERIAL PRIMARY KEY,
+    attempt_id INTEGER NOT NULL REFERENCES quiz_attempts(id) ON DELETE CASCADE,
+    question_id INTEGER NOT NULL REFERENCES quiz_questions(id) ON DELETE CASCADE,
+    selected_option_id INTEGER NOT NULL REFERENCES quiz_options(id) ON DELETE CASCADE,
+    correct_option_id INTEGER REFERENCES quiz_options(id) ON DELETE SET NULL,
+    is_correct BOOLEAN NOT NULL
+);
+
 CREATE TABLE lesson_progress (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
