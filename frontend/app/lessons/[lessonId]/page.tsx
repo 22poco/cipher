@@ -103,7 +103,7 @@ export default function LessonDetailPage() {
         const assessmentPath = findAssessmentPath(units, lesson.id);
 
         return (
-        <main className="mx-auto grid w-full max-w-5xl gap-6 px-4 py-10 sm:px-6">
+        <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/assessments" className="font-medium text-slate-700 hover:text-slate-950">
               module {assessmentPath?.unit.order_index ?? ""}
@@ -372,6 +372,8 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           throw caughtError;
         }),
       );
+      setSelectedAnswers({});
+      setResult(null);
       setMessage(
         writtenResponse
           ? "quiz submitted. assessment is now complete."
