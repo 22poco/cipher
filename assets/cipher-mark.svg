@@ -1,9 +1,12 @@
 <svg width="1200" height="240" viewBox="0 0 1200 240" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1200" height="240" rx="24" fill="#07111F"/>
-  <g transform="translate(432 70)">
-    <path d="M50 4L90 20V51C90 75 75 93 50 106C25 93 10 75 10 51V20L50 4Z" stroke="#F8FAFC" stroke-width="8" stroke-linejoin="round"/>
-    <path d="M63 36C58 31 51 29 44 31C34 34 28 43 29 54C30 65 38 73 49 74C55 75 61 73 66 69" stroke="#F8FAFC" stroke-width="8" stroke-linecap="round"/>
-    <path d="M68 44H50" stroke="#F8FAFC" stroke-width="8" stroke-linecap="round"/>
+  <rect width="1200" height="240" rx="24" fill="#06111F"/>
+  <rect x="1" y="1" width="1198" height="238" rx="23" stroke="#12233A" stroke-width="2"/>
+  <g transform="translate(410 65)">
+    <circle cx="55" cy="55" r="51" fill="#F8FAFC"/>
+    <path d="M69 34C61 27 49 25 39 30C27 36 22 50 27 63C32 76 46 83 59 78C64 76 68 73 71 70" stroke="#06111F" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="66" cy="52" r="7" fill="#0EA5E9"/>
+    <path d="M73 52H91" stroke="#0EA5E9" stroke-width="8" stroke-linecap="round"/>
+    <path d="M87 52V63" stroke="#0EA5E9" stroke-width="8" stroke-linecap="round"/>
   </g>
-  <text x="562" y="143" fill="#F8FAFC" font-family="Aptos Display, Segoe UI, Inter, Arial, sans-serif" font-size="70" font-weight="600" letter-spacing="0">cipher</text>
+  <text x="550" y="143" fill="#F8FAFC" font-family="Aptos Display, Avenir Next, Segoe UI, Inter, Arial, sans-serif" font-size="72" font-weight="700" letter-spacing=".5">cipher</text>
 </svg>
