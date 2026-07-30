@@ -1,6 +1,6 @@
 # assessments, quizzes, and progress
 
-the current foundation supports multiple-choice quizzes and progress tracking. the july 31 sprint extends this into an assessment-only workflow.
+the current foundation supports multiple-choice quizzes, pset responses, saved attempts, and progress tracking.
 
 ## quizzes
 
@@ -8,7 +8,7 @@ quizzes are attached to assessment pages. internally these pages are still store
 
 the first version supports multiple-choice questions. students can open an assessment, answer each question, submit the quiz, and receive a score from the backend.
 
-students do not receive correct answer data before submitting. after submission, the response includes score details and per-question feedback.
+students do not receive correct answer data before submitting. after submission, the response includes score details and per-question feedback. new quiz attempts also store selected answers so students and admins can review them later.
 
 admin users can manage basic assessment quizzes from the admin dashboard:
 
@@ -21,7 +21,7 @@ admin users can manage basic assessment quizzes from the admin dashboard:
 
 ## progress
 
-students can mark assessment pages complete from the assessment page.
+assessment pages are marked complete after the student submits both required parts: the quiz and the pset response.
 
 the backend stores completion in `lesson_progress` and keeps one progress row per user and assessment page.
 
@@ -32,6 +32,8 @@ the student dashboard shows:
 - module progress percentage
 - recent quiz attempts
 
+admins can review submitted pset responses, mark them pending or reviewed, inspect quiz attempts, and see a simple gradebook summary.
+
 ## seed content
 
 run the course seed to add AP-aligned assessment modules and placeholder checks:
@@ -40,4 +42,4 @@ run the course seed to add AP-aligned assessment modules and placeholder checks:
 .\.venv\Scripts\python.exe -m backend.seed_course
 ```
 
-the seeded content should follow the AP Cybersecurity module map. real case scenarios, psets, and mock exam questions should replace placeholders during the assessment sprint.
+the seeded content should follow the AP Cybersecurity module map. real case scenarios, psets, and mock exam questions should replace placeholders during the content pass.

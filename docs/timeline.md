@@ -2,9 +2,9 @@
 
 ## goal
 
-target: deliver a working AP cybersecurity assessment platform by july 31.
+target: deliver a working AP cybersecurity assessment platform.
 
-the project has pivoted from a full in-house learning platform to an assessment-first tool. cipher should host AP-aligned practice scenarios, quizzes, psets, and mock exams instead of trying to host every lesson and course material directly.
+cipher is an assessment-first tool. it should host AP-aligned practice scenarios, quizzes, psets, and mock exams instead of trying to host every lesson and course material directly.
 
 ## priority rule
 
@@ -22,24 +22,20 @@ nice-to-have learning content, code editor work, full lesson hosting, and extra 
 
 ---
 
-## final sprint
+## delivery plan
 
-### monday, july 27
+### planning
 
-planning and repo alignment
+scope alignment
 
-- review pak john's assessment-only pivot
-- review PR #9 without merging blindly
 - update project docs around the new scope
-- create the july 27-31 delivery plan
 - define the five module structure
 
 definition of done:
 
 - repo docs describe the assessment-first direction
-- timeline is compressed to the july 31 target
-- PR #9 has a clear decision path
-- pak john gets a short update message
+- product scope is clear
+- five AP modules are defined
 
 status:
 
@@ -47,11 +43,10 @@ status:
 
 ---
 
-### tuesday, july 28
+### assessment foundation
 
 assessment foundation
 
-- decide whether to clean/merge PR #9 or rebuild only the needed pieces
 - implement or keep assessment-focused navigation
 - create the five module structure:
   - introduction to security
@@ -76,9 +71,7 @@ status:
 
 ---
 
-### wednesday, july 29
-
-AP alignment and attempt flow
+### AP alignment and attempt flow
 
 - replace CS50 module labels with AP CED module labels
 - seed AP topic structure from the CED
@@ -101,16 +94,14 @@ definition of done:
 
 status:
 
-- current focus
+- completed
 
 ---
 
-### thursday, july 30
-
-teacher review and assessment authoring
+### teacher review and gradebook
 
 - add teacher/admin assessment dashboard
-- add admin tools for case scenarios and psets
+- keep admin tools for case scenarios and psets
 - show submitted attempts
 - show student names, module, score/status, and submission time
 - allow teacher/admin to review written scenario submissions
@@ -125,17 +116,20 @@ definition of done:
 - students cannot access teacher/admin pages
 - teacher/admin flow is demo-ready
 
+status:
+
+- completed
+
 ---
 
-### friday, july 31
-
-demo readiness
+### demo readiness
 
 - run full end-to-end testing
+- add mock exam flow
+- replace placeholder assessments with stronger AP CED-aligned content where possible
 - polish the most visible student and teacher pages
 - fix critical bugs
 - update readme and test instructions
-- prepare demo script for pak john
 - run netbird/local access test
 
 definition of done:
@@ -147,6 +141,10 @@ definition of done:
 - teacher/admin can review attempts
 - local/netbird demo links work
 - docs explain how to run and test the project
+
+status:
+
+- next focus
 
 ---
 
