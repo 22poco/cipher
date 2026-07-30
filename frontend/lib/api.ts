@@ -131,6 +131,57 @@ export type CaseStudyResponse = {
   lesson_id: number;
   response_text: string;
   submitted_at: string;
+  reviewed: boolean;
+  reviewed_at: string | null;
+  reviewed_by_id: number | null;
+};
+
+export type AdminPsetResponse = {
+  id: number;
+  student_id: number;
+  student_name: string;
+  student_email: string;
+  module_title: string;
+  module_order_index: number;
+  assessment_id: number;
+  assessment_title: string;
+  response_text: string;
+  submitted_at: string;
+  reviewed: boolean;
+  reviewed_at: string | null;
+};
+
+export type AdminQuizAttempt = QuizAttemptDetail & {
+  student_id: number;
+  student_name: string;
+  student_email: string;
+  module_title: string;
+  module_order_index: number;
+  assessment_id: number;
+  assessment_title: string;
+};
+
+export type AdminGradebookRow = {
+  student_id: number;
+  student_name: string;
+  student_email: string;
+  completed_assessments: number;
+  total_assessments: number;
+  latest_quiz_score: number | null;
+  quiz_attempts: number;
+  pset_submissions: number;
+  pending_psets: number;
+  reviewed_psets: number;
+};
+
+export type AdminReviewDashboard = {
+  total_students: number;
+  total_assessments: number;
+  pending_psets: number;
+  reviewed_psets: number;
+  pset_responses: AdminPsetResponse[];
+  quiz_attempts: AdminQuizAttempt[];
+  gradebook: AdminGradebookRow[];
 };
 
 export type ProgressSummary = {
@@ -279,6 +330,22 @@ export function submitCaseStudyResponse(
 
 export function fetchMyProgress(token: string) {
   return apiRequest<ProgressSummary>("/progress/me", {}, token);
+}
+
+export function fetchAdminReviewDashboard(token: string) {
+  return apiRequest<AdminReviewDashboard>("/admin/review", {}, token);
+}
+
+export function updateAdminPsetReview(
+  responseId: number,
+  payload: { reviewed: boolean },
+  token: string,
+) {
+  return apiRequest<AdminPsetResponse>(
+    `/admin/pset-responses/${responseId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
 }
 
 export type UnitPayload = {
