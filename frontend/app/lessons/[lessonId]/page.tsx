@@ -23,6 +23,7 @@ import {
   type QuizAttemptDetail,
   type QuizSubmitResult,
   type Unit,
+  type QuizQuestion,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
@@ -102,7 +103,7 @@ export default function LessonDetailPage() {
         const assessmentPath = findAssessmentPath(units, lesson.id);
 
         return (
-        <main className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-10 sm:px-6">
+        <main className="mx-auto grid w-full max-w-5xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/assessments" className="font-medium text-slate-700 hover:text-slate-950">
               module {assessmentPath?.unit.order_index ?? ""}
@@ -219,6 +220,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
     : hasQuizAttempt || result || writtenResponse
       ? "in progress"
       : "not started";
+  const hasResponseChanged = responseText.trim() !== (writtenResponse?.response_text ?? "");
 
   const loadLearningState = useCallback(async () => {
     const token = getToken();
@@ -474,35 +476,28 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                     onClick={() => setShowQuizReview(!showQuizReview)}
                     className="min-h-10 w-fit rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
                   >
-                    {showQuizReview ? "hide answers" : "review answers"}
+                    {showQuizReview ? "hide response" : "view response"}
                   </button>
                 ) : null}
               </div>
               {showQuizReview ? (
                 <div className="grid gap-3">
                   {latestQuizAttempt && latestQuizAttempt.answers.length > 0 ? (
-                    latestQuizAttempt.answers.map((answer, index) => (
-                      <div
-                        key={answer.id}
-                        className={`rounded-md border p-3 text-sm ${
-                          answer.is_correct
-                            ? "border-emerald-200 bg-white"
-                            : "border-red-200 bg-red-50"
-                        }`}
-                      >
-                        <p className="font-semibold text-slate-950">
-                          {index + 1}. {answer.question_text}
-                        </p>
-                        <p className="mt-2 text-slate-700">
-                          your answer: {answer.selected_option_text}
-                        </p>
-                        {!answer.is_correct && answer.correct_option_text ? (
-                          <p className="mt-1 text-red-700">
-                            correct answer: {answer.correct_option_text}
-                          </p>
-                        ) : null}
-                      </div>
-                    ))
+                    quiz.questions.map((question) => {
+                      const answer = latestQuizAttempt.answers.find(
+                        (entry) => entry.question_id === question.id,
+                      );
+
+                      return (
+                        <QuizQuestionCard
+                          key={question.id}
+                          question={question}
+                          selectedOptionId={answer?.selected_option_id ?? null}
+                          correctOptionId={answer?.correct_option_id ?? null}
+                          isSubmitted
+                        />
+                      );
+                    })
                   ) : (
                     <p className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-600">
                       answer history was not stored for this older attempt. retake
@@ -534,49 +529,19 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             );
 
             return (
-              <fieldset key={question.id} className="rounded-md border border-slate-200 p-4">
-                <legend className="px-1 text-sm font-semibold text-slate-950">
-                  {question.order_index}. {question.question_text}
-                </legend>
-                <div className="mt-3 grid gap-2">
-                  {question.options.map((option) => {
-                    const isSelected = selectedAnswers[question.id] === option.id;
-                    const isCorrect = questionResult?.correct_option_id === option.id;
-                    const isWrongSelection =
-                      questionResult &&
-                      isSelected &&
-                      questionResult.correct_option_id !== option.id;
-
-                    return (
-                      <label
-                        key={option.id}
-                        className={`flex gap-3 rounded-md border px-3 py-2 text-sm ${
-                          isCorrect
-                            ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                            : isWrongSelection
-                              ? "border-red-200 bg-red-50 text-red-800"
-                              : "border-slate-200 text-slate-700"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name={`question-${question.id}`}
-                          value={option.id}
-                          checked={isSelected}
-                          disabled={Boolean(result)}
-                          onChange={() =>
-                            setSelectedAnswers({
-                              ...selectedAnswers,
-                              [question.id]: option.id,
-                            })
-                          }
-                        />
-                        {option.option_text}
-                      </label>
-                    );
-                  })}
-                </div>
-              </fieldset>
+              <QuizQuestionCard
+                key={question.id}
+                question={question}
+                selectedOptionId={selectedAnswers[question.id] ?? null}
+                correctOptionId={questionResult?.correct_option_id ?? null}
+                isSubmitted={Boolean(result)}
+                onSelect={(optionId) =>
+                  setSelectedAnswers({
+                    ...selectedAnswers,
+                    [question.id]: optionId,
+                  })
+                }
+              />
             );
           }) : null}
 
@@ -584,10 +549,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             <div className="grid gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-4">
               <p className="text-sm font-semibold text-emerald-900">
                 score: {result.score}% ({result.correct_count}/{result.total_questions})
-              </p>
-              <p className="text-sm text-emerald-800">
-                review the highlighted answers, then finish the written response if
-                you have not submitted it yet.
               </p>
             </div>
           ) : latestQuizScore === null || isRetakingQuiz ? (
@@ -670,17 +631,33 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
               placeholder="write your response here..."
             />
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              {isSubmitting
-                ? "submitting..."
-                : writtenResponse
-                  ? "submit revision"
-                  : "submit response"}
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {writtenResponse ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResponseText(writtenResponse.response_text);
+                    setIsEditingResponse(false);
+                    setMessage("");
+                    setError("");
+                  }}
+                  className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+                >
+                  cancel
+                </button>
+              ) : null}
+              <button
+                type="submit"
+                disabled={isSubmitting || (Boolean(writtenResponse) && !hasResponseChanged)}
+                className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {isSubmitting
+                  ? "submitting..."
+                  : writtenResponse
+                    ? "submit revision"
+                    : "submit response"}
+              </button>
+            </div>
           </>
         )}
       </form>
@@ -709,5 +686,58 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         )}
       </div>
     </section>
+  );
+}
+
+function QuizQuestionCard({
+  question,
+  selectedOptionId,
+  correctOptionId,
+  isSubmitted,
+  onSelect,
+}: {
+  question: QuizQuestion;
+  selectedOptionId: number | null;
+  correctOptionId: number | null;
+  isSubmitted: boolean;
+  onSelect?: (optionId: number) => void;
+}) {
+  return (
+    <fieldset className="rounded-md border border-slate-200 p-4">
+      <legend className="px-1 text-sm font-semibold text-slate-950">
+        {question.order_index}. {question.question_text}
+      </legend>
+      <div className="mt-3 grid gap-2">
+        {question.options.map((option) => {
+          const isSelected = selectedOptionId === option.id;
+          const isCorrect = correctOptionId === option.id;
+          const isWrongSelection =
+            isSubmitted && isSelected && correctOptionId !== option.id;
+
+          return (
+            <label
+              key={option.id}
+              className={`flex gap-3 rounded-md border px-3 py-2 text-sm ${
+                isCorrect
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                  : isWrongSelection
+                    ? "border-red-200 bg-red-50 text-red-800"
+                    : "border-slate-200 text-slate-700"
+              }`}
+            >
+              <input
+                type="radio"
+                name={`question-${question.id}`}
+                value={option.id}
+                checked={isSelected}
+                disabled={isSubmitted}
+                onChange={() => onSelect?.(option.id)}
+              />
+              {option.option_text}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
