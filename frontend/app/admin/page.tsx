@@ -345,10 +345,10 @@ function AdminDashboard({ email }: { email: string }) {
     try {
       if (editTarget?.type === "unit") {
         await updateUnit(editTarget.id, unitPayload(unitForm), token);
-        showResult("unit updated");
+        showResult("ap module updated");
       } else {
         await createUnit(unitPayload(unitForm), token);
-        showResult("unit created");
+        showResult("ap module created");
       }
 
       resetForms();
@@ -373,10 +373,10 @@ function AdminDashboard({ email }: { email: string }) {
     try {
       if (editTarget?.type === "module") {
         await updateModule(editTarget.id, modulePayload(moduleForm), token);
-        showResult("module updated");
+        showResult("assessment set updated");
       } else {
         await createModule(modulePayload(moduleForm), token);
-        showResult("module created");
+        showResult("assessment set created");
       }
 
       resetForms();
@@ -401,10 +401,10 @@ function AdminDashboard({ email }: { email: string }) {
     try {
       if (editTarget?.type === "lesson") {
         await updateLesson(editTarget.id, lessonPayload(lessonForm), token);
-        showResult("lesson updated");
+        showResult("case study updated");
       } else {
         await createLesson(lessonPayload(lessonForm), token);
-        showResult("lesson created");
+        showResult("case study created");
       }
 
       resetForms();
@@ -511,7 +511,7 @@ function AdminDashboard({ email }: { email: string }) {
   }
 
   async function removeUnit(unit: Unit) {
-    if (!confirm(`delete unit "${unit.title}" and all of its modules and lessons?`)) {
+    if (!confirm(`delete ap module "${unit.title}" and all of its assessment sets and case studies?`)) {
       return;
     }
 
@@ -531,7 +531,7 @@ function AdminDashboard({ email }: { email: string }) {
   }
 
   async function removeModule(module: CourseModule) {
-    if (!confirm(`delete module "${module.title}" and all of its lessons?`)) {
+    if (!confirm(`delete assessment set "${module.title}" and all of its case studies?`)) {
       return;
     }
 
@@ -543,7 +543,7 @@ function AdminDashboard({ email }: { email: string }) {
 
     try {
       await deleteModule(module.id, token);
-      showResult("module deleted");
+      showResult("assessment set deleted");
       await loadAdminData();
     } catch (caughtError) {
       showError(caughtError);
@@ -737,7 +737,7 @@ function AdminDashboard({ email }: { email: string }) {
           className="min-w-0 rounded-md border border-slate-200 bg-white p-5"
         >
           <h2 className="text-lg font-semibold text-slate-950">
-            {editTarget?.type === "unit" ? "edit module" : "create module"}
+            {editTarget?.type === "unit" ? "edit ap module" : "create ap module"}
           </h2>
           <div className="mt-4 grid gap-3">
             <TextField
@@ -771,11 +771,11 @@ function AdminDashboard({ email }: { email: string }) {
           className="min-w-0 rounded-md border border-slate-200 bg-white p-5"
         >
           <h2 className="text-lg font-semibold text-slate-950">
-            {editTarget?.type === "module" ? "edit module" : "create module"}
+            {editTarget?.type === "module" ? "edit assessment set" : "create assessment set"}
           </h2>
           <div className="mt-4 grid gap-3">
             <SelectField
-              label="unit"
+              label="ap module"
               value={moduleForm.unit_id}
               onChange={(value) => setModuleForm({ ...moduleForm, unit_id: value })}
               required
@@ -822,12 +822,12 @@ function AdminDashboard({ email }: { email: string }) {
           </h2>
           <div className="mt-4 grid gap-3">
             <SelectField
-              label="module"
+              label="assessment set"
               value={lessonForm.module_id}
               onChange={(value) => setLessonForm({ ...lessonForm, module_id: value })}
               required
             >
-              <option value="">select module</option>
+              <option value="">select assessment set</option>
               {modules.map((module) => (
                 <option key={module.id} value={module.id}>
                   {module.unit.title} / {module.title}
