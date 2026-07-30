@@ -1,11 +1,30 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..auth import require_admin
 from ..database import get_db
-from ..models import Lesson, Module, Quiz, QuizOption, QuizQuestion, Unit, User
+from ..models import (
+    CaseStudyResponse,
+    Lesson,
+    LessonProgress,
+    Module,
+    Quiz,
+    QuizAttempt,
+    QuizAttemptAnswer,
+    QuizOption,
+    QuizQuestion,
+    Unit,
+    User,
+)
 from ..schemas import (
+    AdminGradebookRow,
+    AdminPsetResponseRead,
+    AdminPsetReviewUpdate,
+    AdminQuizAttemptRead,
+    AdminReviewDashboard,
     DeleteResponse,
     LessonCreate,
     LessonRead,
@@ -21,6 +40,7 @@ from ..schemas import (
     QuizQuestionAdminRead,
     QuizQuestionCreate,
     QuizQuestionUpdate,
+    QuizAttemptAnswerRead,
     QuizUpdate,
     UnitCreate,
     UnitRead,
@@ -122,6 +142,180 @@ def keep_single_correct_option(db: Session, option: QuizOption) -> None:
     for other_option in question.options:
         if other_option.id != option.id:
             other_option.is_correct = False
+
+
+def pset_response_read(response: CaseStudyResponse) -> AdminPsetResponseRead:
+    lesson = response.lesson
+    module = lesson.module
+    unit = module.unit
+    user = response.user
+
+    return AdminPsetResponseRead(
+        id=response.id,
+        student_id=user.id,
+        student_name=user.name,
+        student_email=user.email,
+        module_title=unit.title,
+        module_order_index=unit.order_index,
+        assessment_id=lesson.id,
+        assessment_title=lesson.title,
+        response_text=response.response_text,
+        submitted_at=response.submitted_at,
+        reviewed=response.reviewed,
+        reviewed_at=response.reviewed_at,
+    )
+
+
+def quiz_attempt_read(attempt: QuizAttempt) -> AdminQuizAttemptRead:
+    quiz = attempt.quiz
+    lesson = quiz.lesson
+    module = lesson.module
+    unit = module.unit
+    user = attempt.user
+
+    return AdminQuizAttemptRead(
+        id=attempt.id,
+        student_id=user.id,
+        student_name=user.name,
+        student_email=user.email,
+        module_title=unit.title,
+        module_order_index=unit.order_index,
+        assessment_id=lesson.id,
+        assessment_title=lesson.title,
+        quiz_id=quiz.id,
+        score=attempt.score,
+        submitted_at=attempt.submitted_at,
+        answers=[
+            QuizAttemptAnswerRead(
+                id=answer.id,
+                question_id=answer.question_id,
+                question_text=answer.question.question_text,
+                selected_option_id=answer.selected_option_id,
+                selected_option_text=answer.selected_option.option_text,
+                correct_option_id=answer.correct_option_id,
+                correct_option_text=answer.correct_option.option_text
+                if answer.correct_option
+                else None,
+                is_correct=answer.is_correct,
+            )
+            for answer in sorted(
+                attempt.answers,
+                key=lambda item: item.question.order_index,
+            )
+        ],
+    )
+
+
+def review_dashboard(db: Session) -> AdminReviewDashboard:
+    total_assessments = db.scalar(select(func.count(Lesson.id))) or 0
+    students = db.scalars(select(User).where(User.role == "student").order_by(User.name)).all()
+    pset_responses = db.scalars(
+        select(CaseStudyResponse)
+        .options(
+            selectinload(CaseStudyResponse.user),
+            selectinload(CaseStudyResponse.lesson)
+            .selectinload(Lesson.module)
+            .selectinload(Module.unit),
+        )
+        .order_by(CaseStudyResponse.reviewed.asc(), CaseStudyResponse.submitted_at.desc())
+    ).all()
+    quiz_attempts = db.scalars(
+        select(QuizAttempt)
+        .options(
+            selectinload(QuizAttempt.user),
+            selectinload(QuizAttempt.quiz)
+            .selectinload(Quiz.lesson)
+            .selectinload(Lesson.module)
+            .selectinload(Module.unit),
+            selectinload(QuizAttempt.answers).selectinload(QuizAttemptAnswer.question),
+            selectinload(QuizAttempt.answers).selectinload(QuizAttemptAnswer.selected_option),
+            selectinload(QuizAttempt.answers).selectinload(QuizAttemptAnswer.correct_option),
+        )
+        .order_by(QuizAttempt.submitted_at.desc())
+    ).all()
+    completed_counts = dict(
+        db.execute(
+            select(LessonProgress.user_id, func.count(LessonProgress.id))
+            .where(LessonProgress.completed.is_(True))
+            .group_by(LessonProgress.user_id)
+        ).all()
+    )
+
+    gradebook = []
+    for student in students:
+        student_attempts = [attempt for attempt in quiz_attempts if attempt.user_id == student.id]
+        student_psets = [
+            response for response in pset_responses if response.user_id == student.id
+        ]
+        latest_attempt = student_attempts[0] if student_attempts else None
+
+        gradebook.append(
+            AdminGradebookRow(
+                student_id=student.id,
+                student_name=student.name,
+                student_email=student.email,
+                completed_assessments=completed_counts.get(student.id, 0),
+                total_assessments=total_assessments,
+                latest_quiz_score=latest_attempt.score if latest_attempt else None,
+                quiz_attempts=len(student_attempts),
+                pset_submissions=len(student_psets),
+                pending_psets=sum(not response.reviewed for response in student_psets),
+                reviewed_psets=sum(response.reviewed for response in student_psets),
+            )
+        )
+
+    return AdminReviewDashboard(
+        total_students=len(students),
+        total_assessments=total_assessments,
+        pending_psets=sum(not response.reviewed for response in pset_responses),
+        reviewed_psets=sum(response.reviewed for response in pset_responses),
+        pset_responses=[pset_response_read(response) for response in pset_responses],
+        quiz_attempts=[quiz_attempt_read(attempt) for attempt in quiz_attempts],
+        gradebook=gradebook,
+    )
+
+
+@router.get("/review", response_model=AdminReviewDashboard)
+def read_admin_review_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    del current_user
+
+    return review_dashboard(db)
+
+
+@router.patch("/pset-responses/{response_id}", response_model=AdminPsetResponseRead)
+def update_pset_review(
+    response_id: int,
+    review_data: AdminPsetReviewUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    response = db.scalar(
+        select(CaseStudyResponse)
+        .where(CaseStudyResponse.id == response_id)
+        .options(
+            selectinload(CaseStudyResponse.user),
+            selectinload(CaseStudyResponse.lesson)
+            .selectinload(Lesson.module)
+            .selectinload(Module.unit),
+        )
+    )
+
+    if response is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="pset response not found",
+        )
+
+    response.reviewed = review_data.reviewed
+    response.reviewed_at = datetime.utcnow() if review_data.reviewed else None
+    response.reviewed_by_id = current_user.id if review_data.reviewed else None
+    db.commit()
+    db.refresh(response)
+
+    return pset_response_read(response)
 
 
 @router.post("/units", response_model=UnitRead, status_code=status.HTTP_201_CREATED)
