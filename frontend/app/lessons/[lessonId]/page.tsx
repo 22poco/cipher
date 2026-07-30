@@ -190,6 +190,11 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
   );
   const nextAssessment = assessments[currentAssessmentIndex + 1]?.lesson;
   const currentModule = assessments[currentAssessmentIndex]?.unit;
+  const completionState = isComplete
+    ? "complete"
+    : hasQuizAttempt || result || writtenResponse
+      ? "in progress"
+      : "not started";
 
   const loadLearningState = useCallback(async () => {
     const token = getToken();
@@ -342,6 +347,48 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
   return (
     <section className="grid gap-5 rounded-md border border-slate-200 bg-white p-5 sm:p-7">
+      <div
+        className={`rounded-md border p-4 ${
+          isComplete
+            ? "border-emerald-200 bg-emerald-50"
+            : "border-slate-200 bg-slate-50"
+        }`}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p
+              className={`text-xs font-semibold uppercase ${
+                isComplete ? "text-emerald-700" : "text-slate-500"
+              }`}
+            >
+              {completionState}
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950">
+              {isComplete ? "assessment complete" : "submission checklist"}
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              {isComplete
+                ? "your quiz attempt and written response are saved."
+                : "submit both required parts to complete this case study."}
+            </p>
+          </div>
+          <div className="grid min-w-44 gap-2 text-sm">
+            <span className="flex items-center justify-between gap-4 rounded-md bg-white px-3 py-2 text-slate-700">
+              quiz
+              <strong className="font-semibold text-slate-950">
+                {hasQuizAttempt || result ? "submitted" : "pending"}
+              </strong>
+            </span>
+            <span className="flex items-center justify-between gap-4 rounded-md bg-white px-3 py-2 text-slate-700">
+              pset
+              <strong className="font-semibold text-slate-950">
+                {writtenResponse ? "submitted" : "pending"}
+              </strong>
+            </span>
+          </div>
+        </div>
+      </div>
+
       {message ? (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {message}
@@ -478,50 +525,28 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         </button>
       </form>
 
-      <div className="grid gap-4 border-t border-slate-100 pt-5">
-        <div>
-          <p className="text-sm font-semibold text-emerald-700">status</p>
-          <h2 className="mt-1 text-xl font-semibold text-slate-950">
-            {isComplete ? "assessment complete" : "finish quiz and pset response"}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            {isComplete
-              ? "nice. your quiz attempt and written response are saved."
-              : "cipher marks this complete automatically after both required parts are submitted."}
-          </p>
-        </div>
-
-        <div className="grid gap-2 text-sm sm:grid-cols-2">
-          <div className="rounded-md border border-slate-200 p-3">
-            <p className="font-semibold text-slate-950">quiz</p>
-            <p className="mt-1 text-slate-600">
-              {hasQuizAttempt || result ? "submitted" : "not submitted yet"}
-            </p>
-          </div>
-          <div className="rounded-md border border-slate-200 p-3">
-            <p className="font-semibold text-slate-950">pset response</p>
-            <p className="mt-1 text-slate-600">
-              {writtenResponse ? "submitted" : "not submitted yet"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row">
-          {nextAssessment ? (
-            <Link
-              href={`/lessons/${nextAssessment.id}`}
-              className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              next assessment
-            </Link>
-          ) : null}
+      <div className="flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <Link
+          href={currentModule ? `/units/${currentModule.id}` : "/assessments"}
+          className="flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+        >
+          back to module
+        </Link>
+        {nextAssessment ? (
           <Link
-            href={currentModule ? `/units/${currentModule.id}` : "/assessments"}
-            className="flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+            href={`/lessons/${nextAssessment.id}`}
+            className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            back to module
+            next assessment
           </Link>
-        </div>
+        ) : (
+          <Link
+            href="/assessments"
+            className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            all modules
+          </Link>
+        )}
       </div>
     </section>
   );
