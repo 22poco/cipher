@@ -11,6 +11,7 @@ import {
   fetchMyCaseStudyResponse,
   fetchLesson,
   fetchLessonQuiz,
+  fetchLessonQuizAttempts,
   fetchMyProgress,
   fetchUnits,
   submitCaseStudyResponse,
@@ -19,6 +20,7 @@ import {
   type Lesson,
   type ProgressSummary,
   type Quiz,
+  type QuizAttemptDetail,
   type QuizSubmitResult,
   type Unit,
 } from "@/lib/api";
@@ -159,6 +161,7 @@ function findAssessmentPath(units: Unit[], lessonId: number) {
 function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] }) {
   const lessonId = lesson.id.toString();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [quizAttempts, setQuizAttempts] = useState<QuizAttemptDetail[]>([]);
   const [progress, setProgress] = useState<ProgressSummary | null>(null);
   const [writtenResponse, setWrittenResponse] = useState<CaseStudyResponse | null>(null);
   const [responseText, setResponseText] = useState("");
@@ -166,6 +169,8 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
   const [result, setResult] = useState<QuizSubmitResult | null>(null);
   const [isRetakingQuiz, setIsRetakingQuiz] = useState(false);
   const [isEditingResponse, setIsEditingResponse] = useState(false);
+  const [showQuizReview, setShowQuizReview] = useState(false);
+  const [showPsetReview, setShowPsetReview] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -187,11 +192,8 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
     [progress, quiz],
   );
   const latestQuizAttempt = useMemo(
-    () =>
-      quiz
-        ? progress?.quiz_attempts.find((attempt) => attempt.quiz_id === quiz.id) ?? null
-        : null,
-    [progress, quiz],
+    () => quizAttempts[0] ?? null,
+    [quizAttempts],
   );
   const assessments = useMemo(() => flattenAssessments(units), [units]);
   const currentAssessmentIndex = assessments.findIndex(
@@ -216,7 +218,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
     setError("");
 
     try {
-      const [progressData, quizData, responseData] = await Promise.all([
+      const [progressData, quizData, responseData, attemptData] = await Promise.all([
         fetchMyProgress(token),
         fetchLessonQuiz(lessonId, token).catch((caughtError) => {
           if (caughtError instanceof ApiError && caughtError.status === 404) {
@@ -232,10 +234,18 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
           throw caughtError;
         }),
+        fetchLessonQuizAttempts(lessonId, token).catch((caughtError) => {
+          if (caughtError instanceof ApiError && caughtError.status === 404) {
+            return [];
+          }
+
+          throw caughtError;
+        }),
       ]);
 
       setProgress(progressData);
       setQuiz(quizData);
+      setQuizAttempts(attemptData);
       setWrittenResponse(responseData);
       setResponseText(responseData?.response_text ?? "");
       setIsEditingResponse(!responseData);
@@ -333,10 +343,12 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
       );
       setResult(quizResult);
       setIsRetakingQuiz(false);
+      setShowQuizReview(true);
       if (writtenResponse) {
         await completeLesson(lessonId, token);
       }
       setProgress(await fetchMyProgress(token));
+      setQuizAttempts(await fetchLessonQuizAttempts(lessonId, token));
       setMessage(
         writtenResponse
           ? "quiz submitted. assessment is now complete."
@@ -425,7 +437,8 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
           {latestQuizAttempt && !result && !isRetakingQuiz ? (
             <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
-              <div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
                 <p className="text-sm font-semibold text-slate-950">
                   latest quiz score: {latestQuizAttempt.score}%
                 </p>
@@ -433,13 +446,55 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                   your latest attempt is saved. retake the quiz to submit a new
                   score for this case study.
                 </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowQuizReview(!showQuizReview)}
+                  className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+                >
+                  {showQuizReview ? "hide answers" : "review answers"}
+                </button>
               </div>
+              {showQuizReview ? (
+                <div className="grid gap-3">
+                  {latestQuizAttempt.answers.length > 0 ? (
+                    latestQuizAttempt.answers.map((answer, index) => (
+                      <div
+                        key={answer.id}
+                        className={`rounded-md border p-3 text-sm ${
+                          answer.is_correct
+                            ? "border-emerald-200 bg-white"
+                            : "border-red-200 bg-red-50"
+                        }`}
+                      >
+                        <p className="font-semibold text-slate-950">
+                          {index + 1}. {answer.question_text}
+                        </p>
+                        <p className="mt-2 text-slate-700">
+                          your answer: {answer.selected_option_text}
+                        </p>
+                        {!answer.is_correct && answer.correct_option_text ? (
+                          <p className="mt-1 text-red-700">
+                            correct answer: {answer.correct_option_text}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-600">
+                      answer history was not stored for this older attempt. retake
+                      the quiz to save reviewable answers.
+                    </p>
+                  )}
+                </div>
+              ) : null}
               <button
                 type="button"
                 onClick={() => {
                   setIsRetakingQuiz(true);
                   setSelectedAnswers({});
                   setResult(null);
+                  setShowQuizReview(false);
                   setMessage("");
                   setError("");
                 }}
@@ -542,14 +597,29 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
         {writtenResponse && !isEditingResponse ? (
           <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
-            <div>
-              <p className="text-sm font-semibold text-slate-950">
-                submitted for admin review
-              </p>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-950">
+                  submitted for admin review
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  your latest written response is saved. view it or revise it
+                  before teacher review.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPsetReview(!showPsetReview)}
+                className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+              >
+                {showPsetReview ? "hide response" : "view response"}
+              </button>
+            </div>
+            {showPsetReview ? (
+              <p className="whitespace-pre-wrap rounded-md border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700">
                 {writtenResponse.response_text}
               </p>
-            </div>
+            ) : null}
             <button
               type="button"
               onClick={() => {
