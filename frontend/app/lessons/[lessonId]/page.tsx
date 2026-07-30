@@ -164,6 +164,8 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
   const [responseText, setResponseText] = useState("");
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [result, setResult] = useState<QuizSubmitResult | null>(null);
+  const [isRetakingQuiz, setIsRetakingQuiz] = useState(false);
+  const [isEditingResponse, setIsEditingResponse] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -182,6 +184,13 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         quiz &&
           progress?.quiz_attempts.some((attempt) => attempt.quiz_id === quiz.id),
       ),
+    [progress, quiz],
+  );
+  const latestQuizAttempt = useMemo(
+    () =>
+      quiz
+        ? progress?.quiz_attempts.find((attempt) => attempt.quiz_id === quiz.id) ?? null
+        : null,
     [progress, quiz],
   );
   const assessments = useMemo(() => flattenAssessments(units), [units]);
@@ -229,6 +238,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
       setQuiz(quizData);
       setWrittenResponse(responseData);
       setResponseText(responseData?.response_text ?? "");
+      setIsEditingResponse(!responseData);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "could not load quiz");
     } finally {
@@ -269,6 +279,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         token,
       );
       setWrittenResponse(response);
+      setIsEditingResponse(false);
       if (hasQuizAttempt || result) {
         await completeLesson(lessonId, token);
         setProgress(await fetchMyProgress(token));
@@ -321,6 +332,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         token,
       );
       setResult(quizResult);
+      setIsRetakingQuiz(false);
       if (writtenResponse) {
         await completeLesson(lessonId, token);
       }
@@ -411,7 +423,34 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             ) : null}
           </div>
 
-          {quiz.questions.map((question) => {
+          {latestQuizAttempt && !result && !isRetakingQuiz ? (
+            <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-950">
+                  latest quiz score: {latestQuizAttempt.score}%
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  your latest attempt is saved. retake the quiz to submit a new
+                  score for this case study.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRetakingQuiz(true);
+                  setSelectedAnswers({});
+                  setResult(null);
+                  setMessage("");
+                  setError("");
+                }}
+                className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                retake quiz
+              </button>
+            </div>
+          ) : null}
+
+          {(!latestQuizAttempt || result || isRetakingQuiz) ? quiz.questions.map((question) => {
             const questionResult = result?.results.find(
               (entry) => entry.question_id === question.id,
             );
@@ -461,7 +500,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                 </div>
               </fieldset>
             );
-          })}
+          }) : null}
 
           {result ? (
             <div className="grid gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-4">
@@ -473,7 +512,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                 you have not submitted it yet.
               </p>
             </div>
-          ) : (
+          ) : !latestQuizAttempt || isRetakingQuiz ? (
             <button
               type="submit"
               disabled={isSubmitting}
@@ -481,7 +520,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             >
               {isSubmitting ? "submitting..." : "submit quiz"}
             </button>
-          )}
+          ) : null}
         </form>
       ) : (
         <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
@@ -501,28 +540,51 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           </p>
         </div>
 
-        <textarea
-          value={responseText}
-          onChange={(event) => setResponseText(event.target.value)}
-          rows={6}
-          className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-          placeholder="write your response here..."
-        />
-
-        {writtenResponse ? (
-          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-            submitted. your response stays editable so you can revise before admin
-            review.
+        {writtenResponse && !isEditingResponse ? (
+          <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-950">
+                submitted for admin review
+              </p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                {writtenResponse.response_text}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditingResponse(true);
+                setMessage("");
+                setError("");
+              }}
+              className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              revise response
+            </button>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <textarea
+              value={responseText}
+              onChange={(event) => setResponseText(event.target.value)}
+              rows={6}
+              className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              placeholder="write your response here..."
+            />
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-        >
-          {isSubmitting ? "submitting..." : writtenResponse ? "update response" : "submit response"}
-        </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {isSubmitting
+                ? "submitting..."
+                : writtenResponse
+                  ? "submit revision"
+                  : "submit response"}
+            </button>
+          </>
+        )}
       </form>
 
       <div className="flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
