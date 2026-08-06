@@ -63,6 +63,14 @@ open:
 - frontend: `http://localhost:3000`
 - backend health check: `http://127.0.0.1:8000/health`
 
+## docs
+
+- [project overview](docs/project-overview.md)
+- [roadmap](docs/roadmap.md)
+- [test plan](docs/test-plan.md)
+- [architecture notes](docs/architecture-notes.md)
+- [admin dashboard](docs/admin-dashboard.md)
+
 ## roadmap
 
 near-term work:
