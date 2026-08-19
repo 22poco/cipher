@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "cipher",
-  description: "AP Cybersecurity Assessment Platform",
+  description: "ap cybersecurity learning platform",
 };
 
 export default function RootLayout({

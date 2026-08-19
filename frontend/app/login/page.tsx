@@ -7,10 +7,10 @@ export default function LoginPage() {
     <main className="mx-auto grid w-full max-w-md gap-6 px-4 py-10 sm:px-6">
       <div className="grid gap-2">
         <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
-          Log In
+          log in
         </h1>
         <p className="text-sm leading-6 text-slate-600">
-          Access your cipher dashboard and continue your AP Cybersecurity work.
+          access your cipher dashboard and continue your ap cybersecurity work.
         </p>
       </div>
 
@@ -19,9 +19,9 @@ export default function LoginPage() {
       </section>
 
       <p className="text-sm text-slate-600">
-        No account yet?{" "}
+        no account yet?{" "}
         <Link href="/register" className="font-semibold text-emerald-700">
-          Register
+          register
         </Link>
       </p>
     </main>
