@@ -38,7 +38,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       if (caughtError instanceof ApiError) {
         setError(caughtError.message);
       } else {
-        setError("could not reach the cipher api");
+        setError("Could not reach the cipher API.");
       }
     } finally {
       setIsSubmitting(false);
@@ -49,7 +49,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     <form onSubmit={handleSubmit} className="grid gap-4">
       {isRegister ? (
         <label className="grid gap-2 text-sm font-medium text-slate-700">
-          name
+          Name
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -60,7 +60,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       ) : null}
 
       <label className="grid gap-2 text-sm font-medium text-slate-700">
-        email
+        Email
         <input
           type="email"
           value={email}
@@ -71,7 +71,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       </label>
 
       <label className="grid gap-2 text-sm font-medium text-slate-700">
-        password
+        Password
         <input
           type="password"
           value={password}
@@ -84,7 +84,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       {isRegister ? (
         <fieldset className="grid gap-2">
-          <legend className="text-sm font-medium text-slate-700">role</legend>
+          <legend className="text-sm font-medium text-slate-700">Role</legend>
           <div className="grid grid-cols-2 gap-2">
             {(["student", "admin"] as UserRole[]).map((option) => (
               <label
@@ -121,7 +121,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         disabled={isSubmitting}
         className="h-11 rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
       >
-        {isSubmitting ? "working..." : isRegister ? "create account" : "log in"}
+        {isSubmitting ? "Working..." : isRegister ? "Create Account" : "Log In"}
       </button>
     </form>
   );

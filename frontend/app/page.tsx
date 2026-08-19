@@ -18,7 +18,7 @@ export default function Home() {
     <main className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:py-16">
       <section className="grid content-start gap-8">
         <div className="grid gap-4">
-          <p className="text-sm font-semibold text-emerald-700">ap cybersecurity</p>
+          <p className="text-sm font-semibold text-emerald-700">AP Cybersecurity</p>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-normal text-slate-950 sm:text-5xl">
             cipher
           </h1>
@@ -32,16 +32,16 @@ export default function Home() {
           {user ? (
             <>
               <Link
-                href="/assessments"
+                href="/units"
                 className="flex h-11 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                open assessments
+                Open Modules
               </Link>
               <Link
                 href={user.role === "admin" ? "/admin" : "/dashboard"}
                 className="flex h-11 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-800 transition hover:border-slate-950"
               >
-                open dashboard
+                Open Dashboard
               </Link>
             </>
           ) : (
@@ -50,13 +50,13 @@ export default function Home() {
                 href="/login"
                 className="flex h-11 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                log in
+                Log In
               </Link>
               <Link
                 href="/register"
                 className="flex h-11 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-800 transition hover:border-slate-950"
               >
-                create account
+                Create Account
               </Link>
             </>
           )}
@@ -64,9 +64,9 @@ export default function Home() {
 
         <div className="grid gap-3 sm:grid-cols-3">
           {[
-            ["modules", "AP CED structure"],
-            ["assessments", "scenario + quiz + pset"],
-            ["admin", "teacher assessment tools"],
+            ["Modules", "AP CED structure"],
+            ["Assessments", "Scenario + Quiz + Pset"],
+            ["Admin", "Teacher Assessment Tools"],
           ].map(([title, copy]) => (
             <div key={title} className="rounded-md border border-slate-200 bg-white p-4">
               <p className="font-semibold text-slate-950">{title}</p>
@@ -77,13 +77,13 @@ export default function Home() {
       </section>
 
       <section className="rounded-md border border-slate-200 bg-white p-5">
-        <h2 className="text-base font-semibold text-slate-950">current status</h2>
+        <h2 className="text-base font-semibold text-slate-950">Current Status</h2>
         <div className="mt-4 grid gap-3 text-sm">
           {[
-            ["backend", "api and postgres connected"],
-            ["modules", "5 AP CED modules seeded"],
-            ["assessments", "24 topic assessments"],
-            ["next focus", "admin review and mock exam flow"],
+            ["Backend", "API and PostgreSQL connected"],
+            ["Modules", "5 AP CED modules seeded"],
+            ["Assessments", "24 topic assessments"],
+            ["Next Focus", "Admin review and mock exam flow"],
           ].map(([label, value]) => (
             <div
               key={label}

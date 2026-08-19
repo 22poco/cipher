@@ -6,7 +6,7 @@ import { useSyncExternalStore } from "react";
 
 import { clearSession, getStoredUser, subscribeToSessionChange } from "@/lib/auth";
 
-const publicLinks = [{ href: "/", label: "home" }];
+const publicLinks = [{ href: "/", label: "Home" }];
 const getServerUser = () => null;
 
 export function AppNav() {
@@ -33,10 +33,9 @@ export function AppNav() {
         <nav className="flex flex-wrap items-center gap-2 text-sm">
           {[
             ...publicLinks,
-            ...(user ? [{ href: "/assessments", label: "assessments" }] : []),
-            ...(user ? [{ href: "/units", label: "modules" }] : []),
-            ...(user ? [{ href: "/dashboard", label: "dashboard" }] : []),
-            ...(user?.role === "admin" ? [{ href: "/admin", label: "admin" }] : []),
+            ...(user ? [{ href: "/units", label: "Modules" }] : []),
+            ...(user ? [{ href: "/dashboard", label: "Dashboard" }] : []),
+            ...(user?.role === "admin" ? [{ href: "/admin", label: "Admin" }] : []),
           ].map((link) => {
             const isActive =
               pathname === link.href ||
@@ -64,7 +63,7 @@ export function AppNav() {
               onClick={handleLogout}
               className="rounded-md border border-slate-300 px-3 py-2 font-medium text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
             >
-              log out
+              Log Out
             </button>
           ) : (
             <>
@@ -72,13 +71,13 @@ export function AppNav() {
                 href="/login"
                 className="rounded-md border border-slate-300 px-3 py-2 font-medium text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
               >
-                log in
+                Log In
               </Link>
               <Link
                 href="/register"
                 className="rounded-md bg-emerald-600 px-3 py-2 font-medium text-white transition hover:bg-emerald-700"
               >
-                register
+                Register
               </Link>
             </>
           )}

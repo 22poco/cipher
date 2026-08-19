@@ -29,7 +29,7 @@ import { getToken } from "@/lib/auth";
 
 function renderContent(content: string | null) {
   if (!content) {
-    return <p className="text-sm text-slate-600">assessment content is not ready yet.</p>;
+    return <p className="text-sm text-slate-600">Assessment content is not ready yet.</p>;
   }
 
   return content.split("\n\n").map((paragraph) => {
@@ -105,8 +105,8 @@ export default function LessonDetailPage() {
         return (
         <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
-            <Link href="/assessments" className="font-medium text-slate-700 hover:text-slate-950">
-              module {assessmentPath?.unit.order_index ?? ""}
+            <Link href="/units" className="font-medium text-slate-700 hover:text-slate-950">
+              Module {assessmentPath?.unit.order_index ?? ""}
             </Link>{" "}
             / {lesson.title}
           </nav>
@@ -126,7 +126,7 @@ export default function LessonDetailPage() {
                   rel="noreferrer"
                   className="mt-3 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800"
                 >
-                  open video resource
+                  Open Video Resource
                 </a>
               ) : null}
             </div>
@@ -453,7 +453,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
       {quiz ? (
         <form onSubmit={handleSubmitQuiz} className="grid gap-5 border-t border-slate-100 pt-5">
           <div>
-            <p className="text-sm font-semibold text-emerald-700">quiz</p>
+            <p className="text-sm font-semibold text-emerald-700">Quiz</p>
             <h2 className="mt-1 text-xl font-semibold text-slate-950">{quiz.title}</h2>
             {quiz.description ? (
               <p className="mt-2 text-sm leading-6 text-slate-600">{quiz.description}</p>
@@ -465,10 +465,10 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-950">
-                    latest quiz score: {latestQuizScore}%
+                    Latest Quiz Score: {latestQuizScore}%
                   </p>
                   <p className="mt-1 text-sm leading-6 text-slate-600">
-                    your latest attempt is saved. retake the quiz to submit a new
+                    Your latest attempt is saved. Retake the quiz to submit a new
                     score for this case study.
                   </p>
                 </div>
@@ -478,7 +478,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                     onClick={() => setShowQuizReview(!showQuizReview)}
                     className="min-h-10 w-fit rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
                   >
-                    {showQuizReview ? "hide response" : "view response"}
+                    {showQuizReview ? "Hide Response" : "View Response"}
                   </button>
                 ) : null}
               </div>
@@ -502,7 +502,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                     })
                   ) : (
                     <p className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-600">
-                      answer history was not stored for this older attempt. retake
+                      answer history was not stored for this older attempt. Retake
                       the quiz to save reviewable answers.
                     </p>
                   )}
@@ -520,7 +520,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                 }}
                 className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                retake quiz
+                Retake Quiz
               </button>
             </div>
           ) : null}
@@ -550,7 +550,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           {result ? (
             <div className="grid gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-4">
               <p className="text-sm font-semibold text-emerald-900">
-                score: {result.score}% ({result.correct_count}/{result.total_questions})
+                Score: {result.score}% ({result.correct_count}/{result.total_questions})
               </p>
             </div>
           ) : latestQuizScore === null || isRetakingQuiz ? (
@@ -559,7 +559,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
               disabled={isSubmitting}
               className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              {isSubmitting ? "submitting..." : "submit quiz"}
+              {isSubmitting ? "Submitting..." : "Submit Quiz"}
             </button>
           ) : null}
         </form>
@@ -571,12 +571,12 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
       <form onSubmit={handleSubmitResponse} className="grid gap-4 border-t border-slate-100 pt-5">
         <div>
-          <p className="text-sm font-semibold text-emerald-700">pset response</p>
+          <p className="text-sm font-semibold text-emerald-700">Pset Response</p>
           <h2 className="mt-1 text-xl font-semibold text-slate-950">
-            written evidence response
+            Written Evidence Response
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            answer the pset prompt from the assessment above. cite scenario evidence
+            answer the pset prompt from the assessment above. Cite scenario evidence
             and explain your reasoning like an AP free-response practice answer.
           </p>
         </div>
@@ -586,10 +586,10 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-950">
-                  submitted for admin review
+                  Submitted for Admin Review
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  your latest written response is saved. view it or revise it
+                  Your latest written response is saved. View it or revise it
                   before teacher review.
                 </p>
               </div>
@@ -598,20 +598,20 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                 onClick={() => setShowPsetReview(!showPsetReview)}
                 className="min-h-10 w-fit min-w-36 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
               >
-                {showPsetReview ? "hide response" : "view response"}
+                {showPsetReview ? "Hide Response" : "View Response"}
               </button>
             </div>
             {showPsetReview ? (
               <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4">
                 <p className="text-xs font-semibold uppercase text-emerald-700">
-                  your submitted response
+                  Your Submitted Response
                 </p>
                 <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-800">
                   {writtenResponse.response_text}
                 </p>
                 {writtenResponse.feedback ? (
                   <div className="mt-3 rounded-md border border-slate-200 bg-white p-3">
-                    <p className="text-xs font-semibold uppercase text-slate-500">teacher feedback</p>
+                    <p className="text-xs font-semibold uppercase text-slate-500">Teacher Feedback</p>
                     <p className="mt-1 text-sm leading-6 text-slate-700">{writtenResponse.feedback}</p>
                   </div>
                 ) : null}
@@ -626,7 +626,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
               }}
               className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
-              revise response
+              Revise Response
             </button>
           </div>
         ) : (
@@ -636,7 +636,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
               onChange={(event) => setResponseText(event.target.value)}
               rows={6}
               className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-              placeholder="write your response here..."
+              placeholder="Write your response here..."
             />
 
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -651,7 +651,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                   }}
                   className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
                 >
-                  cancel
+                  Cancel
                 </button>
               ) : null}
               <button
@@ -660,10 +660,10 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                 className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {isSubmitting
-                  ? "submitting..."
+                  ? "Submitting..."
                   : writtenResponse
-                    ? "submit revision"
-                    : "submit response"}
+                    ? "Submit Revision"
+                    : "Submit Response"}
               </button>
             </div>
           </>
@@ -672,24 +672,24 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
       <div className="flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
         <Link
-          href={currentModule ? `/units/${currentModule.id}` : "/assessments"}
+          href={currentModule ? `/units/${currentModule.id}` : "/units"}
           className="flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
         >
-          back to module
+          Back to Module
         </Link>
         {nextAssessment ? (
           <Link
             href={`/lessons/${nextAssessment.id}`}
             className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            next assessment
+            Next Assessment
           </Link>
         ) : (
           <Link
-            href="/assessments"
+            href="/units"
             className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            all modules
+            All Modules
           </Link>
         )}
       </div>

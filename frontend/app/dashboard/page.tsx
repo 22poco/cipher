@@ -41,7 +41,7 @@ function StudentDashboard({
         setUnits(unitsData);
       })
       .catch((caughtError) =>
-        setError(caughtError instanceof Error ? caughtError.message : "could not load progress"),
+        setError(caughtError instanceof Error ? caughtError.message : "Could not load progress."),
       );
   }, []);
 
@@ -77,12 +77,12 @@ function StudentDashboard({
   return (
     <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
       <div className="grid gap-2">
-        <p className="text-sm font-semibold text-emerald-700">student dashboard</p>
+        <p className="text-sm font-semibold text-emerald-700">Student Dashboard</p>
         <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
-          welcome, {name}
+          Welcome, {name}
         </h1>
         <p className="text-sm text-slate-600">
-          signed in as {email} with the {role} role.
+          Signed in as {email} with the {role} role.
         </p>
       </div>
 
@@ -94,16 +94,16 @@ function StudentDashboard({
 
       <section className="grid gap-4 md:grid-cols-3">
         {[
-          ["overall progress", `${overallPercent}% complete`],
+          ["Overall Progress", `${overallPercent}% Complete`],
           [
-            "assessment progress",
+            "Assessment Progress",
             progress
               ? `${completedAssessments}/${totalAssessments} assessments complete`
-              : "loading progress...",
+              : "Loading progress...",
           ],
           [
-            "latest quiz",
-            latestAttempt ? `${latestAttempt.score}% score` : "no attempts yet",
+            "Latest Quiz",
+            latestAttempt ? `${latestAttempt.score}% score` : "No attempts yet",
           ],
         ].map(([title, value]) => (
           <div key={title} className="rounded-md border border-slate-200 bg-white p-5">
@@ -116,13 +116,13 @@ function StudentDashboard({
       <section className="rounded-md border border-slate-200 bg-white p-5">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div className="min-w-0 lg:max-w-3xl">
-            <h2 className="text-lg font-semibold text-slate-950">module progress</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Module Progress</h2>
             <div className="mt-4 grid gap-3">
               {moduleProgress.map(({ unit, completed, total, percent }) => (
                 <div key={unit.id}>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-medium text-slate-700">
-                      module {unit.order_index}: {unit.title}
+                      Module {unit.order_index}: {unit.title}
                     </span>
                     <span className="text-slate-500">
                       {completed}/{total}
@@ -139,16 +139,16 @@ function StudentDashboard({
             </div>
           </div>
           <Link
-            href="/assessments"
+            href="/units"
             className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 lg:justify-self-end"
           >
-            view assessments
+            View Modules
           </Link>
         </div>
       </section>
 
       <section className="rounded-md border border-slate-200 bg-white p-5">
-        <h2 className="text-lg font-semibold text-slate-950">recent quiz attempts</h2>
+        <h2 className="text-lg font-semibold text-slate-950">Recent Quiz Attempts</h2>
         <div className="mt-4 grid gap-2">
           {progress && progress.quiz_attempts.length > 0 ? (
             progress.quiz_attempts.slice(0, 5).map((attempt) => (
@@ -162,7 +162,7 @@ function StudentDashboard({
             ))
           ) : (
             <p className="text-sm text-slate-600">
-              no quiz attempts yet. open an assessment to see scores here.
+              No quiz attempts yet. Open an assessment to see scores here.
             </p>
           )}
         </div>
