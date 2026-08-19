@@ -81,7 +81,7 @@ type QuizFormState = {
 type QuizQuestionFormState = {
   question_text: string;
   order_index: string;
-  options: [string, string, string];
+  options: [string, string, string, string];
   correct_index: string;
 };
 
@@ -116,7 +116,7 @@ const emptyQuizForm: QuizFormState = {
 const emptyQuizQuestionForm: QuizQuestionFormState = {
   question_text: "",
   order_index: "1",
-  options: ["", "", ""],
+  options: ["", "", "", ""],
   correct_index: "0",
 };
 
@@ -472,7 +472,7 @@ function AdminDashboard({ email }: { email: string }) {
         );
 
         await Promise.all(
-          question.options.slice(0, 3).map((option, index) =>
+          question.options.slice(0, 4).map((option, index) =>
             updateQuizOption(
               option.id,
               {
@@ -677,6 +677,7 @@ function AdminDashboard({ email }: { email: string }) {
         options[0]?.option_text ?? "",
         options[1]?.option_text ?? "",
         options[2]?.option_text ?? "",
+        options[3]?.option_text ?? "",
       ],
       correct_index: correctIndex.toString(),
     });
@@ -1020,6 +1021,7 @@ function AdminDashboard({ email }: { email: string }) {
                     value={option}
                     onChange={(event) => {
                       const nextOptions = [...questionForm.options] as [
+                        string,
                         string,
                         string,
                         string,
