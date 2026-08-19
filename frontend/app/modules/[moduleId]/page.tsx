@@ -21,14 +21,14 @@ export default function ModuleDetailPage() {
         <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/units" className="font-medium text-slate-700 hover:text-slate-950">
-              modules
+              Modules
             </Link>{" "}
-            / assessment set
+            / Assessment Set
           </nav>
 
           <div className="grid gap-2">
             <p className="text-sm font-semibold text-emerald-700">
-              assessment set
+              Assessment Set
             </p>
             <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
               {module.title}
@@ -39,11 +39,11 @@ export default function ModuleDetailPage() {
           </div>
 
           <section className="rounded-md border border-slate-200 bg-white p-5">
-            <h2 className="text-lg font-semibold text-slate-950">assessments</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Assessments</h2>
             <div className="mt-4 grid gap-3">
               {module.lessons.length === 0 ? (
                 <p className="text-sm text-slate-600">
-                  no assessments have been added to this module yet.
+                  No assessments have been added to this module yet.
                 </p>
               ) : (
                 module.lessons.map((lesson) => (
@@ -55,7 +55,7 @@ export default function ModuleDetailPage() {
                     <div>
                       <p className="font-semibold text-slate-950">{lesson.title}</p>
                       <p className="mt-1 text-sm text-slate-500">
-                        assessment {lesson.order_index}
+                        Assessment {lesson.order_index}
                       </p>
                     </div>
                     <span className="w-fit rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
