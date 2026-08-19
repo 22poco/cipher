@@ -296,6 +296,7 @@ class CaseStudyResponse(Base):
     reviewed_by_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
     )
+    feedback: Mapped[str | None] = mapped_column(Text)
 
     user: Mapped[User] = relationship(foreign_keys=[user_id])
     lesson: Mapped[Lesson] = relationship()

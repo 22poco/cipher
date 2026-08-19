@@ -312,7 +312,7 @@ function AdminDashboard({ email }: { email: string }) {
     setReviewDashboard(await fetchAdminReviewDashboard(token));
   }
 
-  async function togglePsetReview(response: AdminPsetResponse) {
+  async function togglePsetReview(response: AdminPsetResponse, feedback?: string | null) {
     const token = getToken();
 
     if (!token) {
@@ -322,7 +322,7 @@ function AdminDashboard({ email }: { email: string }) {
     setIsSaving(true);
 
     try {
-      await updateAdminPsetReview(response.id, { reviewed: !response.reviewed }, token);
+      await updateAdminPsetReview(response.id, { reviewed: !response.reviewed, feedback }, token);
       await refreshReviewDashboard();
       showResult(response.reviewed ? "pset marked pending" : "pset marked reviewed");
     } catch (caughtError) {
@@ -1135,9 +1135,9 @@ function AdminReviewPanel({
               <thead className="border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
                 <tr>
                   <th className="py-2 pr-3">student</th>
-                  <th className="py-2 pr-3">progress</th>
+                  <th className="py-2 pr-3">lessons</th>
                   <th className="py-2 pr-3">latest quiz</th>
-                  <th className="py-2 pr-3">quiz attempts</th>
+                  <th className="py-2 pr-3">avg quiz</th>
                   <th className="py-2 pr-3">psets</th>
                 </tr>
               </thead>
@@ -1201,12 +1201,14 @@ function GradebookRow({ row }: { row: AdminGradebookRow }) {
         <p className="mt-1 text-xs text-slate-500">{row.student_email}</p>
       </td>
       <td className="py-3 pr-3 text-slate-700">
-        {row.completed_assessments}/{row.total_assessments} complete
+        {row.completed_lessons}/{row.total_assessments}
       </td>
       <td className="py-3 pr-3 text-slate-700">
         {row.latest_quiz_score === null ? "none" : `${row.latest_quiz_score}%`}
       </td>
-      <td className="py-3 pr-3 text-slate-700">{row.quiz_attempts}</td>
+      <td className="py-3 pr-3 text-slate-700">
+        {row.average_quiz_score === null ? "none" : `${row.average_quiz_score}%`}
+      </td>
       <td className="py-3 pr-3 text-slate-700">
         {row.pset_submissions} submitted, {row.pending_psets} pending
       </td>
@@ -1221,7 +1223,7 @@ function PsetReviewCard({
 }: {
   response: AdminPsetResponse;
   isSaving: boolean;
-  onToggleReview: (response: AdminPsetResponse) => void;
+  onToggleReview: (response: AdminPsetResponse, feedback?: string | null) => void;
 }) {
   return (
     <article
@@ -1266,7 +1268,19 @@ function PsetReviewCard({
         <p className="mt-3 whitespace-pre-wrap rounded-md border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700">
           {response.response_text}
         </p>
+        {response.feedback ? (
+          <div className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-xs font-semibold uppercase text-emerald-700">feedback</p>
+            <p className="mt-1 text-sm leading-6 text-slate-700">{response.feedback}</p>
+          </div>
+        ) : null}
       </details>
+      {!response.reviewed ? (
+        <FeedbackInput
+          onSave={(feedback) => onToggleReview(response, feedback)}
+          isSaving={isSaving}
+        />
+      ) : null}
     </article>
   );
 }
@@ -1594,6 +1608,65 @@ function ActionButtons({
       >
         delete
       </button>
+    </div>
+  );
+}
+
+function FeedbackInput({
+  onSave,
+  isSaving,
+}: {
+  onSave: (feedback: string) => void;
+  isSaving: boolean;
+}) {
+  const [feedback, setFeedback] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!isExpanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsExpanded(true)}
+        className="mt-3 h-9 w-fit rounded-md border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+      >
+        add feedback
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-3 grid gap-2">
+      <textarea
+        value={feedback}
+        onChange={(event) => setFeedback(event.target.value)}
+        rows={3}
+        placeholder="write feedback for the student..."
+        className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={isSaving || !feedback.trim()}
+          onClick={() => {
+            onSave(feedback.trim());
+            setIsExpanded(false);
+            setFeedback("");
+          }}
+          className="h-9 rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          save feedback & review
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setIsExpanded(false);
+            setFeedback("");
+          }}
+          className="h-9 rounded-md border border-slate-300 px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+        >
+          cancel
+        </button>
+      </div>
     </div>
   );
 }

@@ -98,6 +98,7 @@ export type QuizSubmitResult = {
 export type QuizAttempt = {
   id: number;
   quiz_id: number;
+  quiz_title: string | null;
   score: number;
   submitted_at: string;
 };
@@ -134,6 +135,7 @@ export type CaseStudyResponse = {
   reviewed: boolean;
   reviewed_at: string | null;
   reviewed_by_id: number | null;
+  feedback: string | null;
 };
 
 export type AdminPsetResponse = {
@@ -149,6 +151,7 @@ export type AdminPsetResponse = {
   submitted_at: string;
   reviewed: boolean;
   reviewed_at: string | null;
+  feedback: string | null;
 };
 
 export type AdminQuizAttempt = QuizAttemptDetail & {
@@ -165,9 +168,10 @@ export type AdminGradebookRow = {
   student_id: number;
   student_name: string;
   student_email: string;
-  completed_assessments: number;
+  completed_lessons: number;
   total_assessments: number;
   latest_quiz_score: number | null;
+  average_quiz_score: number | null;
   quiz_attempts: number;
   pset_submissions: number;
   pending_psets: number;
@@ -338,7 +342,7 @@ export function fetchAdminReviewDashboard(token: string) {
 
 export function updateAdminPsetReview(
   responseId: number,
-  payload: { reviewed: boolean },
+  payload: { reviewed: boolean; feedback?: string | null },
   token: string,
 ) {
   return apiRequest<AdminPsetResponse>(

@@ -609,6 +609,12 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                 <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-800">
                   {writtenResponse.response_text}
                 </p>
+                {writtenResponse.feedback ? (
+                  <div className="mt-3 rounded-md border border-slate-200 bg-white p-3">
+                    <p className="text-xs font-semibold uppercase text-slate-500">teacher feedback</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-700">{writtenResponse.feedback}</p>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             <button

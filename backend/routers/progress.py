@@ -2,12 +2,12 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import Lesson, LessonProgress, QuizAttempt, Unit, User
-from ..schemas import LessonProgressRead, ProgressSummary
+from ..models import Lesson, LessonProgress, Quiz, QuizAttempt, Unit, User
+from ..schemas import LessonProgressRead, ProgressSummary, QuizAttemptRead
 
 
 router = APIRouter(prefix="/progress", tags=["progress"])
@@ -19,6 +19,16 @@ def unit_lesson_count(db: Session, unit_id: int) -> int:
         .join(Lesson.module)
         .where(Lesson.module.has(unit_id=unit_id))
     ) or 0
+
+
+def quiz_attempt_with_title(attempt: QuizAttempt) -> QuizAttemptRead:
+    return QuizAttemptRead(
+        id=attempt.id,
+        quiz_id=attempt.quiz_id,
+        quiz_title=attempt.quiz.title if attempt.quiz else None,
+        score=attempt.score,
+        submitted_at=attempt.submitted_at,
+    )
 
 
 @router.post("/lessons/{lesson_id}/complete", response_model=LessonProgressRead)
@@ -76,6 +86,7 @@ def read_my_progress(
     ).all()
     quiz_attempts = db.scalars(
         select(QuizAttempt)
+        .options(selectinload(QuizAttempt.quiz))
         .where(QuizAttempt.user_id == current_user.id)
         .order_by(QuizAttempt.submitted_at.desc())
     ).all()
@@ -106,7 +117,7 @@ def read_my_progress(
         total_lessons=total_lessons,
         unit_1_progress_percent=unit_one_percent,
         lesson_progress=lesson_progress,
-        quiz_attempts=quiz_attempts,
+        quiz_attempts=[quiz_attempt_with_title(a) for a in quiz_attempts],
     )
 
 
@@ -138,6 +149,7 @@ def read_unit_progress(
     ).all()
     quiz_attempts = db.scalars(
         select(QuizAttempt)
+        .options(selectinload(QuizAttempt.quiz))
         .where(QuizAttempt.user_id == current_user.id)
         .order_by(QuizAttempt.submitted_at.desc())
     ).all()
@@ -151,5 +163,5 @@ def read_unit_progress(
         total_lessons=total_lessons,
         unit_1_progress_percent=progress_percent,
         lesson_progress=lesson_progress,
-        quiz_attempts=quiz_attempts,
+        quiz_attempts=[quiz_attempt_with_title(a) for a in quiz_attempts],
     )
