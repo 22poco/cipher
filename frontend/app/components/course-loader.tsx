@@ -33,7 +33,7 @@ export function CourseLoader<T>({ load, children }: CourseLoaderProps<T>) {
           return;
         }
 
-        setError(caughtError.message || "Could not load course content.");
+        setError(caughtError.message || "could not load course content");
       });
   }, [load, router]);
 
@@ -50,7 +50,7 @@ export function CourseLoader<T>({ load, children }: CourseLoaderProps<T>) {
   if (!data) {
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-        <p className="text-sm text-slate-500">Loading course content...</p>
+        <p className="text-sm text-slate-500">loading course content...</p>
       </main>
     );
   }
