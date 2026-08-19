@@ -237,6 +237,7 @@ class QuizAttemptRead(BaseModel):
 
     id: int
     quiz_id: int
+    quiz_title: str | None = None
     score: float
     submitted_at: datetime
 
@@ -283,6 +284,7 @@ class CaseStudyResponseRead(BaseModel):
     reviewed: bool = False
     reviewed_at: datetime | None = None
     reviewed_by_id: int | None = None
+    feedback: str | None = None
 
 
 class AdminPsetResponseRead(BaseModel):
@@ -298,10 +300,12 @@ class AdminPsetResponseRead(BaseModel):
     submitted_at: datetime
     reviewed: bool
     reviewed_at: datetime | None = None
+    feedback: str | None = None
 
 
 class AdminPsetReviewUpdate(BaseModel):
     reviewed: bool = True
+    feedback: str | None = None
 
 
 class AdminQuizAttemptRead(BaseModel):
@@ -323,9 +327,10 @@ class AdminGradebookRow(BaseModel):
     student_id: int
     student_name: str
     student_email: EmailStr
-    completed_assessments: int
+    completed_lessons: int
     total_assessments: int
     latest_quiz_score: float | None = None
+    average_quiz_score: float | None = None
     quiz_attempts: int
     pset_submissions: int
     pending_psets: int

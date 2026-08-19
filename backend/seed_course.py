@@ -611,6 +611,12 @@ def ensure_review_columns() -> None:
                 "REFERENCES users(id) ON DELETE SET NULL"
             )
         )
+        connection.execute(
+            text(
+                "ALTER TABLE case_study_responses "
+                "ADD COLUMN IF NOT EXISTS feedback TEXT"
+            )
+        )
 
 
 if __name__ == "__main__":

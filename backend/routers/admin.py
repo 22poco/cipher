@@ -163,6 +163,7 @@ def pset_response_read(response: CaseStudyResponse) -> AdminPsetResponseRead:
         submitted_at=response.submitted_at,
         reviewed=response.reviewed,
         reviewed_at=response.reviewed_at,
+        feedback=response.feedback,
     )
 
 
@@ -248,15 +249,21 @@ def review_dashboard(db: Session) -> AdminReviewDashboard:
             response for response in pset_responses if response.user_id == student.id
         ]
         latest_attempt = student_attempts[0] if student_attempts else None
+        avg_score = (
+            round(sum(a.score for a in student_attempts) / len(student_attempts), 1)
+            if student_attempts
+            else None
+        )
 
         gradebook.append(
             AdminGradebookRow(
                 student_id=student.id,
                 student_name=student.name,
                 student_email=student.email,
-                completed_assessments=completed_counts.get(student.id, 0),
+                completed_lessons=completed_counts.get(student.id, 0),
                 total_assessments=total_assessments,
                 latest_quiz_score=latest_attempt.score if latest_attempt else None,
+                average_quiz_score=avg_score,
                 quiz_attempts=len(student_attempts),
                 pset_submissions=len(student_psets),
                 pending_psets=sum(not response.reviewed for response in student_psets),
@@ -312,6 +319,8 @@ def update_pset_review(
     response.reviewed = review_data.reviewed
     response.reviewed_at = datetime.utcnow() if review_data.reviewed else None
     response.reviewed_by_id = current_user.id if review_data.reviewed else None
+    if review_data.feedback is not None:
+        response.feedback = review_data.feedback
     db.commit()
     db.refresh(response)
 

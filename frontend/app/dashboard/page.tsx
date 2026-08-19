@@ -156,7 +156,7 @@ function StudentDashboard({
                 key={attempt.id}
                 className="flex items-center justify-between rounded-md border border-slate-100 px-3 py-2 text-sm"
               >
-                <span className="font-medium text-slate-700">quiz {attempt.quiz_id}</span>
+                <span className="font-medium text-slate-700">{attempt.quiz_title ?? `quiz ${attempt.quiz_id}`}</span>
                 <span className="text-slate-950">{attempt.score}%</span>
               </div>
             ))
