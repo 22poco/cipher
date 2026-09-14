@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ProtectedPage } from "../components/protected-page";
 import {
-  ApiError,
   fetchMockExam,
   fetchMyMockExamAttempts,
   submitMockExam,
@@ -68,24 +67,28 @@ function MockExamFlow() {
   }, []);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      return;
-    }
-
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as SavedProgress;
-        if (parsed.seed && parsed.remainingSeconds > 0) {
-          setSavedProgress(parsed);
-        }
+    const timeout = window.setTimeout(() => {
+      const token = getToken();
+      if (!token) {
+        return;
       }
-    } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
 
-    void loadAttempts().finally(() => setIsLoading(false));
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as SavedProgress;
+          if (parsed.seed && parsed.remainingSeconds > 0) {
+            setSavedProgress(parsed);
+          }
+        }
+      } catch {
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
+
+      void loadAttempts().finally(() => setIsLoading(false));
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, [loadAttempts]);
 
   const startExam = useCallback(
