@@ -219,7 +219,7 @@ function AdminDashboard({ email }: { email: string }) {
       setReviewDashboard(reviewData);
     } catch (caughtError) {
       setError(
-        caughtError instanceof Error ? caughtError.message : "could not load admin data",
+        caughtError instanceof Error ? caughtError.message : "could not load dashboard data",
       );
     } finally {
       setIsLoading(false);
@@ -686,20 +686,21 @@ function AdminDashboard({ email }: { email: string }) {
   return (
     <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
       <div className="grid gap-2">
-        <p className="text-sm font-semibold text-emerald-700">admin dashboard</p>
+        <p className="text-sm font-semibold text-emerald-700">teacher dashboard</p>
         <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
-          assessment admin
+          grading & review
         </h1>
         <p className="text-sm text-slate-600">
-          signed in as {email}. review student work and manage assessment structure here.
+          signed in as {email}. review pset responses, check quiz scores, and leave
+          feedback for students here.
         </p>
       </div>
 
       <section className="grid gap-4 md:grid-cols-3">
         {[
-          ["ap modules", units.length],
-          ["assessment sets", modules.length],
-          ["case studies", lessons.length],
+          ["students", reviewDashboard?.total_students ?? "—"],
+          ["pending psets", reviewDashboard?.pending_psets ?? "—"],
+          ["reviewed psets", reviewDashboard?.reviewed_psets ?? "—"],
         ].map(([label, value]) => (
           <div key={label} className="rounded-md border border-slate-200 bg-white p-5">
             <p className="text-sm font-medium text-slate-500">{label}</p>
@@ -732,7 +733,11 @@ function AdminDashboard({ email }: { email: string }) {
         </section>
       )}
 
-      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+      <details className="rounded-md border border-slate-200 bg-white">
+        <summary className="cursor-pointer px-5 py-4 text-base font-semibold text-slate-700 transition hover:text-slate-950">
+          content tools — manage modules, case studies, and quizzes
+        </summary>
+        <div className="grid gap-4 border-t border-slate-100 p-5 lg:grid-cols-2 xl:grid-cols-3">
         <form
           onSubmit={submitUnit}
           className="min-w-0 rounded-md border border-slate-200 bg-white p-5"
@@ -883,9 +888,9 @@ function AdminDashboard({ email }: { email: string }) {
             showCancel={editTarget?.type === "lesson"}
           />
         </form>
-      </section>
+        </div>
 
-      <section className="rounded-md border border-slate-200 bg-white p-5">
+      <section className="rounded-md border border-slate-100 bg-white p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-950">current structure</h2>
@@ -923,7 +928,7 @@ function AdminDashboard({ email }: { email: string }) {
         </div>
       </section>
 
-      <section className="rounded-md border border-slate-200 bg-white p-5">
+      <section className="rounded-md border border-slate-100 bg-white p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-950">quiz management</h2>
@@ -1094,6 +1099,7 @@ function AdminDashboard({ email }: { email: string }) {
           )}
         </div>
       </section>
+      </details>
     </main>
   );
 }
@@ -1111,9 +1117,9 @@ function AdminReviewPanel({
     <section className="grid gap-5 rounded-md border border-slate-200 bg-white p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">review queue</h2>
+          <h2 className="text-lg font-semibold text-slate-950">pset review queue</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            review pset responses, quiz attempts, and student progress from one place.
+            review written responses and leave feedback for students.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
@@ -1131,9 +1137,27 @@ function AdminReviewPanel({
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="rounded-md border border-slate-200 p-4 xl:col-span-2">
-          <h3 className="font-semibold text-slate-950">gradebook foundation</h3>
+          <h3 className="font-semibold text-slate-950">pset responses</h3>
+          <div className="mt-4 grid max-h-[34rem] gap-3 overflow-auto pr-1">
+            {dashboard.pset_responses.length > 0 ? (
+              dashboard.pset_responses.map((response) => (
+                <PsetReviewCard
+                  key={response.id}
+                  response={response}
+                  isSaving={isSaving}
+                  onToggleReview={onTogglePsetReview}
+                />
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">no pset responses submitted yet.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-md border border-slate-200 p-4">
+          <h3 className="font-semibold text-slate-950">gradebook</h3>
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-[420px] text-left text-sm">
               <thead className="border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
                 <tr>
                   <th className="py-2 pr-3">student</th>
@@ -1160,23 +1184,6 @@ function AdminReviewPanel({
           </div>
         </div>
 
-        <div className="rounded-md border border-slate-200 p-4">
-          <h3 className="font-semibold text-slate-950">pset review</h3>
-          <div className="mt-4 grid max-h-[34rem] gap-3 overflow-auto pr-1">
-            {dashboard.pset_responses.length > 0 ? (
-              dashboard.pset_responses.map((response) => (
-                <PsetReviewCard
-                  key={response.id}
-                  response={response}
-                  isSaving={isSaving}
-                  onToggleReview={onTogglePsetReview}
-                />
-              ))
-            ) : (
-              <p className="text-sm text-slate-500">no pset responses submitted yet.</p>
-            )}
-          </div>
-        </div>
       </div>
 
       <div className="rounded-md border border-slate-200 p-4">

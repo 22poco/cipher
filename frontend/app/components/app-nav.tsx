@@ -35,7 +35,7 @@ export function AppNav() {
             ...publicLinks,
             ...(user ? [{ href: "/units", label: "modules" }] : []),
             ...(user ? [{ href: "/dashboard", label: "dashboard" }] : []),
-            ...(user?.role === "admin" ? [{ href: "/admin", label: "admin" }] : []),
+            ...(user?.role === "admin" ? [{ href: "/admin", label: "teacher" }] : []),
           ].map((link) => {
             const isActive =
               pathname === link.href ||

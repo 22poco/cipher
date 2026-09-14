@@ -588,7 +588,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-950">
-                  submitted for admin review
+                  submitted for teacher review
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-600">
                   your latest written response is saved. view it or revise it
