@@ -105,7 +105,7 @@ export default function LessonDetailPage() {
         return (
         <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
-            <Link href="/assessments" className="font-medium text-slate-700 hover:text-slate-950">
+            <Link href="/units" className="font-medium text-slate-700 hover:text-slate-950">
               module {assessmentPath?.unit.order_index ?? ""}
             </Link>{" "}
             / {lesson.title}
@@ -686,7 +686,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           </Link>
         ) : (
           <Link
-            href="/assessments"
+            href="/units"
             className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
             all modules
