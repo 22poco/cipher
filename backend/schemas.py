@@ -337,6 +337,18 @@ class AdminGradebookRow(BaseModel):
     reviewed_psets: int
 
 
+class AdminMockExamAttemptRead(BaseModel):
+    id: int
+    student_id: int
+    student_name: str
+    student_email: EmailStr
+    score: float
+    total_questions: int
+    correct_count: int
+    duration_seconds: int | None = None
+    submitted_at: datetime
+
+
 class AdminReviewDashboard(BaseModel):
     total_students: int
     total_assessments: int
@@ -345,6 +357,7 @@ class AdminReviewDashboard(BaseModel):
     pset_responses: list[AdminPsetResponseRead]
     quiz_attempts: list[AdminQuizAttemptRead]
     gradebook: list[AdminGradebookRow]
+    mock_exam_attempts: list[AdminMockExamAttemptRead] = []
 
 
 class ProgressSummary(BaseModel):
@@ -353,3 +366,41 @@ class ProgressSummary(BaseModel):
     unit_1_progress_percent: float
     lesson_progress: list[LessonProgressRead]
     quiz_attempts: list[QuizAttemptRead]
+
+
+class MockExamQuestionRead(BaseModel):
+    id: int
+    question_text: str
+    module_title: str
+    module_order_index: int
+    options: list[QuizOptionRead] = []
+
+
+class MockExamRead(BaseModel):
+    seed: int
+    total_questions: int
+    time_limit_seconds: int | None
+    questions: list[MockExamQuestionRead]
+
+
+class MockExamSubmit(BaseModel):
+    seed: int = Field(ge=0, le=2**31 - 1)
+    answers: list[QuizAnswerSubmit]
+    duration_seconds: int | None = None
+
+
+class MockExamAttemptRead(BaseModel):
+    id: int
+    score: float
+    total_questions: int
+    correct_count: int
+    duration_seconds: int | None = None
+    submitted_at: datetime
+
+
+class MockExamResultRead(BaseModel):
+    attempt_id: int
+    score: float
+    correct_count: int
+    total_questions: int
+    results: list[QuizAnswerResult]
