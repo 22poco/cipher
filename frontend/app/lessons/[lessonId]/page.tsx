@@ -176,6 +176,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [psetError, setPsetError] = useState("");
 
   const isComplete = useMemo(
     () =>
@@ -283,10 +284,11 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
     event.preventDefault();
 
     if (responseText.trim().length < 20) {
-      setError("write at least 20 characters for the pset response");
+      setPsetError("write at least 20 characters for the pset response");
       return;
     }
 
+    setPsetError("");
     const token = getToken();
 
     if (!token) {
@@ -315,7 +317,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           : "pset response submitted. submit the quiz to complete this assessment.",
       );
     } catch (caughtError) {
-      setError(
+      setPsetError(
         caughtError instanceof Error ? caughtError.message : "could not submit response",
       );
     } finally {
@@ -623,6 +625,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                 setIsEditingResponse(true);
                 setMessage("");
                 setError("");
+                setPsetError("");
               }}
               className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
@@ -631,12 +634,23 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           </div>
         ) : (
           <>
+            {psetError ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {psetError}
+              </div>
+            ) : null}
             <textarea
               value={responseText}
               onChange={(event) => setResponseText(event.target.value)}
+              onKeyDown={(event) => {
+                if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
               rows={6}
               className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-              placeholder="write your response here..."
+              placeholder="write your response here... (ctrl+enter to submit)"
             />
 
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -648,6 +662,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                     setIsEditingResponse(false);
                     setMessage("");
                     setError("");
+                    setPsetError("");
                   }}
                   className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
                 >
