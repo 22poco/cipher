@@ -346,6 +346,13 @@ class AdminMockExamAttemptRead(BaseModel):
     total_questions: int
     correct_count: int
     duration_seconds: int | None = None
+    exam_kind: str = "full"
+    unit_id: int | None = None
+    frq_response: str | None = None
+    frq_score: float | None = None
+    frq_feedback: str | None = None
+    frq_part_scores: str | None = None
+    frq_reviewed: bool = False
     submitted_at: datetime
 
 
@@ -376,10 +383,43 @@ class MockExamQuestionRead(BaseModel):
     options: list[QuizOptionRead] = []
 
 
-class MockExamRead(BaseModel):
+class MockExamDefinitionRead(BaseModel):
+    key: str
+    kind: str
+    unit_id: int | None = None
+    title: str
+    description: str
+    mcq_count: int
+    has_frq: bool
+    time_limit_minutes: int
+    questions_available: int
+
+
+class MockExamFRQSourceRead(BaseModel):
+    label: str
+    title: str
+    body: str
+
+
+class MockExamFRQPartRead(BaseModel):
+    label: str
+    prompt: str
+
+
+class MockExamPaper(BaseModel):
+    title: str
+    prompt: str
+    sources: list[MockExamFRQSourceRead]
+    parts: list[MockExamFRQPartRead]
+
+
+class MockExamExamPaperRead(BaseModel):
     seed: int
-    total_questions: int
+    exam_key: str
+    kind: str
+    unit_id: int | None = None
     time_limit_seconds: int | None
+    frq_time_limit_seconds: int | None
     questions: list[MockExamQuestionRead]
 
 
@@ -387,6 +427,14 @@ class MockExamSubmit(BaseModel):
     seed: int = Field(ge=0, le=2**31 - 1)
     answers: list[QuizAnswerSubmit]
     duration_seconds: int | None = None
+    frq_response: str | None = None
+
+
+class AdminMockExamGradingUpdate(BaseModel):
+    frq_reviewed: bool = True
+    frq_score: float | None = Field(default=None, ge=0, le=14)
+    frq_part_scores: str | None = None
+    frq_feedback: str | None = None
 
 
 class MockExamAttemptRead(BaseModel):
@@ -395,6 +443,12 @@ class MockExamAttemptRead(BaseModel):
     total_questions: int
     correct_count: int
     duration_seconds: int | None = None
+    exam_kind: str = "full"
+    unit_id: int | None = None
+    frq_response: str | None = None
+    frq_score: float | None = None
+    frq_feedback: str | None = None
+    frq_reviewed: bool = False
     submitted_at: datetime
 
 

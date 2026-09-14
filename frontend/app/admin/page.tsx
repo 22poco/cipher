@@ -14,6 +14,7 @@ import {
   type QuizAttemptAnswer,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
+import { attemptLabel } from "@/app/mock-exam/progress";
 
 export default function AdminPage() {
   return (
@@ -95,6 +96,12 @@ function AdminDashboard({ email }: { email: string }) {
           feedback for students.
         </p>
         <nav className="mt-2 flex flex-wrap gap-2 text-sm font-semibold">
+          <Link
+            href="/admin/mock-exams"
+            className="rounded-md bg-slate-950 px-3 py-2 text-white transition hover:bg-slate-800"
+          >
+            grade mock exam frqs
+          </Link>
           <Link
             href="/admin/gradebook"
             className="rounded-md border border-slate-300 px-3 py-2 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
@@ -224,6 +231,7 @@ function ReviewPanel({
                     {attempt.student_name}
                   </span>
                   <span className="ml-2 text-xs text-slate-500">
+                    {attemptLabel(attempt.exam_kind, attempt.unit_id)} ·{" "}
                     {attempt.correct_count}/{attempt.total_questions} correct
                     {attempt.duration_seconds !== null
                       ? ` / ${Math.round(attempt.duration_seconds / 60)} min`
@@ -231,6 +239,20 @@ function ReviewPanel({
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
+                  {attempt.frq_response !== null ? (
+                    <Link
+                      href="/admin/mock-exams"
+                      className={`rounded-md px-2 py-1 text-xs font-semibold ${
+                        attempt.frq_reviewed
+                          ? "bg-sky-50 text-sky-700"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {attempt.frq_reviewed
+                        ? `frq graded ${attempt.frq_score ?? "—"}/14`
+                        : "frq needs grading"}
+                    </Link>
+                  ) : null}
                   <span className="text-xs text-slate-500">
                     {formatDate(attempt.submitted_at)}
                   </span>

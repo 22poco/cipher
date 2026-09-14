@@ -178,6 +178,36 @@ export type AdminGradebookRow = {
   reviewed_psets: number;
 };
 
+export type MockExamDefinition = {
+  key: string;
+  kind: "full" | "unit";
+  unit_id: number | null;
+  title: string;
+  description: string;
+  mcq_count: number;
+  has_frq: boolean;
+  time_limit_minutes: number;
+  questions_available: number;
+};
+
+export type MockExamFrqSource = {
+  label: string;
+  title: string;
+  body: string;
+};
+
+export type MockExamFrqPart = {
+  label: string;
+  prompt: string;
+};
+
+export type MockExamFrq = {
+  title: string;
+  prompt: string;
+  sources: MockExamFrqSource[];
+  parts: MockExamFrqPart[];
+};
+
 export type MockExamQuestion = {
   id: number;
   question_text: string;
@@ -186,10 +216,13 @@ export type MockExamQuestion = {
   options: QuizOption[];
 };
 
-export type MockExam = {
+export type MockExamPaper = {
   seed: number;
-  total_questions: number;
+  exam_key: string;
+  kind: "full" | "unit";
+  unit_id: number | null;
   time_limit_seconds: number | null;
+  frq_time_limit_seconds: number | null;
   questions: MockExamQuestion[];
 };
 
@@ -212,19 +245,20 @@ export type MockExamAttempt = {
   total_questions: number;
   correct_count: number;
   duration_seconds: number | null;
+  exam_kind: string;
+  unit_id: number | null;
+  frq_response: string | null;
+  frq_score: number | null;
+  frq_feedback: string | null;
+  frq_part_scores: string | null;
+  frq_reviewed: boolean;
   submitted_at: string;
 };
 
-export type AdminMockExamAttempt = {
-  id: number;
+export type AdminMockExamAttempt = MockExamAttempt & {
   student_id: number;
   student_name: string;
   student_email: string;
-  score: number;
-  total_questions: number;
-  correct_count: number;
-  duration_seconds: number | null;
-  submitted_at: string;
 };
 
 export type AdminReviewDashboard = {
@@ -402,20 +436,42 @@ export function updateAdminPsetReview(
   );
 }
 
-export function fetchMockExam(token: string) {
-  return apiRequest<MockExam>("/mock-exams", {}, token);
+export function fetchMockExamDefinitions(token: string) {
+  return apiRequest<MockExamDefinition[]>("/mock-exams", {}, token);
+}
+
+export function fetchMockExamFrq(token: string) {
+  return apiRequest<MockExamFrq>("/mock-exams/frq", {}, token);
+}
+
+export function startMockExam(examKey: string, token: string) {
+  return apiRequest<MockExamPaper>(
+    `/mock-exams/${examKey}/start`,
+    { method: "POST" },
+    token,
+  );
+}
+
+export function fetchMockExamPaper(examKey: string, seed: number, token: string) {
+  return apiRequest<MockExamPaper>(
+    `/mock-exams/${examKey}/paper/${seed}`,
+    {},
+    token,
+  );
 }
 
 export function submitMockExam(
+  examKey: string,
   payload: {
     seed: number;
     answers: { question_id: number; option_id: number }[];
     duration_seconds: number | null;
+    frq_response: string | null;
   },
   token: string,
 ) {
   return apiRequest<MockExamSubmitResult>(
-    "/mock-exams/submit",
+    `/mock-exams/${examKey}/submit`,
     { method: "POST", body: JSON.stringify(payload) },
     token,
   );
@@ -423,6 +479,35 @@ export function submitMockExam(
 
 export function fetchMyMockExamAttempts(token: string) {
   return apiRequest<MockExamAttempt[]>("/mock-exams/attempts", {}, token);
+}
+
+export function fetchMockExamAttemptReview(attemptId: number, token: string) {
+  return apiRequest<MockExamSubmitResult>(
+    `/mock-exams/attempts/${attemptId}`,
+    {},
+    token,
+  );
+}
+
+export function fetchAdminMockExamGrading(token: string) {
+  return apiRequest<AdminMockExamAttempt[]>("/mock-exams/grading", {}, token);
+}
+
+export function updateAdminMockExamGrading(
+  attemptId: number,
+  payload: {
+    frq_reviewed: boolean;
+    frq_score?: number | null;
+    frq_part_scores?: string | null;
+    frq_feedback?: string | null;
+  },
+  token: string,
+) {
+  return apiRequest<AdminMockExamAttempt>(
+    `/mock-exams/grading/${attemptId}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token,
+  );
 }
 
 export type UnitPayload = {
