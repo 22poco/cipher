@@ -173,14 +173,7 @@ def read_frq(
     )
 
 
-@router.post("/{exam_key}/start", response_model=MockExamExamPaperRead)
-def start_exam(
-    exam_key: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    del current_user
-
+def resolve_exam_key(exam_key: str) -> int | None:
     unit_id: int | None
     if exam_key == "full":
         unit_id = None
@@ -202,8 +195,15 @@ def start_exam(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="unknown exam",
         )
+    return unit_id
 
-    seed = random.randrange(2**31)
+
+def paper_response(
+    db: Session,
+    exam_key: str,
+    unit_id: int | None,
+    seed: int,
+) -> MockExamExamPaperRead:
     paper = build_paper(db, unit_id, seed)
     definition = get_exam_definition(unit_id)
 
@@ -225,6 +225,33 @@ def start_exam(
             for question in paper
         ],
     )
+
+
+@router.post("/{exam_key}/start", response_model=MockExamExamPaperRead)
+def start_exam(
+    exam_key: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    del current_user
+
+    unit_id = resolve_exam_key(exam_key)
+    seed = random.randrange(2**31)
+    return paper_response(db, exam_key, unit_id, seed)
+
+
+@router.get("/{exam_key}/paper/{seed}", response_model=MockExamExamPaperRead)
+def read_paper_by_seed(
+    exam_key: str,
+    seed: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """rebuild a paper deterministically so a saved attempt can resume."""
+    del current_user
+
+    unit_id = resolve_exam_key(exam_key)
+    return paper_response(db, exam_key, unit_id, seed)
 
 
 def _score_mcq(
