@@ -14,7 +14,15 @@ it is built around five AP modules, short case-study prompts, multiple-choice ch
 
 students can register, log in, open AP-aligned modules, complete case-study assessments, submit quizzes, write pset responses, retake quizzes, revise responses, review saved answers, and track module progress.
 
-admins can manage the assessment structure, edit case-study content, manage quiz questions, review student pset submissions, mark psets pending or reviewed, inspect quiz attempts, and see a basic gradebook summary.
+teachers can review pset submissions with written feedback, inspect individual quiz attempts, check the class gradebook, and manage assessment content (modules, case studies, and quiz questions) on dedicated pages.
+
+## teacher area
+
+the teacher dashboard is split into three focused pages:
+
+- `/admin` — grading & review: pset review queue with feedback, quiz attempt review
+- `/admin/gradebook` — per-student progress, quiz averages, and pset status
+- `/admin/content` — content tools for modules, assessment sets, case studies, and quizzes
 
 ## modules
 
@@ -69,22 +77,16 @@ open:
 - [roadmap](docs/roadmap.md)
 - [test plan](docs/test-plan.md)
 - [architecture notes](docs/architecture-notes.md)
-- [admin dashboard](docs/admin-dashboard.md)
+- [teacher dashboard](docs/admin-dashboard.md)
 
-## roadmap
+## status
 
-near-term work:
+working: student auth and dashboard, five AP modules with case-study assessments, quiz scoring with retakes and saved answers, pset responses with teacher feedback, teacher grading dashboard, gradebook, and content tools.
 
-- student assessment flow
-- admin review and gradebook foundation
-- mock exam flow
-- AP CED-aligned assessment content
-- local/netbird demo readiness
+in progress: mock exam flow (the last major feature) and a final AP CED-aligned content pass.
 
 ## future work
 
-- real AP-quality assessment content for every topic
-- stronger pset grading and teacher feedback
 - full attempt history
 - google sign-in / oauth
 - password reset and email verification
