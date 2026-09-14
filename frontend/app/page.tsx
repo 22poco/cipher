@@ -32,10 +32,10 @@ export default function Home() {
           {user ? (
             <>
               <Link
-                href="/assessments"
+                href="/units"
                 className="flex h-11 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                open assessments
+                open modules
               </Link>
               <Link
                 href={user.role === "admin" ? "/admin" : "/dashboard"}
