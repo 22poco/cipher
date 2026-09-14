@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppNav } from "./components/app-nav";
+import { ExamChrome } from "./components/exam-chrome";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,7 +31,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-slate-50 text-slate-950">
         <div className="flex min-h-screen flex-col">
-          <AppNav />
+          <ExamChrome />
           <div className="flex-1">{children}</div>
         </div>
       </body>
