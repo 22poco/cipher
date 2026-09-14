@@ -26,6 +26,7 @@ class User(Base):
     )
     mock_exam_attempts: Mapped[list["MockExamAttempt"]] = relationship(
         back_populates="user",
+        foreign_keys="MockExamAttempt.user_id",
         cascade="all, delete-orphan",
     )
     lesson_progress: Mapped[list["LessonProgress"]] = relationship(
@@ -261,17 +262,35 @@ class MockExamAttempt(Base):
         nullable=False,
         index=True,
     )
+    # "full" = entire course, "unit" = single unit exam
+    exam_kind: Mapped[str] = mapped_column(String(10), nullable=False, default="full")
+    unit_id: Mapped[int | None] = mapped_column(Integer)
     score: Mapped[float] = mapped_column(Float, nullable=False)
     total_questions: Mapped[int] = mapped_column(Integer, nullable=False)
     correct_count: Mapped[int] = mapped_column(Integer, nullable=False)
     duration_seconds: Mapped[int | None] = mapped_column(Integer)
+    frq_response: Mapped[str | None] = mapped_column(Text)
+    frq_score: Mapped[float | None] = mapped_column(Float)
+    frq_feedback: Mapped[str | None] = mapped_column(Text)
+    frq_part_scores: Mapped[str | None] = mapped_column(Text)
+    frq_reviewed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    frq_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    frq_reviewed_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+    )
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.now(),
         nullable=False,
     )
 
-    user: Mapped[User] = relationship(back_populates="mock_exam_attempts")
+    user: Mapped[User] = relationship(
+        back_populates="mock_exam_attempts",
+        foreign_keys=[user_id],
+    )
+    frq_reviewed_by: Mapped[User | None] = relationship(
+        foreign_keys=[frq_reviewed_by_id],
+    )
     answers: Mapped[list["MockExamAttemptAnswer"]] = relationship(
         back_populates="attempt",
         cascade="all, delete-orphan",

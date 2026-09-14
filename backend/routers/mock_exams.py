@@ -1,11 +1,21 @@
 import random
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from ..auth import get_current_user
+from ..auth import get_current_user, require_admin
 from ..database import get_db
+from ..exam_bank import (
+    EXAM_MCQ_WEIGHT,
+    EXAM_FRQ_WEIGHT,
+    FRQ_BANK,
+    FULL_MCQ_COUNT,
+    FULL_TIME_LIMIT_MINUTES,
+    UNIT_MCQ_COUNT,
+    UNIT_TIME_LIMIT_MINUTES,
+)
 from ..models import (
     Lesson,
     MockExamAttempt,
@@ -18,137 +28,283 @@ from ..models import (
     User,
 )
 from ..schemas import (
+    AdminMockExamAttemptRead,
+    AdminMockExamGradingUpdate,
     MockExamAttemptRead,
-    MockExamQuestionRead,
-    MockExamRead,
+    MockExamDefinitionRead,
+    MockExamExamPaperRead,
+    MockExamFRQPartRead,
+    MockExamFRQSourceRead,
+    MockExamPaper,
     MockExamResultRead,
     MockExamSubmit,
     QuizAnswerResult,
+    QuizAnswerSubmit,
 )
 
 router = APIRouter(prefix="/mock-exams", tags=["mock-exams"])
 
-QUESTIONS_PER_MODULE = 4
-EXAM_TIME_LIMIT_SECONDS = 40 * 60
 
+def load_bank_questions(db: Session, unit_order: int | None) -> list[QuizQuestion]:
+    """load exam bank questions, optionally scoped to one unit by order_index.
 
-def load_module_question_pool(db: Session) -> dict[int, list[QuizQuestion]]:
+    unit numbers (1-5, matching the ap course units and the exam bank data) are
+    resolved through Unit.order_index because reseeded databases can have
+    non-contiguous unit ids.
+    """
     statement = (
         select(QuizQuestion)
         .join(Quiz, QuizQuestion.quiz_id == Quiz.id)
         .join(Lesson, Quiz.lesson_id == Lesson.id)
         .join(Module, Lesson.module_id == Module.id)
         .join(Unit, Module.unit_id == Unit.id)
-        .options(
-            selectinload(QuizQuestion.options),
-            selectinload(QuizQuestion.quiz)
-            .selectinload(Quiz.lesson)
-            .selectinload(Lesson.module)
-            .selectinload(Module.unit),
-        )
-        .order_by(Unit.order_index, QuizQuestion.order_index)
+        .where(Module.title == "exam bank", QuizQuestion.order_index > 0)
+        .options(selectinload(QuizQuestion.options))
     )
+    if unit_order is not None:
+        statement = statement.where(Unit.order_index == unit_order)
     questions = db.scalars(statement).all()
 
-    pool: dict[int, list[QuizQuestion]] = {}
-    for question in questions:
-        has_correct_option = any(option.is_correct for option in question.options)
-        if not has_correct_option:
-            continue
-        unit_id = question.quiz.lesson.module.unit_id
-        pool.setdefault(unit_id, []).append(question)
-
-    return pool
+    valid = [
+        question
+        for question in questions
+        if len(question.options) >= 2
+        and any(option.is_correct for option in question.options)
+    ]
+    return valid
 
 
-def build_exam_questions(db: Session, seed: int) -> list[QuizQuestion]:
-    pool = load_module_question_pool(db)
+# per-unit blurbs describing what each unit exam drills, straight from the
+# course content of that ap unit.
+UNIT_EXAM_DESCRIPTIONS: dict[int, str] = {
+    1: (
+        "phishing and social engineering tactics, weak authentication and password "
+        "attacks, public wi-fi risks, and both sides of ai in cyber attacks and "
+        "cyber defense."
+    ),
+    2: (
+        "physical vulnerabilities like tailgating and RF cloning, badges and "
+        "biometric locks, secure space design, and spotting physical intrusion "
+        "attempts from logs."
+    ),
+    3: (
+        "network attacks from arp spoofing to mitm, wireless security protocols, "
+        "vlans and segmentation, firewall rules and acls, and reading traffic "
+        "evidence to detect intrusions."
+    ),
+    4: (
+        "malware and device exploitation, password and mfa hardening, patching and "
+        "full-disk encryption, and using file integrity, system logs, and "
+        "indicators of compromise to detect attacks."
+    ),
+    5: (
+        "sql injection, xss, and data theft, access control models, hashing vs "
+        "encryption, symmetric and asymmetric cryptography, and detecting attacks "
+        "on applications and data."
+    ),
+}
 
+
+def get_exam_definition(unit_order: int | None) -> dict:
+    """unit_order is the ap unit number 1-5, or None for the full exam."""
+    if unit_order is None:
+        return {
+            "key": "full",
+            "kind": "full",
+            "title": "full course exam",
+            "description": (
+                "the complete practice exam: 60 multiple-choice questions across all "
+                "five units plus the device security analysis free-response question. "
+                "same structure and weighting as the real ap exam."
+            ),
+            "mcq_count": FULL_MCQ_COUNT,
+            "time_limit_minutes": FULL_TIME_LIMIT_MINUTES,
+        }
+    return {
+        "key": f"unit-{unit_order}",
+        "kind": "unit",
+        "unit_id": unit_order,
+        "title": f"unit {unit_order} exam",
+        "description": (
+            f"30 hard multiple-choice questions covering {UNIT_EXAM_DESCRIPTIONS[unit_order]} "
+            "plus the device security analysis free-response question, graded on the "
+            "same 14-point rubric."
+        ),
+        "mcq_count": UNIT_MCQ_COUNT,
+        "time_limit_minutes": UNIT_TIME_LIMIT_MINUTES,
+    }
+
+
+def build_paper(db: Session, unit_order: int | None, seed: int) -> list[QuizQuestion]:
+    pool = load_bank_questions(db, unit_order)
     if not pool:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="no quiz questions available yet. ask your teacher to add assessments first.",
+            detail="the exam bank is empty. run the seed script first.",
         )
 
-    # a client-provided seed makes the exam deterministic: the submit call
-    # rebuilds the exact same paper the student saw and answered.
+    count = get_exam_definition(unit_order)["mcq_count"]
+    if len(pool) < count:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"exam bank has only {len(pool)} questions; needs {count}.",
+        )
+
     rng = random.Random(seed)
+    paper = list(pool)
+    rng.shuffle(paper)
+    return paper[:count]
 
-    exam_questions: list[QuizQuestion] = []
-    for unit_questions in pool.values():
-        shuffled = list(unit_questions)
-        rng.shuffle(shuffled)
-        exam_questions.extend(shuffled[:QUESTIONS_PER_MODULE])
 
-    if not exam_questions:
+def get_attempt_or_404(db: Session, attempt_id: int, user: User) -> MockExamAttempt:
+    attempt = db.get(MockExamAttempt, attempt_id)
+    if attempt is None or attempt.user_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="no quiz questions available yet. ask your teacher to add assessments first.",
+            detail="exam attempt not found",
         )
-
-    rng.shuffle(exam_questions)
-    return exam_questions
+    return attempt
 
 
-@router.get("", response_model=MockExamRead)
-def read_mock_exam(
+@router.get("", response_model=list[MockExamDefinitionRead])
+def list_mock_exams(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     del current_user
 
-    seed = random.randrange(2**31)
-    exam_questions = build_exam_questions(db, seed)
+    definitions = [get_exam_definition(None)]
+    definitions.extend(get_exam_definition(unit_order) for unit_order in range(1, 6))
 
-    return MockExamRead(
-        seed=seed,
-        total_questions=len(exam_questions),
-        time_limit_seconds=EXAM_TIME_LIMIT_SECONDS,
-        questions=[
-            MockExamQuestionRead(
-                id=question.id,
-                question_text=question.question_text,
-                module_title=question.quiz.lesson.module.unit.title,
-                module_order_index=question.quiz.lesson.module.unit.order_index,
-                options=question.options,
+    result = []
+    for definition in definitions:
+        unit_order = definition.get("unit_id")
+        pool_size = len(load_bank_questions(db, unit_order))
+        result.append(
+            MockExamDefinitionRead(
+                key=definition["key"],
+                kind=definition["kind"],
+                unit_id=unit_order,
+                title=definition["title"],
+                description=definition["description"],
+                mcq_count=definition["mcq_count"],
+                has_frq=True,
+                time_limit_minutes=definition["time_limit_minutes"],
+                questions_available=pool_size,
             )
-            for question in exam_questions
+        )
+    return result
+
+
+@router.get("/frq", response_model=MockExamPaper)
+def read_frq(
+    current_user: User = Depends(get_current_user),
+):
+    del current_user
+
+    frq = FRQ_BANK[0]
+    return MockExamPaper(
+        title=frq["title"],
+        prompt=frq["prompt"],
+        sources=[
+            MockExamFRQSourceRead(**source) for source in frq["sources"]
+        ],
+        parts=[MockExamFRQPartRead(**part) for part in frq["parts"]],
+    )
+
+
+def resolve_exam_key(exam_key: str) -> int | None:
+    """map an exam key to the ap unit number (1-5), or None for the full exam."""
+    unit_order: int | None
+    if exam_key == "full":
+        unit_order = None
+    elif exam_key.startswith("unit-"):
+        try:
+            unit_order = int(exam_key.removeprefix("unit-"))
+        except ValueError as error:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="unknown exam",
+            ) from error
+        if unit_order < 1 or unit_order > 5:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="unknown exam",
+            )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="unknown exam",
+        )
+    return unit_order
+
+
+def paper_response(
+    db: Session,
+    exam_key: str,
+    unit_order: int | None,
+    seed: int,
+) -> MockExamExamPaperRead:
+    paper = build_paper(db, unit_order, seed)
+    definition = get_exam_definition(unit_order)
+
+    return MockExamExamPaperRead(
+        seed=seed,
+        exam_key=exam_key,
+        kind=definition["kind"],
+        unit_id=unit_order,
+        time_limit_seconds=definition["time_limit_minutes"] * 60,
+        frq_time_limit_seconds=50 * 60,
+        questions=[
+            {
+                "id": question.id,
+                "question_text": question.question_text,
+                "module_title": "ap exam bank",
+                "module_order_index": 0,
+                "options": question.options,
+            }
+            for question in paper
         ],
     )
 
 
-@router.post("/submit", response_model=MockExamResultRead)
-def submit_mock_exam(
-    submission: MockExamSubmit,
+@router.post("/{exam_key}/start", response_model=MockExamExamPaperRead)
+def start_exam(
+    exam_key: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    exam_questions = build_exam_questions(db, submission.seed)
+    del current_user
 
-    if not exam_questions:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="no quiz questions available",
-        )
+    unit_order = resolve_exam_key(exam_key)
+    seed = random.randrange(2**31)
+    return paper_response(db, exam_key, unit_order, seed)
 
-    submitted_answers = {
-        answer.question_id: answer.option_id for answer in submission.answers
-    }
 
-    attempt = MockExamAttempt(
-        user_id=current_user.id,
-        score=0,
-        total_questions=len(exam_questions),
-        correct_count=0,
-        duration_seconds=submission.duration_seconds,
-    )
-    db.add(attempt)
-    db.flush()
+@router.get("/{exam_key}/paper/{seed}", response_model=MockExamExamPaperRead)
+def read_paper_by_seed(
+    exam_key: str,
+    seed: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """rebuild a paper deterministically so a saved attempt can resume."""
+    del current_user
 
+    unit_order = resolve_exam_key(exam_key)
+    return paper_response(db, exam_key, unit_order, seed)
+
+
+def _score_mcq(
+    paper: list[QuizQuestion],
+    submitted_answers: dict[int, int],
+    attempt: MockExamAttempt,
+    db: Session,
+) -> tuple[int, list[QuizAnswerResult]]:
     correct_count = 0
     results = []
 
-    for question in exam_questions:
+    for question in paper:
         selected_option_id = submitted_answers.get(question.id)
         correct_option = next(
             (option for option in question.options if option.is_correct),
@@ -156,8 +312,6 @@ def submit_mock_exam(
         )
 
         if selected_option_id is None:
-            # unanswered: store the row so the teacher sees which questions
-            # were skipped, but no selected option.
             db.add(
                 MockExamAttemptAnswer(
                     attempt_id=attempt.id,
@@ -178,7 +332,6 @@ def submit_mock_exam(
             continue
 
         selected_option = db.get(QuizOption, selected_option_id)
-
         if selected_option is None or selected_option.question_id != question.id:
             db.rollback()
             raise HTTPException(
@@ -186,12 +339,7 @@ def submit_mock_exam(
                 detail="invalid mock exam answer",
             )
 
-        correct_option = next(
-            (option for option in question.options if option.is_correct),
-            None,
-        )
         is_correct = bool(correct_option and selected_option.id == correct_option.id)
-
         if is_correct:
             correct_count += 1
 
@@ -213,7 +361,44 @@ def submit_mock_exam(
             )
         )
 
-    score = round((correct_count / len(exam_questions)) * 100, 2)
+    return correct_count, results
+
+
+@router.post("/{exam_key}/submit", response_model=MockExamResultRead)
+def submit_exam(
+    exam_key: str,
+    submission: MockExamSubmit,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    unit_order = resolve_exam_key(exam_key)
+
+    paper = build_paper(db, unit_order, submission.seed)
+    definition = get_exam_definition(unit_order)
+
+    attempt = MockExamAttempt(
+        user_id=current_user.id,
+        exam_kind=definition["kind"],
+        unit_id=unit_order,
+        score=0,
+        total_questions=len(paper),
+        correct_count=0,
+        duration_seconds=submission.duration_seconds,
+        frq_response=submission.frq_response,
+    )
+    db.add(attempt)
+    db.flush()
+
+    submitted_answers = {
+        answer.question_id: answer.option_id for answer in submission.answers
+    }
+    correct_count, results = _score_mcq(paper, submitted_answers, attempt, db)
+
+    mcq_score = round((correct_count / len(paper)) * 100, 2)
+    if submission.frq_response is not None:
+        score = round(mcq_score * (EXAM_MCQ_WEIGHT / 100), 2)
+    else:
+        score = mcq_score
     attempt.score = score
     attempt.correct_count = correct_count
     db.commit()
@@ -222,7 +407,7 @@ def submit_mock_exam(
         attempt_id=attempt.id,
         score=score,
         correct_count=correct_count,
-        total_questions=len(exam_questions),
+        total_questions=len(paper),
         results=results,
     )
 
@@ -239,3 +424,128 @@ def read_my_mock_exam_attempts(
     ).all()
 
     return attempts
+
+
+@router.get("/attempts/{attempt_id}", response_model=MockExamResultRead)
+def read_attempt_review(
+    attempt_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    attempt = get_attempt_or_404(db, attempt_id, current_user)
+
+    answers = db.scalars(
+        select(MockExamAttemptAnswer)
+        .where(MockExamAttemptAnswer.attempt_id == attempt.id)
+        .options(selectinload(MockExamAttemptAnswer.question).selectinload(QuizQuestion.options))
+    ).all()
+
+    return MockExamResultRead(
+        attempt_id=attempt.id,
+        score=attempt.score,
+        correct_count=attempt.correct_count,
+        total_questions=attempt.total_questions,
+        results=[
+            QuizAnswerResult(
+                question_id=answer.question_id,
+                selected_option_id=answer.selected_option_id,
+                correct_option_id=answer.correct_option_id,
+                is_correct=answer.is_correct,
+            )
+            for answer in answers
+        ],
+    )
+
+
+@router.get("/grading", response_model=list[AdminMockExamAttemptRead])
+def read_attempts_for_grading(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    del current_user
+
+    attempts = db.scalars(
+        select(MockExamAttempt)
+        .options(selectinload(MockExamAttempt.user))
+        .order_by(MockExamAttempt.frq_reviewed.asc(), MockExamAttempt.submitted_at.desc())
+        .limit(100)
+    ).all()
+
+    return [
+        AdminMockExamAttemptRead(
+            id=attempt.id,
+            student_id=attempt.user.id,
+            student_name=attempt.user.name,
+            student_email=attempt.user.email,
+            exam_kind=attempt.exam_kind,
+            unit_id=attempt.unit_id,
+            score=attempt.score,
+            total_questions=attempt.total_questions,
+            correct_count=attempt.correct_count,
+            duration_seconds=attempt.duration_seconds,
+            frq_response=attempt.frq_response,
+            frq_score=attempt.frq_score,
+            frq_feedback=attempt.frq_feedback,
+            frq_part_scores=attempt.frq_part_scores,
+            frq_reviewed=attempt.frq_reviewed,
+            submitted_at=attempt.submitted_at,
+        )
+        for attempt in attempts
+    ]
+
+
+@router.patch("/grading/{attempt_id}", response_model=AdminMockExamAttemptRead)
+def grade_attempt_frq(
+    attempt_id: int,
+    grading: AdminMockExamGradingUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    attempt = db.get(MockExamAttempt, attempt_id)
+    if attempt is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="exam attempt not found",
+        )
+
+    if grading.frq_score is not None:
+        attempt.frq_score = max(0.0, min(grading.frq_score, 14.0))
+    if grading.frq_part_scores is not None:
+        attempt.frq_part_scores = grading.frq_part_scores
+    if grading.frq_feedback is not None:
+        attempt.frq_feedback = grading.frq_feedback
+
+    attempt.frq_reviewed = grading.frq_reviewed
+    attempt.frq_reviewed_at = datetime.utcnow() if grading.frq_reviewed else None
+    attempt.frq_reviewed_by_id = current_user.id if grading.frq_reviewed else None
+
+    if attempt.frq_score is not None:
+        frq_percentage = (attempt.frq_score / 14.0) * EXAM_FRQ_WEIGHT
+        if attempt.frq_response is not None:
+            # submitted with frq: mcq score is already on the 70% scale
+            attempt.score = round(attempt.score + frq_percentage, 2)
+        else:
+            # defensive: attempt without an frq response is capped at 100
+            attempt.score = round(min(100.0, attempt.score + frq_percentage), 2)
+
+    db.commit()
+    db.refresh(attempt)
+
+    return AdminMockExamAttemptRead(
+        id=attempt.id,
+        student_id=attempt.user_id,
+        student_name=attempt.user.name,
+        student_email=attempt.user.email,
+        exam_kind=attempt.exam_kind,
+        unit_id=attempt.unit_id,
+        score=attempt.score,
+        total_questions=attempt.total_questions,
+        correct_count=attempt.correct_count,
+        duration_seconds=attempt.duration_seconds,
+        frq_response=attempt.frq_response,
+        frq_score=attempt.frq_score,
+        frq_feedback=attempt.frq_feedback,
+        frq_part_scores=attempt.frq_part_scores,
+        frq_reviewed=attempt.frq_reviewed,
+        submitted_at=attempt.submitted_at,
+    )
