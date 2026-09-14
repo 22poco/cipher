@@ -2,11 +2,49 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from .database import Base, SessionLocal, engine
+from .exam_bank import MCQ_BANK
 from .models import Lesson, Module, Quiz, QuizOption, QuizQuestion, Unit
 
 
 ASSESSMENT_MODULE_TITLE = "topic assessments"
 LEGACY_MODULE_TITLES = {"linux basics", "unit 1 case study", "assessment practice"}
+EXAM_BANK_MODULE_TITLE = "exam bank"
+
+
+def exam_bank_module(unit_order_index: int) -> dict:
+    """hidden module holding the ap exam bank questions for one unit."""
+    unit_pool = [q for q in MCQ_BANK if q["unit"] == unit_order_index]
+    return {
+        "title": EXAM_BANK_MODULE_TITLE,
+        "description": "internal ap exam bank questions. hidden from student course pages.",
+        "order_index": 99,
+        "lessons": [
+            {
+                "title": f"exam bank set {unit_order_index}",
+                "lesson_type": "reading",
+                "order_index": 1,
+                "video_url": None,
+                "content": "internal exam bank storage. not part of the student course.",
+                "quiz": {
+                    "title": f"exam bank {unit_order_index}",
+                    "description": "internal exam bank storage.",
+                    "questions": [
+                        {
+                            "question_text": q["question_text"],
+                            "order_index": q_index,
+                            "options": [
+                                {"option_text": q["correct"], "is_correct": True},
+                                {"option_text": q["wrong"][0], "is_correct": False},
+                                {"option_text": q["wrong"][1], "is_correct": False},
+                                {"option_text": q["wrong"][2], "is_correct": False},
+                            ],
+                        }
+                        for q_index, q in enumerate(unit_pool, start=1)
+                    ],
+                },
+            }
+        ],
+    }
 
 
 AP_MODULES = [
@@ -565,9 +603,41 @@ def remove_legacy_modules(db: Session, unit: Unit, active_module: Module) -> Non
         db.delete(module)
 
 
+def ensure_mock_exam_columns() -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS exam_kind VARCHAR(10) NOT NULL DEFAULT 'full'")
+        )
+        connection.execute(
+            text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS unit_id INTEGER")
+        )
+        connection.execute(
+            text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_response TEXT")
+        )
+        connection.execute(
+            text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_score DOUBLE PRECISION")
+        )
+        connection.execute(
+            text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_feedback TEXT")
+        )
+        connection.execute(
+            text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_part_scores TEXT")
+        )
+        connection.execute(
+            text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_reviewed BOOLEAN NOT NULL DEFAULT FALSE")
+        )
+        connection.execute(
+            text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_reviewed_at TIMESTAMP")
+        )
+        connection.execute(
+            text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_reviewed_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL")
+        )
+
+
 def seed_course() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_review_columns()
+    ensure_mock_exam_columns()
 
     with SessionLocal() as db:
         for unit_data in AP_MODULES:
@@ -586,6 +656,17 @@ def seed_course() -> None:
 
             remove_stale_seed_content(db, module, module_data["lessons"])
             remove_legacy_modules(db, unit, module)
+
+            # internal exam bank: hard ap questions live in a hidden module
+            # per unit so mock exams can pull from them
+            bank_data = exam_bank_module(unit_data["order_index"])
+            bank_module = upsert_module(db, unit, bank_data)
+            for lesson_data in bank_data["lessons"]:
+                lesson = upsert_lesson(db, bank_module, lesson_data)
+                quiz = upsert_quiz(db, lesson, lesson_data["quiz"])
+                for question_data in lesson_data["quiz"]["questions"]:
+                    question = upsert_question(db, quiz, question_data)
+                    upsert_options(db, question, question_data["options"])
 
         db.commit()
 
