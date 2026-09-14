@@ -45,17 +45,24 @@ from ..schemas import (
 router = APIRouter(prefix="/mock-exams", tags=["mock-exams"])
 
 
-def load_bank_questions(db: Session, unit_id: int | None) -> list[QuizQuestion]:
+def load_bank_questions(db: Session, unit_order: int | None) -> list[QuizQuestion]:
+    """load exam bank questions, optionally scoped to one unit by order_index.
+
+    unit numbers (1-5, matching the ap course units and the exam bank data) are
+    resolved through Unit.order_index because reseeded databases can have
+    non-contiguous unit ids.
+    """
     statement = (
         select(QuizQuestion)
         .join(Quiz, QuizQuestion.quiz_id == Quiz.id)
         .join(Lesson, Quiz.lesson_id == Lesson.id)
         .join(Module, Lesson.module_id == Module.id)
+        .join(Unit, Module.unit_id == Unit.id)
         .where(Module.title == "exam bank", QuizQuestion.order_index > 0)
         .options(selectinload(QuizQuestion.options))
     )
-    if unit_id is not None:
-        statement = statement.where(Module.unit_id == unit_id)
+    if unit_order is not None:
+        statement = statement.where(Unit.order_index == unit_order)
     questions = db.scalars(statement).all()
 
     valid = [
@@ -67,8 +74,40 @@ def load_bank_questions(db: Session, unit_id: int | None) -> list[QuizQuestion]:
     return valid
 
 
-def get_exam_definition(unit_id: int | None) -> dict:
-    if unit_id is None:
+# per-unit blurbs describing what each unit exam drills, straight from the
+# course content of that ap unit.
+UNIT_EXAM_DESCRIPTIONS: dict[int, str] = {
+    1: (
+        "phishing and social engineering tactics, weak authentication and password "
+        "attacks, public wi-fi risks, and both sides of ai in cyber attacks and "
+        "cyber defense."
+    ),
+    2: (
+        "physical vulnerabilities like tailgating and RF cloning, badges and "
+        "biometric locks, secure space design, and spotting physical intrusion "
+        "attempts from logs."
+    ),
+    3: (
+        "network attacks from arp spoofing to mitm, wireless security protocols, "
+        "vlans and segmentation, firewall rules and acls, and reading traffic "
+        "evidence to detect intrusions."
+    ),
+    4: (
+        "malware and device exploitation, password and mfa hardening, patching and "
+        "full-disk encryption, and using file integrity, system logs, and "
+        "indicators of compromise to detect attacks."
+    ),
+    5: (
+        "sql injection, xss, and data theft, access control models, hashing vs "
+        "encryption, symmetric and asymmetric cryptography, and detecting attacks "
+        "on applications and data."
+    ),
+}
+
+
+def get_exam_definition(unit_order: int | None) -> dict:
+    """unit_order is the ap unit number 1-5, or None for the full exam."""
+    if unit_order is None:
         return {
             "key": "full",
             "kind": "full",
@@ -82,28 +121,29 @@ def get_exam_definition(unit_id: int | None) -> dict:
             "time_limit_minutes": FULL_TIME_LIMIT_MINUTES,
         }
     return {
-        "key": f"unit-{unit_id}",
+        "key": f"unit-{unit_order}",
         "kind": "unit",
-        "unit_id": unit_id,
-        "title": f"unit {unit_id} exam",
+        "unit_id": unit_order,
+        "title": f"unit {unit_order} exam",
         "description": (
-            "a unit practice exam: 30 hard multiple-choice questions plus the device "
-            "security analysis free-response question. half length, full difficulty."
+            f"30 hard multiple-choice questions covering {UNIT_EXAM_DESCRIPTIONS[unit_order]} "
+            "plus the device security analysis free-response question, graded on the "
+            "same 14-point rubric."
         ),
         "mcq_count": UNIT_MCQ_COUNT,
         "time_limit_minutes": UNIT_TIME_LIMIT_MINUTES,
     }
 
 
-def build_paper(db: Session, unit_id: int | None, seed: int) -> list[QuizQuestion]:
-    pool = load_bank_questions(db, unit_id)
+def build_paper(db: Session, unit_order: int | None, seed: int) -> list[QuizQuestion]:
+    pool = load_bank_questions(db, unit_order)
     if not pool:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="the exam bank is empty. run the seed script first.",
         )
 
-    count = get_exam_definition(unit_id)["mcq_count"]
+    count = get_exam_definition(unit_order)["mcq_count"]
     if len(pool) < count:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -134,17 +174,17 @@ def list_mock_exams(
     del current_user
 
     definitions = [get_exam_definition(None)]
-    definitions.extend(get_exam_definition(unit_id) for unit_id in range(1, 6))
+    definitions.extend(get_exam_definition(unit_order) for unit_order in range(1, 6))
 
     result = []
     for definition in definitions:
-        unit_id = definition.get("unit_id")
-        pool_size = len(load_bank_questions(db, unit_id))
+        unit_order = definition.get("unit_id")
+        pool_size = len(load_bank_questions(db, unit_order))
         result.append(
             MockExamDefinitionRead(
                 key=definition["key"],
                 kind=definition["kind"],
-                unit_id=unit_id,
+                unit_id=unit_order,
                 title=definition["title"],
                 description=definition["description"],
                 mcq_count=definition["mcq_count"],
@@ -174,18 +214,19 @@ def read_frq(
 
 
 def resolve_exam_key(exam_key: str) -> int | None:
-    unit_id: int | None
+    """map an exam key to the ap unit number (1-5), or None for the full exam."""
+    unit_order: int | None
     if exam_key == "full":
-        unit_id = None
+        unit_order = None
     elif exam_key.startswith("unit-"):
         try:
-            unit_id = int(exam_key.removeprefix("unit-"))
+            unit_order = int(exam_key.removeprefix("unit-"))
         except ValueError as error:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="unknown exam",
             ) from error
-        if unit_id < 1 or unit_id > 5:
+        if unit_order < 1 or unit_order > 5:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="unknown exam",
@@ -195,23 +236,23 @@ def resolve_exam_key(exam_key: str) -> int | None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="unknown exam",
         )
-    return unit_id
+    return unit_order
 
 
 def paper_response(
     db: Session,
     exam_key: str,
-    unit_id: int | None,
+    unit_order: int | None,
     seed: int,
 ) -> MockExamExamPaperRead:
-    paper = build_paper(db, unit_id, seed)
-    definition = get_exam_definition(unit_id)
+    paper = build_paper(db, unit_order, seed)
+    definition = get_exam_definition(unit_order)
 
     return MockExamExamPaperRead(
         seed=seed,
         exam_key=exam_key,
         kind=definition["kind"],
-        unit_id=unit_id,
+        unit_id=unit_order,
         time_limit_seconds=definition["time_limit_minutes"] * 60,
         frq_time_limit_seconds=50 * 60,
         questions=[
@@ -235,9 +276,9 @@ def start_exam(
 ):
     del current_user
 
-    unit_id = resolve_exam_key(exam_key)
+    unit_order = resolve_exam_key(exam_key)
     seed = random.randrange(2**31)
-    return paper_response(db, exam_key, unit_id, seed)
+    return paper_response(db, exam_key, unit_order, seed)
 
 
 @router.get("/{exam_key}/paper/{seed}", response_model=MockExamExamPaperRead)
@@ -250,8 +291,8 @@ def read_paper_by_seed(
     """rebuild a paper deterministically so a saved attempt can resume."""
     del current_user
 
-    unit_id = resolve_exam_key(exam_key)
-    return paper_response(db, exam_key, unit_id, seed)
+    unit_order = resolve_exam_key(exam_key)
+    return paper_response(db, exam_key, unit_order, seed)
 
 
 def _score_mcq(
@@ -330,35 +371,15 @@ def submit_exam(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    unit_id: int | None
-    if exam_key == "full":
-        unit_id = None
-    elif exam_key.startswith("unit-"):
-        try:
-            unit_id = int(exam_key.removeprefix("unit-"))
-        except ValueError as error:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="unknown exam",
-            ) from error
-        if unit_id < 1 or unit_id > 5:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="unknown exam",
-            )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="unknown exam",
-        )
+    unit_order = resolve_exam_key(exam_key)
 
-    paper = build_paper(db, unit_id, submission.seed)
-    definition = get_exam_definition(unit_id)
+    paper = build_paper(db, unit_order, submission.seed)
+    definition = get_exam_definition(unit_order)
 
     attempt = MockExamAttempt(
         user_id=current_user.id,
         exam_kind=definition["kind"],
-        unit_id=unit_id,
+        unit_id=unit_order,
         score=0,
         total_questions=len(paper),
         correct_count=0,

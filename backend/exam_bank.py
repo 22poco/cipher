@@ -1617,6 +1617,7 @@ FRQ_BANK: dict[int, dict] = {
                 "title": "authorization log (excerpt)",
                 "body": (
                     "nov 10 14:11:43 ubuntu sshd[1123]: server listening on 0.0.0.0 port 22.\n"
+                    "nov 10 14:11:43 ubuntu sshd[1123]: server listening on :: port 22.\n"
                     "nov 10 14:21:01 ubuntu vsftpd[2184]: failed login for invalid user admin from 203.0.113.25 port 21 ftp\n"
                     "nov 10 14:21:02 ubuntu vsftpd[2186]: failed login for invalid user root from 203.0.113.25 port 21 ftp\n"
                     "nov 10 14:21:03 ubuntu vsftpd[2188]: failed login for invalid user test from 203.0.113.25 port 21 ftp\n"
