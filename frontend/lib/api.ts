@@ -178,6 +178,55 @@ export type AdminGradebookRow = {
   reviewed_psets: number;
 };
 
+export type MockExamQuestion = {
+  id: number;
+  question_text: string;
+  module_title: string;
+  module_order_index: number;
+  options: QuizOption[];
+};
+
+export type MockExam = {
+  seed: number;
+  total_questions: number;
+  time_limit_seconds: number | null;
+  questions: MockExamQuestion[];
+};
+
+export type MockExamSubmitResult = {
+  attempt_id: number;
+  score: number;
+  correct_count: number;
+  total_questions: number;
+  results: {
+    question_id: number;
+    selected_option_id: number | null;
+    correct_option_id: number | null;
+    is_correct: boolean;
+  }[];
+};
+
+export type MockExamAttempt = {
+  id: number;
+  score: number;
+  total_questions: number;
+  correct_count: number;
+  duration_seconds: number | null;
+  submitted_at: string;
+};
+
+export type AdminMockExamAttempt = {
+  id: number;
+  student_id: number;
+  student_name: string;
+  student_email: string;
+  score: number;
+  total_questions: number;
+  correct_count: number;
+  duration_seconds: number | null;
+  submitted_at: string;
+};
+
 export type AdminReviewDashboard = {
   total_students: number;
   total_assessments: number;
@@ -186,6 +235,7 @@ export type AdminReviewDashboard = {
   pset_responses: AdminPsetResponse[];
   quiz_attempts: AdminQuizAttempt[];
   gradebook: AdminGradebookRow[];
+  mock_exam_attempts: AdminMockExamAttempt[];
 };
 
 export type ProgressSummary = {
@@ -350,6 +400,29 @@ export function updateAdminPsetReview(
     { method: "PATCH", body: JSON.stringify(payload) },
     token,
   );
+}
+
+export function fetchMockExam(token: string) {
+  return apiRequest<MockExam>("/mock-exams", {}, token);
+}
+
+export function submitMockExam(
+  payload: {
+    seed: number;
+    answers: { question_id: number; option_id: number }[];
+    duration_seconds: number | null;
+  },
+  token: string,
+) {
+  return apiRequest<MockExamSubmitResult>(
+    "/mock-exams/submit",
+    { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function fetchMyMockExamAttempts(token: string) {
+  return apiRequest<MockExamAttempt[]>("/mock-exams/attempts", {}, token);
 }
 
 export type UnitPayload = {
