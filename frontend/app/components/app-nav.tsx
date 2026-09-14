@@ -34,6 +34,7 @@ export function AppNav() {
           {[
             ...publicLinks,
             ...(user ? [{ href: "/units", label: "modules" }] : []),
+            ...(user ? [{ href: "/mock-exam", label: "mock exam" }] : []),
             ...(user ? [{ href: "/dashboard", label: "dashboard" }] : []),
             ...(user?.role === "admin" ? [{ href: "/admin", label: "teacher" }] : []),
           ].map((link) => {

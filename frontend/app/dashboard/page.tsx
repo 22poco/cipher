@@ -147,6 +147,24 @@ function StudentDashboard({
         </div>
       </section>
 
+      <section className="rounded-md border border-emerald-200 bg-emerald-50 p-5">
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">mock exam</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              ready for a full run-through? 20 questions across all five modules,
+              40-minute limit, scored and saved.
+            </p>
+          </div>
+          <Link
+            href="/mock-exam"
+            className="flex h-10 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+          >
+            take the mock exam
+          </Link>
+        </div>
+      </section>
+
       <section className="rounded-md border border-slate-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-slate-950">recent quiz attempts</h2>
         <div className="mt-4 grid gap-2">
