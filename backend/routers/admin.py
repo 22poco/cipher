@@ -10,6 +10,7 @@ from ..models import (
     CaseStudyResponse,
     Lesson,
     LessonProgress,
+    MockExamAttempt,
     Module,
     Quiz,
     QuizAttempt,
@@ -21,6 +22,7 @@ from ..models import (
 )
 from ..schemas import (
     AdminGradebookRow,
+    AdminMockExamAttemptRead,
     AdminPsetResponseRead,
     AdminPsetReviewUpdate,
     AdminQuizAttemptRead,
@@ -271,6 +273,13 @@ def review_dashboard(db: Session) -> AdminReviewDashboard:
             )
         )
 
+    mock_exam_attempts = db.scalars(
+        select(MockExamAttempt)
+        .options(selectinload(MockExamAttempt.user))
+        .order_by(MockExamAttempt.submitted_at.desc())
+        .limit(50)
+    ).all()
+
     return AdminReviewDashboard(
         total_students=len(students),
         total_assessments=total_assessments,
@@ -279,6 +288,20 @@ def review_dashboard(db: Session) -> AdminReviewDashboard:
         pset_responses=[pset_response_read(response) for response in pset_responses],
         quiz_attempts=[quiz_attempt_read(attempt) for attempt in quiz_attempts],
         gradebook=gradebook,
+        mock_exam_attempts=[
+            AdminMockExamAttemptRead(
+                id=attempt.id,
+                student_id=attempt.user.id,
+                student_name=attempt.user.name,
+                student_email=attempt.user.email,
+                score=attempt.score,
+                total_questions=attempt.total_questions,
+                correct_count=attempt.correct_count,
+                duration_seconds=attempt.duration_seconds,
+                submitted_at=attempt.submitted_at,
+            )
+            for attempt in mock_exam_attempts
+        ],
     )
 
 
