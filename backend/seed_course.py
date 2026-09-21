@@ -621,6 +621,9 @@ def ensure_mock_exam_columns() -> None:
             text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_feedback TEXT")
         )
         connection.execute(
+            text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_contribution DOUBLE PRECISION NOT NULL DEFAULT 0")
+        )
+        connection.execute(
             text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_part_scores TEXT")
         )
         connection.execute(
@@ -631,6 +634,16 @@ def ensure_mock_exam_columns() -> None:
         )
         connection.execute(
             text("ALTER TABLE mock_exam_attempts ADD COLUMN IF NOT EXISTS frq_reviewed_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL")
+        )
+
+        # one-time backfill: attempts graded before frq_contribution existed
+        # get their frq contribution recomputed from frq_score
+        connection.execute(
+            text(
+                "UPDATE mock_exam_attempts "
+                "SET frq_contribution = round(((frq_score / 14.0) * 30.0)::numeric, 2)::double precision "
+                "WHERE frq_score IS NOT NULL AND frq_contribution = 0"
+            )
         )
 
 
