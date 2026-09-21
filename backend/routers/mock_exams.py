@@ -488,6 +488,7 @@ def read_attempts_for_grading(
             frq_feedback=attempt.frq_feedback,
             frq_part_scores=attempt.frq_part_scores,
             frq_reviewed=attempt.frq_reviewed,
+            frq_contribution=attempt.frq_contribution,
             submitted_at=attempt.submitted_at,
         )
         for attempt in attempts
@@ -508,8 +509,35 @@ def grade_attempt_frq(
             detail="exam attempt not found",
         )
 
-    if grading.frq_score is not None:
-        attempt.frq_score = max(0.0, min(grading.frq_score, 14.0))
+    if grading.frq_score_set:
+        if grading.frq_score is not None:
+            attempt.frq_score = grading.frq_score
+        else:
+            # frq_score_set without a score means: clear the frq grade entirely
+            attempt.frq_score = None
+        # replace the stored frq contribution instead of adding on top of it,
+        # so re-grading, editing, or clearing never compounds the total
+        frq_percentage = (
+            (attempt.frq_score / 14.0) * EXAM_FRQ_WEIGHT
+            if attempt.frq_score is not None
+            else 0.0
+        )
+        new_contribution = round(frq_percentage, 2)
+        attempt.score = round(
+            attempt.score - attempt.frq_contribution + new_contribution, 2
+        )
+        attempt.frq_contribution = new_contribution
+    elif grading.frq_score is not None:
+        # score without frq_score_set: treat it as a final save (legacy clients)
+        if attempt.frq_score != grading.frq_score:
+            attempt.frq_score = grading.frq_score
+            frq_percentage = (grading.frq_score / 14.0) * EXAM_FRQ_WEIGHT
+            new_contribution = round(frq_percentage, 2)
+            attempt.score = round(
+                attempt.score - attempt.frq_contribution + new_contribution, 2
+            )
+            attempt.frq_contribution = new_contribution
+
     if grading.frq_part_scores is not None:
         attempt.frq_part_scores = grading.frq_part_scores
     if grading.frq_feedback is not None:
@@ -518,15 +546,6 @@ def grade_attempt_frq(
     attempt.frq_reviewed = grading.frq_reviewed
     attempt.frq_reviewed_at = datetime.utcnow() if grading.frq_reviewed else None
     attempt.frq_reviewed_by_id = current_user.id if grading.frq_reviewed else None
-
-    if attempt.frq_score is not None:
-        frq_percentage = (attempt.frq_score / 14.0) * EXAM_FRQ_WEIGHT
-        if attempt.frq_response is not None:
-            # submitted with frq: mcq score is already on the 70% scale
-            attempt.score = round(attempt.score + frq_percentage, 2)
-        else:
-            # defensive: attempt without an frq response is capped at 100
-            attempt.score = round(min(100.0, attempt.score + frq_percentage), 2)
 
     db.commit()
     db.refresh(attempt)
@@ -547,5 +566,6 @@ def grade_attempt_frq(
         frq_feedback=attempt.frq_feedback,
         frq_part_scores=attempt.frq_part_scores,
         frq_reviewed=attempt.frq_reviewed,
+        frq_contribution=attempt.frq_contribution,
         submitted_at=attempt.submitted_at,
     )

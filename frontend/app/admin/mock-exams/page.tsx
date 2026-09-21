@@ -184,6 +184,7 @@ function GradingCard({
         {
           frq_reviewed: reviewed,
           frq_score: hasValidScore ? scoreValue : undefined,
+          frq_score_set: hasValidScore,
           frq_feedback: feedback.trim() ? feedback.trim() : undefined,
           frq_part_scores: JSON.stringify(capturePartScores()),
         },

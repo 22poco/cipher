@@ -353,6 +353,7 @@ class AdminMockExamAttemptRead(BaseModel):
     frq_feedback: str | None = None
     frq_part_scores: str | None = None
     frq_reviewed: bool = False
+    frq_contribution: float = 0.0
     submitted_at: datetime
 
 
@@ -435,6 +436,8 @@ class AdminMockExamGradingUpdate(BaseModel):
     frq_score: float | None = Field(default=None, ge=0, le=14)
     frq_part_scores: str | None = None
     frq_feedback: str | None = None
+    # true = the payload carries a final frq score; false = clear grading
+    frq_score_set: bool = False
 
 
 class MockExamAttemptRead(BaseModel):

@@ -271,6 +271,9 @@ class MockExamAttempt(Base):
     duration_seconds: Mapped[int | None] = mapped_column(Integer)
     frq_response: Mapped[str | None] = mapped_column(Text)
     frq_score: Mapped[float | None] = mapped_column(Float)
+    # points currently added to score by frq grading, so re-grading can
+    # replace the old contribution instead of compounding it
+    frq_contribution: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     frq_feedback: Mapped[str | None] = mapped_column(Text)
     frq_part_scores: Mapped[str | None] = mapped_column(Text)
     frq_reviewed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
