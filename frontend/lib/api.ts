@@ -252,6 +252,7 @@ export type MockExamAttempt = {
   frq_feedback: string | null;
   frq_part_scores: string | null;
   frq_reviewed: boolean;
+  frq_contribution?: number;
   submitted_at: string;
 };
 
@@ -500,6 +501,7 @@ export function updateAdminMockExamGrading(
     frq_score?: number | null;
     frq_part_scores?: string | null;
     frq_feedback?: string | null;
+    frq_score_set?: boolean;
   },
   token: string,
 ) {
