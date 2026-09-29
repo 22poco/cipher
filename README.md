@@ -12,9 +12,9 @@ it is built around five AP modules, short case-study prompts, multiple-choice ch
 
 ## capabilities
 
-students can register, log in, open AP-aligned modules, complete case-study assessments, submit quizzes, write pset responses, retake quizzes, revise responses, review saved answers, and track module progress.
+students can register, log in, open AP-aligned modules, complete case-study assessments, submit quizzes, write pset responses, retake quizzes, revise responses, review saved answers, track module progress, and take six full AP-style mock exams (one full-course exam and five unit exams) with timed sections, resumable attempts, and a device-security-analysis free-response question.
 
-teachers can review pset submissions with written feedback, inspect individual quiz attempts, check the class gradebook, and manage assessment content (modules, case studies, and quiz questions) on dedicated pages.
+teachers can review pset submissions with written feedback, inspect individual quiz attempts, grade mock exam free-response questions on the 14-point rubric, check the class gradebook, and manage assessment content (modules, case studies, and quiz questions) on dedicated pages.
 
 ## teacher area
 
@@ -81,9 +81,9 @@ open:
 
 ## status
 
-working: student auth and dashboard, five AP modules with case-study assessments, quiz scoring with retakes and saved answers, pset responses with teacher feedback, teacher grading dashboard, gradebook, and content tools.
+working: student auth and dashboard, five AP modules with case-study assessments, quiz scoring with retakes and saved answers, pset responses with teacher feedback, six AP-style mock exams with teacher free-response grading, teacher grading dashboard, gradebook, and content tools.
 
-in progress: mock exam flow (the last major feature) and a final AP CED-aligned content pass.
+in progress: a final AP CED-aligned content pass for case-study assessments.
 
 ## future work
 
