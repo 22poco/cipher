@@ -44,6 +44,8 @@ class LessonSummary(BaseModel):
     lesson_type: str
     order_index: int
     video_url: str | None = None
+    variant: str | None = None
+    points: int | None = None
 
 
 class LessonRead(LessonSummary):
@@ -301,6 +303,12 @@ class AdminPsetResponseRead(BaseModel):
     reviewed: bool
     reviewed_at: datetime | None = None
     feedback: str | None = None
+    # teacher-only material for grading; never shown to students
+    answer_key: str | None = None
+    answer_key_heading: str | None = None
+    rubric: str | None = None
+    points: int | None = None
+    metadata_text: str | None = None
 
 
 class AdminPsetReviewUpdate(BaseModel):

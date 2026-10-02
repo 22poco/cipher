@@ -25,6 +25,8 @@ export type LessonSummary = {
 
 export type Lesson = LessonSummary & {
   content: string | null;
+  variant: string | null;
+  points: number | null;
 };
 
 export type LessonType = "reading" | "video" | "case_study" | "code_activity";
@@ -152,6 +154,12 @@ export type AdminPsetResponse = {
   reviewed: boolean;
   reviewed_at: string | null;
   feedback: string | null;
+  // teacher-only material for grading
+  answer_key: string | null;
+  answer_key_heading: string | null;
+  rubric: string | null;
+  points: number | null;
+  metadata_text: string | null;
 };
 
 export type AdminQuizAttempt = QuizAttemptDetail & {

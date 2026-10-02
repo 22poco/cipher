@@ -17,7 +17,9 @@ def unit_lesson_count(db: Session, unit_id: int) -> int:
     return db.scalar(
         select(func.count(Lesson.id))
         .join(Lesson.module)
-        .where(Lesson.module.has(unit_id=unit_id))
+        .where(
+            Lesson.module.has(unit_id=unit_id, is_hidden=False),
+        )
     ) or 0
 
 
@@ -75,7 +77,9 @@ def read_my_progress(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    total_lessons = db.scalar(select(func.count(Lesson.id))) or 0
+    total_lessons = db.scalar(
+        select(func.count(Lesson.id)).join(Lesson.module).where(Lesson.module.has(is_hidden=False))
+    ) or 0
     lesson_progress = db.scalars(
         select(LessonProgress)
         .where(
@@ -100,7 +104,7 @@ def read_my_progress(
             .join(LessonProgress.lesson)
             .join(Lesson.module)
             .where(
-                Lesson.module.has(unit_id=unit_one.id),
+                Lesson.module.has(unit_id=unit_one.id, is_hidden=False),
                 LessonProgress.user_id == current_user.id,
                 LessonProgress.completed.is_(True),
             )
@@ -141,7 +145,7 @@ def read_unit_progress(
         .join(LessonProgress.lesson)
         .join(Lesson.module)
         .where(
-            Lesson.module.has(unit_id=unit_id),
+            Lesson.module.has(unit_id=unit_id, is_hidden=False),
             LessonProgress.user_id == current_user.id,
             LessonProgress.completed.is_(True),
         )

@@ -307,6 +307,7 @@ function PsetReviewCard({
           </p>
           <p className="mt-1 text-xs text-slate-500">
             submitted {formatDate(response.submitted_at)}
+            {response.points !== null ? ` / ${response.points} points` : ""}
           </p>
         </div>
         <button
@@ -324,7 +325,7 @@ function PsetReviewCard({
       </div>
       <details className="mt-3">
         <summary className="cursor-pointer text-sm font-semibold text-slate-700">
-          view response
+          view response &amp; grading material
         </summary>
         <p className="mt-3 whitespace-pre-wrap rounded-md border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700">
           {response.response_text}
@@ -335,6 +336,35 @@ function PsetReviewCard({
             <p className="mt-1 text-sm leading-6 text-slate-700">{response.feedback}</p>
           </div>
         ) : null}
+        {response.rubric || response.answer_key ? (
+          <div className="mt-3 grid gap-3">
+            {response.rubric ? (
+              <details className="rounded-md border border-slate-200 bg-white p-3">
+                <summary className="cursor-pointer text-xs font-semibold uppercase text-slate-500">
+                  rubric ({response.points ?? "?"} points)
+                </summary>
+                <div className="mt-2">
+                  <MarkdownView text={response.rubric} />
+                </div>
+              </details>
+            ) : null}
+            {response.answer_key ? (
+              <details className="rounded-md border border-slate-200 bg-white p-3">
+                <summary className="cursor-pointer text-xs font-semibold uppercase text-slate-500">
+                  answer key
+                </summary>
+                {response.answer_key_heading ? (
+                  <div className="mt-2">
+                    <MarkdownView text={response.answer_key_heading} />
+                  </div>
+                ) : null}
+                <div className="mt-2">
+                  <MarkdownView text={response.answer_key} />
+                </div>
+              </details>
+            ) : null}
+          </div>
+        ) : null}
       </details>
       {!response.reviewed ? (
         <FeedbackInput
@@ -343,6 +373,38 @@ function PsetReviewCard({
         />
       ) : null}
     </article>
+  );
+}
+
+function MarkdownView({ text }: { text: string }) {
+  return (
+    <div className="grid gap-2 text-sm leading-6 text-slate-700">
+      {text
+        .split(/\n{2,}/)
+        .map((block) => block.trim())
+        .filter(Boolean)
+        .map((block, index) =>
+          block.startsWith("### ") ? (
+            <p key={index} className="font-semibold text-slate-950">
+              {block.replace(/^###\s*/, "")}
+            </p>
+          ) : block.startsWith("## ") ? (
+            <p key={index} className="text-base font-semibold text-slate-950">
+              {block.replace(/^##\s*/, "")}
+            </p>
+          ) : block.split("\n").every((line) => /^[-*] /.test(line.trim())) ? (
+            <ul key={index} className="list-disc space-y-1 pl-5">
+              {block.split("\n").map((item, itemIndex) => (
+                <li key={itemIndex}>{item.trim().replace(/^[-*] /, "")}</li>
+              ))}
+            </ul>
+          ) : (
+            <p key={index} className="whitespace-pre-wrap">
+              {block}
+            </p>
+          ),
+        )}
+    </div>
   );
 }
 

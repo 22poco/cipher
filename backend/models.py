@@ -67,6 +67,9 @@ class Module(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     order_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    # hidden modules (e.g. exam bank) are internal storage and must never
+    # appear in student-facing course responses
+    is_hidden: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.now(),
@@ -95,6 +98,15 @@ class Lesson(Base):
     video_url: Mapped[str | None] = mapped_column(Text)
     lesson_type: Mapped[str] = mapped_column(String(50), nullable=False, default="reading")
     order_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    # case study fields imported from pak john's generated teacher guides
+    variant: Mapped[str | None] = mapped_column(String(10))
+    points: Mapped[int | None] = mapped_column(Integer)
+    # everything below is teacher-only material; never expose it in student schemas
+    answer_key: Mapped[str | None] = mapped_column(Text)
+    answer_key_heading: Mapped[str | None] = mapped_column(Text)
+    rubric: Mapped[str | None] = mapped_column(Text)
+    teaching_notes: Mapped[str | None] = mapped_column(Text)
+    metadata_text: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.now(),

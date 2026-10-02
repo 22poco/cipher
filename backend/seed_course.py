@@ -18,6 +18,7 @@ def exam_bank_module(unit_order_index: int) -> dict:
         "title": EXAM_BANK_MODULE_TITLE,
         "description": "internal ap exam bank questions. hidden from student course pages.",
         "order_index": 99,
+        "is_hidden": True,
         "lessons": [
             {
                 "title": f"exam bank set {unit_order_index}",
@@ -464,12 +465,14 @@ def upsert_module(db: Session, unit: Unit, module_data: dict) -> Module:
             title=module_data["title"],
             description=module_data["description"],
             order_index=module_data["order_index"],
+            is_hidden=module_data.get("is_hidden", False),
         )
         db.add(module)
         db.flush()
     else:
         module.title = module_data["title"]
         module.description = module_data["description"]
+        module.is_hidden = module_data.get("is_hidden", False)
 
     return module
 
@@ -489,7 +492,9 @@ def upsert_lesson(db: Session, module: Module, lesson_data: dict) -> Lesson:
         lesson = Lesson(module_id=module.id, **lesson_values)
         db.add(lesson)
         db.flush()
-    else:
+    elif lesson.variant is None:
+        # imported case study lessons (variant set) own their content; seed
+        # must never overwrite them or wipe their teacher-only columns
         lesson.title = lesson_values["title"]
         lesson.content = lesson_values["content"]
         lesson.video_url = lesson_values["video_url"]
@@ -585,6 +590,8 @@ def remove_stale_seed_content(
         select(Lesson).where(
             Lesson.module_id == module.id,
             Lesson.order_index.not_in(wanted_lesson_orders),
+            # imported variant lessons (e.g. variant b makeups) are not seed-owned
+            Lesson.variant.is_(None),
         )
     )
     for lesson in stale_lessons:
