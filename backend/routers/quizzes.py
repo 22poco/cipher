@@ -52,7 +52,7 @@ def read_lesson_quiz(
 
     lesson = db.get(Lesson, lesson_id)
 
-    if lesson is None:
+    if lesson is None or lesson.module.is_hidden:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="lesson not found",
@@ -82,7 +82,7 @@ def read_lesson_quiz_attempts(
 ):
     quiz = db.scalar(select(Quiz).where(Quiz.lesson_id == lesson_id))
 
-    if quiz is None:
+    if quiz is None or quiz.lesson.module.is_hidden:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="quiz not found",
@@ -140,7 +140,7 @@ def submit_quiz(
 ):
     quiz = get_quiz_with_questions(db, quiz_id)
 
-    if not quiz.questions:
+    if not quiz.questions or quiz.lesson.module.is_hidden:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="quiz has no questions",

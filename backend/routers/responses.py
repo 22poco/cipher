@@ -44,7 +44,7 @@ def submit_response(
 ):
     lesson = db.get(Lesson, lesson_id)
 
-    if lesson is None:
+    if lesson is None or lesson.module.is_hidden:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="assessment not found",

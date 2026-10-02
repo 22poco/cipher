@@ -11,6 +11,13 @@ from ..schemas import LessonRead, ModuleRead, UnitRead, UnitSummary
 router = APIRouter(prefix="/courses", tags=["courses"])
 
 
+# student course responses must never include internal modules (exam bank,
+# teacher-only storage). filtering is done in the database so hidden content
+# is not even loaded.
+def visible_module_filter():
+    return Module.is_hidden.is_(False)
+
+
 @router.get("/units", response_model=list[UnitSummary])
 def list_units(
     db: Session = Depends(get_db),
@@ -20,7 +27,11 @@ def list_units(
 
     statement = (
         select(Unit)
-        .options(selectinload(Unit.modules).selectinload(Module.lessons))
+        .options(
+            selectinload(Unit.modules.and_(visible_module_filter())).selectinload(
+                Module.lessons
+            )
+        )
         .order_by(Unit.order_index)
     )
 
@@ -38,7 +49,11 @@ def read_unit(
     statement = (
         select(Unit)
         .where(Unit.id == unit_id)
-        .options(selectinload(Unit.modules).selectinload(Module.lessons))
+        .options(
+            selectinload(Unit.modules.and_(visible_module_filter())).selectinload(
+                Module.lessons
+            )
+        )
     )
     unit = db.scalar(statement)
 
@@ -61,7 +76,7 @@ def read_module(
 
     statement = (
         select(Module)
-        .where(Module.id == module_id)
+        .where(Module.id == module_id, visible_module_filter())
         .options(selectinload(Module.lessons))
     )
     module = db.scalar(statement)
@@ -85,7 +100,7 @@ def read_lesson(
 
     lesson = db.get(Lesson, lesson_id)
 
-    if lesson is None:
+    if lesson is None or lesson.module.is_hidden:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="lesson not found",

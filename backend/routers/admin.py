@@ -166,6 +166,11 @@ def pset_response_read(response: CaseStudyResponse) -> AdminPsetResponseRead:
         reviewed=response.reviewed,
         reviewed_at=response.reviewed_at,
         feedback=response.feedback,
+        answer_key=lesson.answer_key,
+        answer_key_heading=lesson.answer_key_heading,
+        rubric=lesson.rubric,
+        points=lesson.points,
+        metadata_text=lesson.metadata_text,
     )
 
 
@@ -210,7 +215,9 @@ def quiz_attempt_read(attempt: QuizAttempt) -> AdminQuizAttemptRead:
 
 
 def review_dashboard(db: Session) -> AdminReviewDashboard:
-    total_assessments = db.scalar(select(func.count(Lesson.id))) or 0
+    total_assessments = db.scalar(
+        select(func.count(Lesson.id)).join(Lesson.module).where(Module.is_hidden.is_(False))
+    ) or 0
     students = db.scalars(select(User).where(User.role == "student").order_by(User.name)).all()
     pset_responses = db.scalars(
         select(CaseStudyResponse)
