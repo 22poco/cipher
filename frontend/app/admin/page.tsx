@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { ProtectedPage } from "../components/protected-page";
 import { formatDate } from "./admin-ui";
@@ -376,6 +376,37 @@ function PsetReviewCard({
   );
 }
 
+function renderInline(text: string): ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  const pattern = /\*\*([^*]+)\*\*|(?<!\w)_([^_\n]+)_(?!\w)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+    if (match[1] !== undefined) {
+      nodes.push(
+        <strong key={`b${key++}`} className="font-semibold text-slate-950">
+          {match[1]}
+        </strong>,
+      );
+    } else if (match[2] !== undefined) {
+      nodes.push(
+        <em key={`i${key++}`} className="italic">
+          {match[2]}
+        </em>,
+      );
+    }
+    lastIndex = pattern.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+  return nodes;
+}
+
 function MarkdownView({ text }: { text: string }) {
   return (
     <div className="grid gap-2 text-sm leading-6 text-slate-700">
@@ -386,21 +417,21 @@ function MarkdownView({ text }: { text: string }) {
         .map((block, index) =>
           block.startsWith("### ") ? (
             <p key={index} className="font-semibold text-slate-950">
-              {block.replace(/^###\s*/, "")}
+              {renderInline(block.replace(/^###\s*/, ""))}
             </p>
           ) : block.startsWith("## ") ? (
             <p key={index} className="text-base font-semibold text-slate-950">
-              {block.replace(/^##\s*/, "")}
+              {renderInline(block.replace(/^##\s*/, ""))}
             </p>
           ) : block.split("\n").every((line) => /^[-*] /.test(line.trim())) ? (
             <ul key={index} className="list-disc space-y-1 pl-5">
               {block.split("\n").map((item, itemIndex) => (
-                <li key={itemIndex}>{item.trim().replace(/^[-*] /, "")}</li>
+                <li key={itemIndex}>{renderInline(item.trim().replace(/^[-*] /, ""))}</li>
               ))}
             </ul>
           ) : (
             <p key={index} className="whitespace-pre-wrap">
-              {block}
+              {renderInline(block)}
             </p>
           ),
         )}
