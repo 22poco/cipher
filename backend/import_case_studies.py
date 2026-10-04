@@ -3,16 +3,18 @@
 usage:
     .venv/Scripts/python -m backend.import_case_studies --dry-run
     .venv/Scripts/python -m backend.import_case_studies
-    .venv/Scripts/python -m backend.import_case_studies --dir "C:/Users/ADVAN/Downloads/cipher content" --variant B
+    .venv/Scripts/python -m backend.import_case_studies --dir "C:/Users/ADVAN/Downloads/cipher content"
 
 each file like 1-2-suspicious-website-logins-variant-a-teacher.md becomes one
 case_study lesson titled "<code> <topic>" in the unit's
 "topic assessments" module, matching the unit by order_index.
 
-- variant a claims the existing placeholder lesson for that topic (keeping its
-  check quiz and any student responses already attached to it) and is the one
-  assessment shipped for that topic. variant b (generator alternates meant only
-  to give us a choice) is skipped unless --variant b is passed explicitly.
+- variant a is the graded assessment for its topic: it claims the existing
+  placeholder lesson (keeping its check quiz and any student responses already
+  attached to it), so every topic ships exactly one graded lesson.
+- every other variant (b, c, ...) is imported as an ungraded practice case
+  attached to that graded lesson. practice cases are not lessons, so they never
+  appear in the module list, progress, the gradebook, or the review queue.
 - student lesson content holds only scenario/evidence/questions; the answer
   key, rubric, teacher notes, and metadata go into teacher-only columns that
   the student API never exposes.
@@ -28,7 +30,7 @@ from pathlib import Path
 from sqlalchemy import select, text
 
 from .database import SessionLocal, engine
-from .models import Lesson, Module, Unit
+from .models import CaseStudyPractice, Lesson, Module, Unit
 from .seed_course import ASSESSMENT_MODULE_TITLE
 
 VARIANT_SLUG_RE = re.compile(r"-variant-(?P<variant>[ab])-teacher\.md$", re.IGNORECASE)
@@ -170,7 +172,42 @@ def parse_path(path: Path) -> tuple[str, str, str] | None:
     )
 
 
-def import_file(db, path: Path, dry_run: bool, allow_makeup: bool = False) -> str:
+def upsert_practice(
+    db,
+    lesson: Lesson,
+    parsed: dict,
+    variant_letter: str,
+    title: str,
+) -> tuple[CaseStudyPractice, str]:
+    """attach a variant b/c/d guide to the topic's graded lesson as practice.
+
+    this never creates a lesson, so the module keeps exactly one graded
+    assessment per topic and practice work never reaches progress or the
+    gradebook.
+    """
+    practice = db.scalar(
+        select(CaseStudyPractice).where(
+            CaseStudyPractice.lesson_id == lesson.id,
+            CaseStudyPractice.variant == variant_letter,
+        )
+    )
+    action = "update practice" if practice is not None else "create practice"
+
+    if practice is None:
+        practice = CaseStudyPractice(lesson_id=lesson.id, variant=variant_letter)
+
+    practice.title = title
+    practice.content = lowercase_markdown(parsed["student_content"])
+    practice.points = parsed["points"]
+    practice.answer_key = lowercase_markdown(parsed["answer_key"])
+    practice.answer_key_heading = lowercase_markdown(parsed["answer_key_heading"])
+    practice.rubric = lowercase_markdown(parsed["rubric"])
+    practice.metadata_text = lowercase_markdown(parsed["metadata"])
+
+    return practice, action
+
+
+def import_file(db, path: Path, dry_run: bool) -> str:
     parsed_path = parse_path(path)
     if parsed_path is None:
         return f"skip (extra/unrecognized name): {path.name}"
@@ -183,11 +220,6 @@ def import_file(db, path: Path, dry_run: bool, allow_makeup: bool = False) -> st
     variant_letter = parsed["variant_letter"]
     if variant != variant_letter:
         return f"skip (variant mismatch, file says {variant_letter}): {path.name}"
-
-    # only one assessment ships per topic; variant b alternates exist purely to
-    # give us a choice during generation, so never re-create them by default
-    if variant_letter == "B" and not allow_makeup:
-        return f"skip (variant b makeup, one assessment per topic): {path.name}"
 
     unit = db.scalar(select(Unit).where(Unit.order_index == int(unit_number)))
     if unit is None:
@@ -209,51 +241,70 @@ def import_file(db, path: Path, dry_run: bool, allow_makeup: bool = False) -> st
     topic_lower = parsed["title_topic"].lower()
     if topic_lower.startswith(topic_code):
         topic_lower = topic_lower[len(topic_code) :].lstrip()
-    lesson_title = f"{topic_code} {topic_lower}"
-    student_content = lowercase_markdown(parsed["student_content"])
-    makeup_order = topic_number * 10
+    title = f"{topic_code} {topic_lower}"
+    question_count = parsed["answer_key_heading"].count("**Q")
 
-    lesson = None
-    action = "create"
-    if variant_letter == "A":
-        # claim the seeded placeholder lesson for this topic so its check quiz
-        # and any existing student responses survive the upgrade
+    # variant a is the graded assessment for the topic; every other variant is
+    # an ungraded practice case hanging off it
+    if variant_letter != "A":
         lesson = db.scalar(
             select(Lesson).where(
                 Lesson.module_id == module.id,
                 Lesson.order_index == topic_number,
-                Lesson.variant.is_(None),
+                Lesson.variant == "A",
             )
         )
-        if lesson is not None:
-            action = "upgrade placeholder"
+        if lesson is None:
+            return f"error (no graded lesson for {topic_code}): {path.name}"
+
+        practice, action = upsert_practice(db, lesson, parsed, variant_letter, title)
+
+        if not dry_run:
+            db.add(practice)
+            db.flush()
+
+        return (
+            f"{action}: unit {unit_number} :: practice {variant_letter.lower()} "
+            f"under '{lesson.title}' ({parsed['points']} pts, {question_count} questions)"
+        )
+
+    # claim the seeded placeholder lesson for this topic so its check quiz and
+    # any existing student responses survive the upgrade
+    lesson = db.scalar(
+        select(Lesson).where(
+            Lesson.module_id == module.id,
+            Lesson.order_index == topic_number,
+            Lesson.variant.is_(None),
+        )
+    )
+    action = "upgrade placeholder"
 
     if lesson is None:
         lesson = db.scalar(
             select(Lesson).where(
                 Lesson.module_id == module.id,
-                Lesson.variant == variant_letter,
+                Lesson.variant == "A",
                 Lesson.title.like(f"{topic_code}%"),
             )
         )
-        if lesson is not None:
-            action = "update"
+        action = "update"
 
     if lesson is None:
         lesson = Lesson(
             module_id=module.id,
             lesson_type="case_study",
-            order_index=makeup_order,
+            order_index=topic_number,
         )
+        action = "create"
 
-    lesson.title = lesson_title
-    lesson.content = student_content
+    lesson.title = title
+    lesson.content = lowercase_markdown(parsed["student_content"])
     lesson.video_url = None
     lesson.lesson_type = "case_study"
-    lesson.variant = variant_letter
+    lesson.variant = "A"
     lesson.points = parsed["points"]
-    if variant_letter == "B" or lesson.order_index not in (topic_number, makeup_order):
-        lesson.order_index = makeup_order
+    if lesson.order_index != topic_number:
+        lesson.order_index = topic_number
     lesson.answer_key = lowercase_markdown(parsed["answer_key"])
     lesson.answer_key_heading = lowercase_markdown(parsed["answer_key_heading"])
     lesson.rubric = lowercase_markdown(parsed["rubric"])
@@ -264,14 +315,17 @@ def import_file(db, path: Path, dry_run: bool, allow_makeup: bool = False) -> st
         db.add(lesson)
         db.flush()
 
-    question_count = parsed["answer_key_heading"].count("**Q")
     return (
-        f"{action}: unit {unit_number} '{module.title}' :: {lesson_title} "
+        f"{action}: unit {unit_number} '{module.title}' :: {title} "
         f"({parsed['points']} pts, {question_count} questions, order {lesson.order_index})"
     )
 
 
 def ensure_case_study_columns() -> None:
+    # practice cases are a newer table; create it here too so the importer works
+    # against a database that has not been re-seeded yet
+    CaseStudyPractice.__table__.create(bind=engine, checkfirst=True)
+
     with engine.begin() as connection:
         connection.execute(
             text("ALTER TABLE lessons ADD COLUMN IF NOT EXISTS variant VARCHAR(10)")
@@ -317,27 +371,17 @@ def main() -> int:
         help="folder containing the teacher-guide markdown files",
     )
     parser.add_argument(
-        "--variant",
-        choices=["A", "B"],
-        help="only import one variant (b = make-up lessons, off by default)",
-    )
-    parser.add_argument(
         "--dry-run", action="store_true", help="parse and report without writing"
     )
     args = parser.parse_args()
 
     folder = Path(args.dir)
     files = sorted(folder.glob("*.md"))
-    if args.variant:
-        files = [
-            f for f in files if f"-variant-{args.variant.lower()}-" in f.name.lower()
-        ]
 
     if not files:
         print(f"no markdown files found in {folder}")
         return 1
 
-    allow_makeup = args.variant == "B"
     label = "DRY RUN - " if args.dry_run else ""
     print(f"{label}importing {len(files)} file(s) from {folder}")
     ensure_case_study_columns()
@@ -346,7 +390,7 @@ def main() -> int:
     with SessionLocal() as db:
         for path in files:
             try:
-                report = import_file(db, path, args.dry_run, allow_makeup)
+                report = import_file(db, path, args.dry_run)
             except Exception as caught:  # noqa: BLE001 - report and keep going
                 report = f"error ({caught}): {path.name}"
 

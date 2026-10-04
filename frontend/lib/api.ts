@@ -140,6 +140,15 @@ export type CaseStudyResponse = {
   feedback: string | null;
 };
 
+export type PracticeCase = {
+  id: number;
+  lesson_id: number;
+  variant: string;
+  title: string;
+  content: string;
+  points: number | null;
+};
+
 export type AdminPsetResponse = {
   id: number;
   student_id: number;
@@ -421,6 +430,14 @@ export function submitCaseStudyResponse(
   return apiRequest<CaseStudyResponse>(
     `/responses/lessons/${lessonId}`,
     { method: "POST", body: JSON.stringify(payload) },
+    token,
+  );
+}
+
+export function fetchPracticeCases(lessonId: string, token: string) {
+  return apiRequest<PracticeCase[]>(
+    `/practice-cases/lessons/${lessonId}`,
+    {},
     token,
   );
 }

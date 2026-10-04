@@ -13,11 +13,13 @@ import {
   fetchLessonQuiz,
   fetchLessonQuizAttempts,
   fetchMyProgress,
+  fetchPracticeCases,
   fetchUnits,
   submitCaseStudyResponse,
   type CaseStudyResponse,
   submitQuiz,
   type Lesson,
+  type PracticeCase,
   type ProgressSummary,
   type Quiz,
   type QuizAttemptDetail,
@@ -224,19 +226,28 @@ export default function LessonDetailPage() {
   const lessonId = params.lessonId;
   const loadAssessment = useCallback(
     async (token: string) => {
-      const [lesson, units] = await Promise.all([
+      const [lesson, units, practiceCases] = await Promise.all([
         fetchLesson(lessonId, token),
         fetchUnits(token),
+        fetchPracticeCases(lessonId, token).catch(() => [] as PracticeCase[]),
       ]);
 
-      return { lesson, units };
+      return { lesson, units, practiceCases };
     },
     [lessonId],
   );
 
   return (
     <CourseLoader load={loadAssessment}>
-      {({ lesson, units }: { lesson: Lesson; units: Unit[] }) => {
+      {({
+        lesson,
+        units,
+        practiceCases,
+      }: {
+        lesson: Lesson;
+        units: Unit[];
+        practiceCases: PracticeCase[];
+      }) => {
         const assessmentPath = findAssessmentPath(units, lesson.id);
 
         return (
@@ -277,6 +288,7 @@ export default function LessonDetailPage() {
           </article>
 
           <AssessmentWorkPanel lesson={lesson} units={units} />
+          <PracticeCasesSection cases={practiceCases} />
         </main>
         );
       }}
@@ -949,5 +961,128 @@ function QuizQuestionCard({
         })}
       </div>
     </fieldset>
+  );
+}
+
+const practiceDraftKey = (practiceCaseId: number) =>
+  `cipher_practice_draft_${practiceCaseId}`;
+
+function PracticeCasesSection({ cases }: { cases: PracticeCase[] }) {
+  const [openCaseIds, setOpenCaseIds] = useState<number[]>([]);
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
+
+  // practice work is ungraded, so drafts stay in this browser rather than
+  // becoming a response a teacher has to review
+  useEffect(() => {
+    const saved: Record<number, string> = {};
+
+    for (const practiceCase of cases) {
+      const draft = window.localStorage.getItem(practiceDraftKey(practiceCase.id));
+
+      if (draft) {
+        saved[practiceCase.id] = draft;
+      }
+    }
+
+    setDrafts(saved);
+  }, [cases]);
+
+  if (!cases.length) {
+    return null;
+  }
+
+  const toggleCase = (practiceCaseId: number) => {
+    setOpenCaseIds((current) =>
+      current.includes(practiceCaseId)
+        ? current.filter((id) => id !== practiceCaseId)
+        : [...current, practiceCaseId],
+    );
+  };
+
+  const saveDraft = (practiceCaseId: number, text: string) => {
+    setDrafts((current) => ({ ...current, [practiceCaseId]: text }));
+    window.localStorage.setItem(practiceDraftKey(practiceCaseId), text);
+  };
+
+  return (
+    <section className="rounded-md border border-slate-200 bg-white p-5 sm:p-7">
+      <div className="border-b border-slate-100 pb-5">
+        <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+          practice
+        </span>
+        <h2 className="mt-4 text-2xl font-semibold tracking-normal text-slate-950">
+          more case studies for this topic
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+          extra case studies on the same topic, for as many reps as you want. these are not
+          graded and nothing here is sent to your teacher, so use them to drill the skill
+          before or after the graded assessment. your draft is saved in this browser only.
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-4">
+        {cases.map((practiceCase) => {
+          const isOpen = openCaseIds.includes(practiceCase.id);
+
+          return (
+            <div key={practiceCase.id} className="rounded-md border border-slate-200">
+              <button
+                type="button"
+                onClick={() => toggleCase(practiceCase.id)}
+                aria-expanded={isOpen}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+              >
+                <span>
+                  <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    practice case {practiceCase.variant.toLowerCase()}
+                    {drafts[practiceCase.id] ? " · draft saved" : ""}
+                  </span>
+                  <span className="mt-1 block text-sm font-semibold text-slate-950">
+                    {practiceCase.title}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-3">
+                  {practiceCase.points ? (
+                    <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                      {practiceCase.points} points
+                    </span>
+                  ) : null}
+                  <span className="text-xs font-semibold text-slate-500">
+                    {isOpen ? "hide" : "open"}
+                  </span>
+                </span>
+              </button>
+
+              {isOpen ? (
+                <div className="border-t border-slate-100 px-4 py-4">
+                  <div className="grid gap-5">{renderContent(practiceCase.content)}</div>
+
+                  <div className="mt-5 grid gap-2">
+                    <label
+                      htmlFor={`practice-response-${practiceCase.id}`}
+                      className="text-sm font-semibold text-slate-950"
+                    >
+                      practice response
+                    </label>
+                    <textarea
+                      id={`practice-response-${practiceCase.id}`}
+                      value={drafts[practiceCase.id] ?? ""}
+                      onChange={(event) => saveDraft(practiceCase.id, event.target.value)}
+                      rows={8}
+                      className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                      placeholder="answer the questions in this case study. this draft stays in this browser."
+                    />
+                    <p className="text-xs text-slate-500">
+                      draft only, with no submission step. ask your teacher for feedback on
+                      practice work if you want it graded.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
