@@ -289,6 +289,23 @@ class CaseStudyResponseRead(BaseModel):
     feedback: str | None = None
 
 
+class CaseStudyPracticeRead(BaseModel):
+    """student-safe practice case: stimulus and questions only.
+
+    answer key, rubric, and metadata are deliberately absent so a practice case
+    cannot be used to read the graded material ahead of writing it.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    lesson_id: int
+    variant: str
+    title: str
+    content: str
+    points: int | None = None
+
+
 class AdminPsetResponseRead(BaseModel):
     id: int
     student_id: int

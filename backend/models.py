@@ -402,3 +402,41 @@ class CaseStudyResponse(Base):
     user: Mapped[User] = relationship(foreign_keys=[user_id])
     lesson: Mapped[Lesson] = relationship()
     reviewed_by: Mapped[User | None] = relationship(foreign_keys=[reviewed_by_id])
+
+
+class CaseStudyPractice(Base):
+    """extra case study for a topic, hanging off the graded lesson.
+
+    practice cases are deliberately not lessons: they never show up in the
+    module list, progress, the gradebook, or the teacher review queue, so a
+    topic keeps exactly one graded assessment while students can still work
+    through more stimulus material.
+    """
+
+    __tablename__ = "case_study_practices"
+    __table_args__ = (UniqueConstraint("lesson_id", "variant"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    lesson_id: Mapped[int] = mapped_column(
+        ForeignKey("lessons.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # which generator alternates this came from ("B", "C", ...)
+    variant: Mapped[str] = mapped_column(String(10), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    points: Mapped[int | None] = mapped_column(Integer)
+    # teacher-only material, same rule as lessons: the student route never
+    # returns an answer key or a rubric
+    answer_key: Mapped[str | None] = mapped_column(Text)
+    answer_key_heading: Mapped[str | None] = mapped_column(Text)
+    rubric: Mapped[str | None] = mapped_column(Text)
+    metadata_text: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    lesson: Mapped[Lesson] = relationship()
