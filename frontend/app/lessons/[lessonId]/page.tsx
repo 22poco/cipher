@@ -257,17 +257,9 @@ export default function LessonDetailPage() {
                 {lesson.title}
               </h1>
               {lesson.points ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-                    {lesson.points} points
-                  </span>
-                  {lesson.variant ? (
-                    <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-                      variant {lesson.variant.toLowerCase()}
-                      {lesson.variant === "B" ? " (make-up)" : ""}
-                    </span>
-                  ) : null}
-                </div>
+                <span className="mt-3 inline-block rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                  {lesson.points} points
+                </span>
               ) : null}
               {lesson.video_url ? (
                 <a
@@ -457,16 +449,15 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
       );
       setWrittenResponse(response);
       setIsEditingResponse(false);
-      // assessments without a quiz (e.g. variant b makeups) complete on the
-      // written response alone
+      // assessments without a quiz complete on the written response alone
       if (!quiz || hasQuizAttempt || result) {
         await completeLesson(lessonId, token);
         setProgress(await fetchMyProgress(token));
       }
       setMessage(
         !quiz || hasQuizAttempt || result
-          ? "pset response submitted. assessment is now complete."
-          : "pset response submitted. submit the quiz to complete this assessment.",
+          ? "written response submitted. assessment is now complete."
+          : "written response submitted. submit the quiz to complete this assessment.",
       );
     } catch (caughtError) {
       setPsetError(
@@ -510,9 +501,11 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         },
         token,
       );
+      // keep the result so per-question correct/incorrect highlighting stays
+      // visible; retaking the quiz clears it
       setResult(quizResult);
       setIsRetakingQuiz(false);
-      setShowQuizReview(true);
+      setShowQuizReview(false);
       if (writtenResponse) {
         await completeLesson(lessonId, token);
       }
@@ -526,12 +519,10 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           throw caughtError;
         }),
       );
-      setSelectedAnswers({});
-      setResult(null);
       setMessage(
         writtenResponse
           ? "quiz submitted. assessment is now complete."
-          : "quiz submitted. submit the pset response to complete this assessment.",
+          : "quiz submitted. submit your written response to complete this assessment.",
       );
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "could not submit quiz");
@@ -571,20 +562,36 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             </h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">
               {isComplete
-                ? "your quiz attempt and written response are saved."
-                : "submit both required parts to complete this case study."}
+                ? quiz
+                  ? "quiz and written response are both saved."
+                  : "your written response is saved."
+                : quiz
+                  ? "complete both parts below: the written response and the quiz attempt."
+                  : "submit your written response below to complete this case study."}
             </p>
           </div>
           <div className="grid min-w-44 gap-2 text-sm">
             <span className="flex items-center justify-between gap-4 rounded-md bg-white px-3 py-2 text-slate-700">
               quiz
-              <strong className="font-semibold text-slate-950">
-                {hasQuizAttempt || result ? "submitted" : "pending"}
+              <strong
+                className={`font-semibold ${
+                  !quiz
+                    ? "text-slate-500"
+                    : hasQuizAttempt || result
+                      ? "text-emerald-700"
+                      : "text-slate-950"
+                }`}
+              >
+                {!quiz ? "n/a" : hasQuizAttempt || result ? "submitted" : "pending"}
               </strong>
             </span>
             <span className="flex items-center justify-between gap-4 rounded-md bg-white px-3 py-2 text-slate-700">
-              pset
-              <strong className="font-semibold text-slate-950">
+              written response
+              <strong
+                className={`font-semibold ${
+                  writtenResponse ? "text-emerald-700" : "text-slate-950"
+                }`}
+              >
                 {writtenResponse ? "submitted" : "pending"}
               </strong>
             </span>
@@ -603,6 +610,122 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           {error}
         </div>
       ) : null}
+
+      <form onSubmit={handleSubmitResponse} className="grid gap-4 border-t border-slate-100 pt-5">
+        <div>
+          <p className="text-sm font-semibold text-emerald-700">written response</p>
+          <h2 className="mt-1 text-xl font-semibold text-slate-950">
+            written evidence response
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            answer the questions in the case study above. cite scenario evidence
+            and explain your reasoning like an AP free-response practice answer.
+          </p>
+        </div>
+
+        {writtenResponse && !isEditingResponse ? (
+          <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-950">
+                  submitted for teacher review
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  your latest written response is saved. view it or revise it
+                  before teacher review.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPsetReview(!showPsetReview)}
+                className="min-h-10 w-fit min-w-36 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+              >
+                {showPsetReview ? "hide response" : "view response"}
+              </button>
+            </div>
+            {showPsetReview ? (
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-xs font-semibold uppercase text-emerald-700">
+                  your submitted response
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-800">
+                  {writtenResponse.response_text}
+                </p>
+                {writtenResponse.feedback ? (
+                  <div className="mt-3 rounded-md border border-slate-200 bg-white p-3">
+                    <p className="text-xs font-semibold uppercase text-slate-500">teacher feedback</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-700">{writtenResponse.feedback}</p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditingResponse(true);
+                  setMessage("");
+                  setError("");
+                  setPsetError("");
+                }}
+                className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                revise response
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {psetError ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {psetError}
+              </div>
+            ) : null}
+            <textarea
+              value={responseText}
+              onChange={(event) => setResponseText(event.target.value)}
+              onKeyDown={(event) => {
+                if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+              rows={6}
+              className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              placeholder="write your response here... (ctrl+enter to submit)"
+            />
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {writtenResponse ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResponseText(writtenResponse.response_text);
+                    setIsEditingResponse(false);
+                    setMessage("");
+                    setError("");
+                    setPsetError("");
+                  }}
+                  className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+                >
+                  cancel
+                </button>
+              ) : null}
+              <button
+                type="submit"
+                disabled={isSubmitting || (Boolean(writtenResponse) && !hasResponseChanged)}
+                className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {isSubmitting
+                  ? "submitting..."
+                  : writtenResponse
+                    ? "submit revision"
+                    : "submit response"}
+              </button>
+            </div>
+          </>
+        )}
+      </form>
 
       {quiz ? (
         <form onSubmit={handleSubmitQuiz} className="grid gap-5 border-t border-slate-100 pt-5">
@@ -662,20 +785,22 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                   )}
                 </div>
               ) : null}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRetakingQuiz(true);
-                  setSelectedAnswers({});
-                  setResult(null);
-                  setShowQuizReview(false);
-                  setMessage("");
-                  setError("");
-                }}
-                className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                retake quiz
-              </button>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRetakingQuiz(true);
+                    setSelectedAnswers({});
+                    setResult(null);
+                    setShowQuizReview(false);
+                    setMessage("");
+                    setError("");
+                  }}
+                  className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  retake quiz
+                </button>
+              </div>
             </div>
           ) : null}
 
@@ -706,6 +831,30 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
               <p className="text-sm font-semibold text-emerald-900">
                 score: {result.score}% ({result.correct_count}/{result.total_questions})
               </p>
+              <p className="text-sm leading-6 text-emerald-800">
+                {writtenResponse
+                  ? "quiz submitted. your written response is already saved, so this assessment is now complete."
+                  : "quiz submitted. submit your written response above to complete this assessment."}
+              </p>
+            </div>
+          ) : null}
+
+          {result ? (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRetakingQuiz(true);
+                  setSelectedAnswers({});
+                  setResult(null);
+                  setShowQuizReview(false);
+                  setMessage("");
+                  setError("");
+                }}
+                className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                retake quiz
+              </button>
             </div>
           ) : latestQuizScore === null || isRetakingQuiz ? (
             <button
@@ -722,120 +871,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           no quiz has been added to this assessment yet.
         </div>
       )}
-
-      <form onSubmit={handleSubmitResponse} className="grid gap-4 border-t border-slate-100 pt-5">
-        <div>
-          <p className="text-sm font-semibold text-emerald-700">pset response</p>
-          <h2 className="mt-1 text-xl font-semibold text-slate-950">
-            written evidence response
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            answer the pset prompt from the assessment above. cite scenario evidence
-            and explain your reasoning like an AP free-response practice answer.
-          </p>
-        </div>
-
-        {writtenResponse && !isEditingResponse ? (
-          <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-950">
-                  submitted for teacher review
-                </p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  your latest written response is saved. view it or revise it
-                  before teacher review.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPsetReview(!showPsetReview)}
-                className="min-h-10 w-fit min-w-36 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-              >
-                {showPsetReview ? "hide response" : "view response"}
-              </button>
-            </div>
-            {showPsetReview ? (
-              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4">
-                <p className="text-xs font-semibold uppercase text-emerald-700">
-                  your submitted response
-                </p>
-                <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-800">
-                  {writtenResponse.response_text}
-                </p>
-                {writtenResponse.feedback ? (
-                  <div className="mt-3 rounded-md border border-slate-200 bg-white p-3">
-                    <p className="text-xs font-semibold uppercase text-slate-500">teacher feedback</p>
-                    <p className="mt-1 text-sm leading-6 text-slate-700">{writtenResponse.feedback}</p>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => {
-                setIsEditingResponse(true);
-                setMessage("");
-                setError("");
-                setPsetError("");
-              }}
-              className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              revise response
-            </button>
-          </div>
-        ) : (
-          <>
-            {psetError ? (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                {psetError}
-              </div>
-            ) : null}
-            <textarea
-              value={responseText}
-              onChange={(event) => setResponseText(event.target.value)}
-              onKeyDown={(event) => {
-                if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-                  event.preventDefault();
-                  event.currentTarget.form?.requestSubmit();
-                }
-              }}
-              rows={6}
-              className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-              placeholder="write your response here... (ctrl+enter to submit)"
-            />
-
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {writtenResponse ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setResponseText(writtenResponse.response_text);
-                    setIsEditingResponse(false);
-                    setMessage("");
-                    setError("");
-                    setPsetError("");
-                  }}
-                  className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-                >
-                  cancel
-                </button>
-              ) : null}
-              <button
-                type="submit"
-                disabled={isSubmitting || (Boolean(writtenResponse) && !hasResponseChanged)}
-                className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                {isSubmitting
-                  ? "submitting..."
-                  : writtenResponse
-                    ? "submit revision"
-                    : "submit response"}
-              </button>
-            </div>
-          </>
-        )}
-      </form>
 
       <div className="flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
         <Link

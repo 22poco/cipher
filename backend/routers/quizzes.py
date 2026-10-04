@@ -1,3 +1,5 @@
+import random
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -16,6 +18,8 @@ from ..models import (
 from ..schemas import (
     QuizAttemptAnswerRead,
     QuizAttemptDetailRead,
+    QuizOptionRead,
+    QuizQuestionRead,
     QuizRead,
     QuizSubmit,
     QuizSubmitResult,
@@ -71,7 +75,46 @@ def read_lesson_quiz(
             detail="quiz not found",
         )
 
-    return quiz
+    return shuffled_quiz(quiz)
+
+
+def shuffled_quiz(quiz: Quiz) -> QuizRead:
+    """serve answer options in a fresh random order on every request.
+
+    the correct option's position and length must never be predictable, so
+    students can only pass on knowledge. grading compares option ids, which do
+    not change with the order they are handed out in.
+    """
+    questions = []
+
+    for question in quiz.questions:
+        options = list(question.options)
+        random.shuffle(options)
+        questions.append(
+            QuizQuestionRead(
+                id=question.id,
+                quiz_id=question.quiz_id,
+                question_text=question.question_text,
+                question_type=question.question_type,
+                order_index=question.order_index,
+                options=[
+                    QuizOptionRead(
+                        id=option.id,
+                        question_id=option.question_id,
+                        option_text=option.option_text,
+                    )
+                    for option in options
+                ],
+            )
+        )
+
+    return QuizRead(
+        id=quiz.id,
+        lesson_id=quiz.lesson_id,
+        title=quiz.title,
+        description=quiz.description,
+        questions=questions,
+    )
 
 
 @router.get("/lesson/{lesson_id}/attempts", response_model=list[QuizAttemptDetailRead])

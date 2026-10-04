@@ -239,6 +239,19 @@ def resolve_exam_key(exam_key: str) -> int | None:
     return unit_order
 
 
+def shuffled_paper_options(question: QuizQuestion, seed: int) -> list[QuizOption]:
+    """deterministic per-question option shuffle for a seeded exam paper.
+
+    the correct option must never sit in a fixed position, but a saved attempt
+    has to resume with the exact same order it was served with, so the shuffle
+    is derived from the paper seed and the question id. grading uses option
+    ids, so order never affects scoring.
+    """
+    options = list(question.options)
+    random.Random(f"{seed}:{question.id}").shuffle(options)
+    return options
+
+
 def paper_response(
     db: Session,
     exam_key: str,
@@ -261,7 +274,7 @@ def paper_response(
                 "question_text": question.question_text,
                 "module_title": "ap exam bank",
                 "module_order_index": 0,
-                "options": question.options,
+                "options": shuffled_paper_options(question, seed),
             }
             for question in paper
         ],
