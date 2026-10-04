@@ -6,12 +6,13 @@ usage:
     .venv/Scripts/python -m backend.import_case_studies --dir "C:/Users/ADVAN/Downloads/cipher content" --variant B
 
 each file like 1-2-suspicious-website-logins-variant-a-teacher.md becomes one
-case_study lesson titled "<code> <topic> - variant a" in the unit's
+case_study lesson titled "<code> <topic>" in the unit's
 "topic assessments" module, matching the unit by order_index.
 
 - variant a claims the existing placeholder lesson for that topic (keeping its
-  check quiz and any student responses already attached to it).
-- variant b is imported as an additional lesson (the official make-up/replacement).
+  check quiz and any student responses already attached to it) and is the one
+  assessment shipped for that topic. variant b (generator alternates meant only
+  to give us a choice) is skipped unless --variant b is passed explicitly.
 - student lesson content holds only scenario/evidence/questions; the answer
   key, rubric, teacher notes, and metadata go into teacher-only columns that
   the student API never exposes.
@@ -91,6 +92,10 @@ def parse_teacher_guide(raw: str) -> dict | None:
     student_parts.append(f"## evidence\n\n{evidence}")
     student_parts.append(f"## questions\n\n{questions}")
     student_content = "\n\n".join(student_parts) + "\n"
+    # the generator leaves empty "_Answer:_" markers after each question;
+    # students answer in the response box, so drop the dangling markers
+    student_content = re.sub(r"\n+_Answer:_", "", student_content)
+    student_content = re.sub(r"\n{3,}", "\n\n", student_content)
 
     # drop the heading remnant the section split leaves behind
     rubric = re.sub(r"^\(\d+ points\)\s*", "", section("## Rubric"))
@@ -165,7 +170,7 @@ def parse_path(path: Path) -> tuple[str, str, str] | None:
     )
 
 
-def import_file(db, path: Path, dry_run: bool) -> str:
+def import_file(db, path: Path, dry_run: bool, allow_makeup: bool = False) -> str:
     parsed_path = parse_path(path)
     if parsed_path is None:
         return f"skip (extra/unrecognized name): {path.name}"
@@ -178,6 +183,11 @@ def import_file(db, path: Path, dry_run: bool) -> str:
     variant_letter = parsed["variant_letter"]
     if variant != variant_letter:
         return f"skip (variant mismatch, file says {variant_letter}): {path.name}"
+
+    # only one assessment ships per topic; variant b alternates exist purely to
+    # give us a choice during generation, so never re-create them by default
+    if variant_letter == "B" and not allow_makeup:
+        return f"skip (variant b makeup, one assessment per topic): {path.name}"
 
     unit = db.scalar(select(Unit).where(Unit.order_index == int(unit_number)))
     if unit is None:
@@ -199,7 +209,7 @@ def import_file(db, path: Path, dry_run: bool) -> str:
     topic_lower = parsed["title_topic"].lower()
     if topic_lower.startswith(topic_code):
         topic_lower = topic_lower[len(topic_code) :].lstrip()
-    lesson_title = f"{topic_code} {topic_lower} - variant {variant_letter.lower()}"
+    lesson_title = f"{topic_code} {topic_lower}"
     student_content = lowercase_markdown(parsed["student_content"])
     makeup_order = topic_number * 10
 
@@ -306,7 +316,11 @@ def main() -> int:
         default=r"C:\Users\ADVAN\Downloads\cipher content",
         help="folder containing the teacher-guide markdown files",
     )
-    parser.add_argument("--variant", choices=["A", "B"], help="only import one variant")
+    parser.add_argument(
+        "--variant",
+        choices=["A", "B"],
+        help="only import one variant (b = make-up lessons, off by default)",
+    )
     parser.add_argument(
         "--dry-run", action="store_true", help="parse and report without writing"
     )
@@ -323,6 +337,7 @@ def main() -> int:
         print(f"no markdown files found in {folder}")
         return 1
 
+    allow_makeup = args.variant == "B"
     label = "DRY RUN - " if args.dry_run else ""
     print(f"{label}importing {len(files)} file(s) from {folder}")
     ensure_case_study_columns()
@@ -331,7 +346,7 @@ def main() -> int:
     with SessionLocal() as db:
         for path in files:
             try:
-                report = import_file(db, path, args.dry_run)
+                report = import_file(db, path, args.dry_run, allow_makeup)
             except Exception as caught:  # noqa: BLE001 - report and keep going
                 report = f"error ({caught}): {path.name}"
 

@@ -195,9 +195,13 @@ class QuizOption(Base):
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     question: Mapped[QuizQuestion] = relationship(back_populates="options")
+    # option rows can be replaced when seed/admin content changes; the
+    # NOT NULL selected_option_id FK is ON DELETE CASCADE in postgres, so
+    # defer to it (passive_deletes) instead of nullifying and failing
     attempt_answers: Mapped[list["QuizAttemptAnswer"]] = relationship(
         back_populates="selected_option",
         foreign_keys="QuizAttemptAnswer.selected_option_id",
+        passive_deletes=True,
     )
 
 
