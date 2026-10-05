@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CourseLoader } from "../../components/course-loader";
+import { renderContent } from "../../components/markdown-content";
 import {
   ApiError,
   completeLesson,
@@ -28,198 +29,6 @@ import {
   type QuizQuestion,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-
-function renderInline(text: string, keyPrefix: string): ReactNode[] {
-  const nodes: ReactNode[] = [];
-  const pattern = /\*\*([^*]+)\*\*|\*([^*]+)\*|_([^_]+)_/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let index = 0;
-
-  while ((match = pattern.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      nodes.push(text.slice(lastIndex, match.index));
-    }
-    if (match[1] !== undefined) {
-      nodes.push(
-        <strong key={`${keyPrefix}-b-${index}`} className="font-semibold text-slate-950">
-          {match[1]}
-        </strong>,
-      );
-    } else {
-      nodes.push(
-        <em key={`${keyPrefix}-i-${index}`} className="italic">
-          {match[2] ?? match[3]}
-        </em>,
-      );
-    }
-    lastIndex = pattern.lastIndex;
-    index += 1;
-  }
-
-  if (lastIndex < text.length) {
-    nodes.push(text.slice(lastIndex));
-  }
-
-  return nodes;
-}
-
-function splitTopLevel(text: string, regex: RegExp): string[] {
-  const parts: string[] = [];
-  let last = 0;
-  regex.lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > last) {
-      parts.push(text.slice(last, match.index));
-    }
-    parts.push(match[0]);
-    last = regex.lastIndex;
-  }
-
-  if (last < text.length) {
-    parts.push(text.slice(last));
-  }
-
-  return parts;
-}
-
-const HEADING_SIZES: Record<string, string> = {
-  h2: "mt-2 text-xl font-semibold text-slate-950",
-  h3: "mt-2 text-lg font-semibold text-slate-950",
-  h4: "text-base font-semibold text-slate-900",
-};
-
-function MarkdownBlock({ block, blockKey }: { block: string; blockKey: string }) {
-  const lines = block.split("\n");
-  const first = lines[0].trim();
-
-  if (first.startsWith("```")) {
-    const body = lines
-      .slice(1)
-      .join("\n")
-      .replace(/```\s*$/, "");
-    return (
-      <pre className="overflow-x-auto rounded-md border border-slate-800 bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-        <code>{body.replace(/\s+$/, "")}</code>
-      </pre>
-    );
-  }
-
-  if (/^\|.*\|/.test(first)) {
-    const rows = lines.filter((line) => /^\s*\|/.test(line));
-    const cells = rows.map((row) =>
-      row
-        .trim()
-        .replace(/^\|/, "")
-        .replace(/\|$/, "")
-        .split("|")
-        .map((cell) => cell.trim()),
-    );
-
-    if (
-      cells.length >= 2 &&
-      cells[1].every((cell) => /^:?-{2,}:?$/.test(cell) || cell === "")
-    ) {
-      const [head, , ...body] = cells;
-
-      return (
-        <div className="overflow-x-auto rounded-md border border-slate-200">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-100 text-slate-900">
-              <tr>
-                {head.map((cell, index) => (
-                  <th key={`${blockKey}-h-${index}`} className="px-3 py-2 font-semibold">
-                    {renderInline(cell, `${blockKey}-h-${index}`)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {body.map((row, rowIndex) => (
-                <tr key={`${blockKey}-r-${rowIndex}`} className="border-t border-slate-100">
-                  {row.map((cell, cellIndex) => (
-                    <td
-                      key={`${blockKey}-r-${rowIndex}-c-${cellIndex}`}
-                      className="px-3 py-2 align-top text-slate-700"
-                    >
-                      {renderInline(cell, `${blockKey}-r-${rowIndex}-c-${cellIndex}`)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-  }
-
-  if (/^#{2,4} /.test(first)) {
-    const level = first.match(/^#+/)![0].length;
-    const tag = (['h2', 'h3', 'h4'][level - 2] ?? 'h4') as 'h2' | 'h3' | 'h4';
-    const Tag = tag;
-
-    return (
-      <Tag className={HEADING_SIZES[tag]}>
-        {renderInline(first.replace(/^#+ /, ''), `${blockKey}-hdg`)}
-      </Tag>
-    );
-  }
-
-  if (lines.some((line) => /^[-*] /.test(line.trim()))) {
-    const items = lines.filter((line) => /^[-*] /.test(line.trim()));
-
-    return (
-      <ul className="list-disc space-y-2 pl-5 text-slate-700">
-        {items.map((item, index) => (
-          <li key={`${blockKey}-li-${index}`}>
-            {renderInline(item.trim().replace(/^[-*] /, ''), `${blockKey}-li-${index}`)}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (/^\d+\. /.test(first)) {
-    const items = lines.filter((line) => /^\d+\. /.test(line.trim()));
-
-    return (
-      <ol className="list-decimal space-y-2 pl-5 text-slate-700">
-        {items.map((item, index) => (
-          <li key={`${blockKey}-ol-${index}`}>
-            {renderInline(item.trim().replace(/^\d+\. /, ''), `${blockKey}-ol-${index}`)}
-          </li>
-        ))}
-      </ol>
-    );
-  }
-
-  return (
-    <p className="leading-7 text-slate-700">{renderInline(block.trim(), `${blockKey}-p`)}</p>
-  );
-}
-
-function renderContent(content: string | null) {
-  if (!content) {
-    return <p className="text-sm text-slate-600">assessment content is not ready yet.</p>;
-  }
-
-  return splitTopLevel(content, /```[\s\S]*?(?:```|$)/g)
-    .flatMap((piece, pieceIndex) =>
-      piece.includes("```")
-        ? [{ text: piece, key: `c-${pieceIndex}` }]
-        : piece
-            .split(/\n{2,}/)
-            .map((part, partIndex) => ({
-              text: part,
-              key: `t-${pieceIndex}-${partIndex}`,
-            })),
-    )
-    .filter((entry) => entry.text.trim())
-    .map((entry) => <MarkdownBlock key={entry.key} block={entry.text} blockKey={entry.key} />);
-}
 
 export default function LessonDetailPage() {
   const params = useParams<{ lessonId: string }>();
@@ -259,36 +68,40 @@ export default function LessonDetailPage() {
             / {lesson.title}
           </nav>
 
-          <article className="rounded-md border border-slate-200 bg-white p-5 sm:p-7">
-            <div className="border-b border-slate-100 pb-5">
-              <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-                {lesson.lesson_type}
-              </span>
-              <h1 className="mt-4 text-3xl font-semibold tracking-normal text-slate-950">
-                {lesson.title}
-              </h1>
-              {lesson.points ? (
-                <span className="mt-3 inline-block rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-                  {lesson.points} points
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+            <article className="rounded-md border border-slate-200 bg-white p-5 sm:p-7 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
+              <div className="border-b border-slate-100 pb-5">
+                <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                  {lesson.lesson_type}
                 </span>
-              ) : null}
-              {lesson.video_url ? (
-                <a
-                  href={lesson.video_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800"
-                >
-                  open video resource
-                </a>
-              ) : null}
+                <h1 className="mt-4 text-3xl font-semibold tracking-normal text-slate-950">
+                  {lesson.title}
+                </h1>
+                {lesson.points ? (
+                  <span className="mt-3 inline-block rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                    {lesson.points} points
+                  </span>
+                ) : null}
+                {lesson.video_url ? (
+                  <a
+                    href={lesson.video_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                  >
+                    open video resource
+                  </a>
+                ) : null}
+              </div>
+
+              <div className="mt-6 grid gap-5">{renderContent(lesson.content)}</div>
+            </article>
+
+            <div className="grid gap-6">
+              <AssessmentWorkPanel lesson={lesson} units={units} />
+              <PracticeCasesLink lessonId={lessonId} cases={practiceCases} />
             </div>
-
-            <div className="mt-6 grid gap-5">{renderContent(lesson.content)}</div>
-          </article>
-
-          <AssessmentWorkPanel lesson={lesson} units={units} />
-          <PracticeCasesSection cases={practiceCases} />
+          </div>
         </main>
         );
       }}
@@ -331,6 +144,9 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [psetError, setPsetError] = useState("");
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [quizError, setQuizError] = useState("");
+  const quizFormRef = useRef<HTMLDivElement | null>(null);
 
   const isComplete = useMemo(
     () =>
@@ -376,6 +192,13 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
       ? "in progress"
       : "not started";
   const hasResponseChanged = responseText.trim() !== (writtenResponse?.response_text ?? "");
+  const activeQuestionIndex =
+    quiz && quiz.questions.length
+      ? Math.min(currentQuestionIndex, quiz.questions.length - 1)
+      : 0;
+  const answeredQuestionCount = quiz
+    ? quiz.questions.filter((question) => selectedAnswers[question.id] !== undefined).length
+    : 0;
 
   const loadLearningState = useCallback(async () => {
     const token = getToken();
@@ -487,8 +310,15 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
       return;
     }
 
-    if (Object.keys(selectedAnswers).length !== quiz.questions.length) {
-      setError("answer every question before submitting");
+    const firstUnansweredIndex = quiz.questions.findIndex(
+      (question) => selectedAnswers[question.id] === undefined,
+    );
+
+    if (firstUnansweredIndex >= 0) {
+      // jump back to the first unanswered question so the fix is obvious
+      setCurrentQuestionIndex(firstUnansweredIndex);
+      setQuizError("answer every question before submitting.");
+      quizFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
 
@@ -500,7 +330,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
     setIsSubmitting(true);
     setMessage("");
-    setError("");
+    setQuizError("");
 
     try {
       const quizResult = await submitQuiz(
@@ -537,7 +367,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           : "quiz submitted. submit your written response to complete this assessment.",
       );
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "could not submit quiz");
+      setQuizError(caughtError instanceof Error ? caughtError.message : "could not submit quiz");
     } finally {
       setIsSubmitting(false);
     }
@@ -630,7 +460,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             written evidence response
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            answer the questions in the case study above. cite scenario evidence
+            answer the questions in the case study. cite scenario evidence
             and explain your reasoning like an AP free-response practice answer.
           </p>
         </div>
@@ -805,8 +635,10 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                     setSelectedAnswers({});
                     setResult(null);
                     setShowQuizReview(false);
+                    setCurrentQuestionIndex(0);
                     setMessage("");
                     setError("");
+                    setQuizError("");
                   }}
                   className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
                 >
@@ -816,27 +648,103 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             </div>
           ) : null}
 
-          {(latestQuizScore === null || result || isRetakingQuiz) ? quiz.questions.map((question) => {
-            const questionResult = result?.results.find(
-              (entry) => entry.question_id === question.id,
-            );
+          {!result && (latestQuizScore === null || isRetakingQuiz) && quiz.questions.length ? (
+            <div ref={quizFormRef} className="grid gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  question {activeQuestionIndex + 1} of {quiz.questions.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  {quiz.questions.map((question, index) => {
+                    const isAnswered = selectedAnswers[question.id] !== undefined;
+                    const isCurrent = index === activeQuestionIndex;
 
-            return (
-              <QuizQuestionCard
-                key={question.id}
-                question={question}
-                selectedOptionId={selectedAnswers[question.id] ?? null}
-                correctOptionId={questionResult?.correct_option_id ?? null}
-                isSubmitted={Boolean(result)}
-                onSelect={(optionId) =>
-                  setSelectedAnswers({
-                    ...selectedAnswers,
-                    [question.id]: optionId,
-                  })
-                }
-              />
-            );
-          }) : null}
+                    return (
+                      <button
+                        key={question.id}
+                        type="button"
+                        onClick={() => {
+                          setQuizError("");
+                          setCurrentQuestionIndex(index);
+                        }}
+                        aria-label={`go to question ${index + 1}`}
+                        className={`h-2.5 w-2.5 rounded-full transition ${
+                          isCurrent
+                            ? "bg-slate-950 ring-2 ring-slate-300"
+                            : isAnswered
+                              ? "bg-emerald-500 hover:bg-emerald-600"
+                              : "bg-slate-300 hover:bg-slate-400"
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+                <p className="text-xs font-medium text-slate-500">
+                  {answeredQuestionCount}/{quiz.questions.length} answered
+                </p>
+              </div>
+
+              <div className="min-h-[14rem]">
+                <QuizQuestionCard
+                  question={quiz.questions[activeQuestionIndex]}
+                  selectedOptionId={
+                    selectedAnswers[quiz.questions[activeQuestionIndex].id] ?? null
+                  }
+                  correctOptionId={null}
+                  isSubmitted={false}
+                  onSelect={(optionId) => {
+                    setQuizError("");
+                    setSelectedAnswers({
+                      ...selectedAnswers,
+                      [quiz.questions[activeQuestionIndex].id]: optionId,
+                    });
+                  }}
+                />
+              </div>
+
+              {quizError ? (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {quizError}
+                </div>
+              ) : null}
+
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  disabled={activeQuestionIndex === 0}
+                  onClick={() => {
+                    setQuizError("");
+                    setCurrentQuestionIndex((index) => Math.max(0, index - 1));
+                  }}
+                  className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                >
+                  back
+                </button>
+                {activeQuestionIndex >= quiz.questions.length - 1 ? (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    {isSubmitting ? "submitting..." : "submit quiz"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuizError("");
+                      setCurrentQuestionIndex((index) =>
+                        Math.min(quiz.questions.length - 1, index + 1),
+                      );
+                    }}
+                    className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  >
+                    next
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : null}
 
           {result ? (
             <div className="grid gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-4">
@@ -852,6 +760,28 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           ) : null}
 
           {result ? (
+            <p className="text-sm font-semibold text-slate-950">review your answers</p>
+          ) : null}
+
+          {result
+            ? quiz.questions.map((question) => {
+                const questionResult = result.results.find(
+                  (entry) => entry.question_id === question.id,
+                );
+
+                return (
+                  <QuizQuestionCard
+                    key={question.id}
+                    question={question}
+                    selectedOptionId={selectedAnswers[question.id] ?? null}
+                    correctOptionId={questionResult?.correct_option_id ?? null}
+                    isSubmitted
+                  />
+                );
+              })
+            : null}
+
+          {result ? (
             <div className="flex justify-end">
               <button
                 type="button"
@@ -860,22 +790,16 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                   setSelectedAnswers({});
                   setResult(null);
                   setShowQuizReview(false);
+                  setCurrentQuestionIndex(0);
                   setMessage("");
                   setError("");
+                  setQuizError("");
                 }}
                 className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 retake quiz
               </button>
             </div>
-          ) : latestQuizScore === null || isRetakingQuiz ? (
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              {isSubmitting ? "submitting..." : "submit quiz"}
-            </button>
           ) : null}
         </form>
       ) : (
@@ -884,29 +808,36 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         </div>
       )}
 
-      <div className="flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <Link
-          href={currentModule ? `/units/${currentModule.id}` : "/assessments"}
-          className="flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-        >
-          back to module
-        </Link>
-        {nextAssessment ? (
+      {isComplete ? (
+        <div className="flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <Link
-            href={`/lessons/${nextAssessment.id}`}
-            className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+            href={currentModule ? `/units/${currentModule.id}` : "/assessments"}
+            className="flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
           >
-            next assessment
+            back to module
           </Link>
-        ) : (
-          <Link
-            href="/units"
-            className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-          >
-            all modules
-          </Link>
-        )}
-      </div>
+          {nextAssessment ? (
+            <Link
+              href={`/lessons/${nextAssessment.id}`}
+              className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              next assessment
+            </Link>
+          ) : (
+            <Link
+              href="/units"
+              className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              all modules
+            </Link>
+          )}
+        </div>
+      ) : (
+        <p className="border-t border-slate-100 pt-5 text-sm leading-6 text-slate-500">
+          submit both parts of this assessment to unlock the module and next-assessment
+          buttons — they appear right here once it is complete.
+        </p>
+      )}
     </section>
   );
 }
@@ -964,125 +895,28 @@ function QuizQuestionCard({
   );
 }
 
-const practiceDraftKey = (practiceCaseId: number) =>
-  `cipher_practice_draft_${practiceCaseId}`;
-
-function PracticeCasesSection({ cases }: { cases: PracticeCase[] }) {
-  const [openCaseIds, setOpenCaseIds] = useState<number[]>([]);
-  const [drafts, setDrafts] = useState<Record<number, string>>({});
-
-  // practice work is ungraded, so drafts stay in this browser rather than
-  // becoming a response a teacher has to review
-  useEffect(() => {
-    const saved: Record<number, string> = {};
-
-    for (const practiceCase of cases) {
-      const draft = window.localStorage.getItem(practiceDraftKey(practiceCase.id));
-
-      if (draft) {
-        saved[practiceCase.id] = draft;
-      }
-    }
-
-    setDrafts(saved);
-  }, [cases]);
-
+function PracticeCasesLink({ lessonId, cases }: { lessonId: string; cases: PracticeCase[] }) {
   if (!cases.length) {
     return null;
   }
 
-  const toggleCase = (practiceCaseId: number) => {
-    setOpenCaseIds((current) =>
-      current.includes(practiceCaseId)
-        ? current.filter((id) => id !== practiceCaseId)
-        : [...current, practiceCaseId],
-    );
-  };
-
-  const saveDraft = (practiceCaseId: number, text: string) => {
-    setDrafts((current) => ({ ...current, [practiceCaseId]: text }));
-    window.localStorage.setItem(practiceDraftKey(practiceCaseId), text);
-  };
-
   return (
-    <section className="rounded-md border border-slate-200 bg-white p-5 sm:p-7">
-      <div className="border-b border-slate-100 pb-5">
-        <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-          practice
-        </span>
-        <h2 className="mt-4 text-2xl font-semibold tracking-normal text-slate-950">
-          more case studies for this topic
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          extra case studies on the same topic, for as many reps as you want. these are not
-          graded and nothing here is sent to your teacher, so use them to drill the skill
-          before or after the graded assessment. your draft is saved in this browser only.
-        </p>
-      </div>
-
-      <div className="mt-5 grid gap-4">
-        {cases.map((practiceCase) => {
-          const isOpen = openCaseIds.includes(practiceCase.id);
-
-          return (
-            <div key={practiceCase.id} className="rounded-md border border-slate-200">
-              <button
-                type="button"
-                onClick={() => toggleCase(practiceCase.id)}
-                aria-expanded={isOpen}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-              >
-                <span>
-                  <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    practice case {practiceCase.variant.toLowerCase()}
-                    {drafts[practiceCase.id] ? " · draft saved" : ""}
-                  </span>
-                  <span className="mt-1 block text-sm font-semibold text-slate-950">
-                    {practiceCase.title}
-                  </span>
-                </span>
-                <span className="flex shrink-0 items-center gap-3">
-                  {practiceCase.points ? (
-                    <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-                      {practiceCase.points} points
-                    </span>
-                  ) : null}
-                  <span className="text-xs font-semibold text-slate-500">
-                    {isOpen ? "hide" : "open"}
-                  </span>
-                </span>
-              </button>
-
-              {isOpen ? (
-                <div className="border-t border-slate-100 px-4 py-4">
-                  <div className="grid gap-5">{renderContent(practiceCase.content)}</div>
-
-                  <div className="mt-5 grid gap-2">
-                    <label
-                      htmlFor={`practice-response-${practiceCase.id}`}
-                      className="text-sm font-semibold text-slate-950"
-                    >
-                      practice response
-                    </label>
-                    <textarea
-                      id={`practice-response-${practiceCase.id}`}
-                      value={drafts[practiceCase.id] ?? ""}
-                      onChange={(event) => saveDraft(practiceCase.id, event.target.value)}
-                      rows={8}
-                      className="w-full rounded-md border border-slate-300 p-3 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-                      placeholder="answer the questions in this case study. this draft stays in this browser."
-                    />
-                    <p className="text-xs text-slate-500">
-                      draft only, with no submission step. ask your teacher for feedback on
-                      practice work if you want it graded.
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    </section>
+    <Link
+      href={`/lessons/${lessonId}/practice`}
+      className="group grid gap-2 rounded-md border border-slate-200 bg-white p-5 text-left transition hover:border-emerald-300 sm:p-6"
+    >
+      <span className="w-fit rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+        practice
+      </span>
+      <h2 className="mt-1 text-xl font-semibold text-slate-950">extra case studies</h2>
+      <p className="text-sm leading-6 text-slate-600">
+        {cases.length === 1 ? "one more case study" : `${cases.length} more case studies`}{" "}
+        on this topic for extra reps. it is ungraded, and your draft saves in this browser
+        only.
+      </p>
+      <span className="mt-1 text-sm font-semibold text-emerald-700 transition group-hover:text-emerald-800">
+        open practice cases →
+      </span>
+    </Link>
   );
 }
