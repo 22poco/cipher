@@ -26,7 +26,9 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         name=user_data.name,
         email=email,
         password_hash=hash_password(user_data.password),
-        role=user_data.role,
+        # self-registration is always a student account; teacher accounts are
+        # created with `python -m backend.create_admin`
+        role="student",
     )
 
     db.add(user)

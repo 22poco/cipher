@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
-import { ApiError, loginUser, registerUser, type UserRole } from "@/lib/api";
+import { ApiError, loginUser, registerUser } from "@/lib/api";
 import { saveSession } from "@/lib/auth";
 
 type AuthMode = "login" | "register";
@@ -18,7 +18,6 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("student");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,7 +28,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     try {
       const auth = isRegister
-        ? await registerUser({ name, email, password, role })
+        ? await registerUser({ name, email, password })
         : await loginUser({ email, password });
 
       saveSession(auth);
@@ -81,34 +80,6 @@ export function AuthForm({ mode }: AuthFormProps) {
           className="h-11 rounded-md border border-slate-300 px-3 text-base text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
         />
       </label>
-
-      {isRegister ? (
-        <fieldset className="grid gap-2">
-          <legend className="text-sm font-medium text-slate-700">role</legend>
-          <div className="grid grid-cols-2 gap-2">
-            {(["student", "admin"] as UserRole[]).map((option) => (
-              <label
-                key={option}
-                className={`flex h-11 cursor-pointer items-center justify-center rounded-md border text-sm font-medium transition ${
-                  role === option
-                    ? "border-slate-950 bg-slate-950 text-white"
-                    : "border-slate-300 text-slate-700 hover:border-slate-950"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="role"
-                  value={option}
-                  checked={role === option}
-                  onChange={() => setRole(option)}
-                  className="sr-only"
-                />
-                {option}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ) : null}
 
       {error ? (
         <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
