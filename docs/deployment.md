@@ -15,6 +15,10 @@ nothing else goes on the server: postgres, python, and node all run inside
 the containers, and no vpn/netbird client is needed. students reach the app
 over an ordinary browser URL.
 
+the **first** `up -d --build` needs internet access — it pulls base images
+and installs dependencies inside the build. once the images are built the
+stack runs offline, so a school server only needs internet for updates.
+
 ## 2. get the content dump (once, from a machine that has the full course)
 
 the repo alone seeds baseline content. the full course — the long units 1–2
@@ -135,6 +139,23 @@ this upserts content in place: student work keeps its attempts, imported
 units 1–2 case-study pages are never rewritten (they carry `variant`), but
 edits made to seed-managed lessons or quizzes in the admin area revert to
 the seed version on a re-seed.
+
+## 8. status & limitations
+
+what is intentionally unfinished, so nobody expects more than is there:
+
+- **content**: units 1–2 carry the full generated case studies (long
+  scenarios, answer keys, rubrics, plus the 9 extra practice cases). units
+  3–5 are hand-written placeholders — same flow, much thinner scenarios.
+  real generated content for them is still to come.
+- **enrollment**: registration is open to anyone with the URL. there is no
+  class code, no email verification, and no self-service password reset
+  (see step 5 for resetting a password as the teacher).
+- **transport**: plain http is fine on a school LAN. anything reachable
+  from outside the network needs TLS — see the note at the end of step 6.
+- **unit practice exams** draw every question in the unit, so a unit exam
+  shows the same paper on a retake; the full-course exam redraws its 60
+  questions each attempt.
 
 ## alternative: cloud split (no server of your own)
 
