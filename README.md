@@ -71,12 +71,27 @@ open:
 - frontend: `http://localhost:3000`
 - backend health check: `http://127.0.0.1:8000/health`
 
+## deployment
+
+to host it for real students on any machine with docker:
+
+```powershell
+cp .env.example .env   # edit the values
+# put database/init/10-content.sql next to the clone (full course content)
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+students then open `http://<server>:3000` and register. full walkthrough —
+content dump, firewall/urls, updates, and a cloud fallback — in
+[deployment](docs/deployment.md).
+
 ## docs
 
 - [project overview](docs/project-overview.md)
 - [roadmap](docs/roadmap.md)
 - [test plan](docs/test-plan.md)
 - [architecture notes](docs/architecture-notes.md)
+- [deployment](docs/deployment.md)
 - [teacher dashboard](docs/admin-dashboard.md)
 
 ## status

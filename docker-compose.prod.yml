@@ -1,0 +1,59 @@
+# production stack: postgres + fastapi + next.js
+#
+# always run with this file explicitly:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# required in .env (see .env.example):
+#   SECRET_KEY                token signing secret
+#   NEXT_PUBLIC_API_BASE_URL  how student browsers reach the backend
+#   BACKEND_CORS_ORIGINS      frontend origins the backend accepts
+
+name: cipher-prod
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cipher_db
+      POSTGRES_USER: cipher_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cipher_password}
+    volumes:
+      - cipher_prod_postgres_data:/var/lib/postgresql
+      # content dump + schema scripts run once on first boot
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cipher_user -d cipher_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://cipher_user:${POSTGRES_PASSWORD:-cipher_password}@postgres:5432/cipher_db
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set in .env}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:3000}
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  cipher_prod_postgres_data:
