@@ -1,0 +1,11 @@
+.git
+.agents
+.freebuff
+.venv
+**/.env
+**/__pycache__
+**/node_modules
+**/.next
+*.log
+assets
+docs
