@@ -347,7 +347,6 @@ export function registerUser(payload: {
   name: string;
   email: string;
   password: string;
-  role: UserRole;
 }) {
   return apiRequest<AuthResponse>("/auth/register", {
     method: "POST",

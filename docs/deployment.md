@@ -6,9 +6,14 @@ docker can host it.
 
 ## 1. prerequisites
 
-- git + docker (docker desktop or docker engine with the compose plugin)
+- git + docker (docker desktop, or docker engine with the compose plugin —
+  check with `docker compose version`)
 - the repo clone
 - `database/init/10-content.sql` — the course content dump (see below)
+
+nothing else goes on the server: postgres, python, and node all run inside
+the containers, and no vpn/netbird client is needed. students reach the app
+over an ordinary browser URL.
 
 ## 2. get the content dump (once, from a machine that has the full course)
 
@@ -64,11 +69,41 @@ curl -I http://localhost:3000               # 200
 the backend auto-seed runs **only** while the `users` table is missing, so
 restarts never revert content edited in the admin area.
 
-## 5. let students in
+## 5. create the teacher account
 
-students open `NEXT_PUBLIC_API_BASE_URL`'s sibling, the frontend URL
-(`http://<server>:3000`), register with their email, and start working.
-nothing to install.
+self-registration only ever creates **student** accounts, so a student can
+never make themselves an admin. create the teacher account from the command
+line:
+
+```
+docker compose -f docker-compose.prod.yml exec backend \
+  python -m backend.create_admin \
+  --email you@school.edu --password "a-strong-password" --name "pak john"
+```
+
+log in with it and the teacher pages appear: `/admin` (grading & review),
+`/admin/gradebook`, and `/admin/content`. the same command resets a
+forgotten password — there is no email-based reset flow yet — and
+`--role student` fixes up a student account instead.
+
+## 6. let students in
+
+students open the frontend URL (`http://<server>:3000`), click **register**,
+and enter a name, email, and an 8+ character password. nothing to install —
+any browser works.
+
+once in, they land on their dashboard and can open **modules → a topic** to
+read the case study, take its four-question check, write the pset response,
+open the extra practice cases, and take the six **practice exams** (one
+full-course exam and one per unit, with resumable timed attempts).
+
+worth knowing before class:
+
+- accounts are student-only, and anyone with the URL can register — there is
+  no invite or class code yet, so share the URL only as widely as you want
+  students to join
+- there is no email verification and no self-service password reset yet
+- the teacher account is separate and comes from step 5
 
 - same machine → `localhost` values are fine as-is
 - school network → use the server's LAN IP in both URLs and allow inbound
@@ -77,7 +112,7 @@ nothing to install.
   (caddy/nginx) with TLS and set the two env vars to the https URLs;
   also restrict `BACKEND_CORS_ORIGINS` to the real frontend origin
 
-## 6. updating
+## 7. updating
 
 ```
 git pull

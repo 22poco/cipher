@@ -17,7 +17,7 @@ teachers use cipher to review student attempts, check scores, and see class prog
 - support scenario-based practice, quizzes, psets, and mock exams
 - save student attempts and quiz scores
 - give teachers/admins a way to review assessment results
-- support local and netbird access for demos and classroom testing
+- support classroom access over a normal browser URL (no client installs)
 
 ---
 
@@ -117,13 +117,14 @@ teacher/admin can:
 
 ### networking
 
-- netbird
+- docker compose single-host deployment (see [deployment](deployment.md))
 
 ---
 
 ## deployment
 
-cipher will be hosted locally and made accessible through netbird for testing.
+cipher deploys with `docker compose -f docker-compose.prod.yml up -d --build`
+on any machine running docker — a school server, a spare computer, or a VPS.
 
 students and teachers access the platform through a web browser.
 

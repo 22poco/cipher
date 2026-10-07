@@ -24,6 +24,13 @@ the teacher dashboard is split into three focused pages:
 - `/admin/gradebook` — per-student progress, quiz averages, and pset status
 - `/admin/content` — content tools for modules, assessment sets, case studies, and quizzes
 
+the teacher account is created from the command line — registration only
+ever creates students:
+
+```powershell
+.venv\Scripts\python.exe -m backend.create_admin --email you@school.edu --password "a-strong-password"
+```
+
 ## modules
 
 1. introduction to security
@@ -37,7 +44,7 @@ the teacher dashboard is split into three focused pages:
 - next.js, typescript, tailwind css
 - fastapi, python 3.12
 - postgresql
-- netbird for local demo access
+- docker (deploy with `docker compose -f docker-compose.prod.yml up -d --build`, see [deployment](docs/deployment.md))
 
 ## local run
 

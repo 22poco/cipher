@@ -10,7 +10,8 @@ export default function RegisterPage() {
           create account
         </h1>
         <p className="text-sm leading-6 text-slate-600">
-          create a student or admin account for the current development build.
+          create your student account to work through the case studies, quizzes,
+          and practice exams.
         </p>
       </div>
 
