@@ -89,6 +89,18 @@ user data (accounts, attempts, responses, grades) lives in the
 only runs on the *first* boot of a fresh volume — it never overwrites later
 data.
 
+**if the pull includes course content changes** (units 3–5 case studies,
+quiz questions, exam bank — anything managed by the seed), apply them with:
+
+```
+docker compose -f docker-compose.prod.yml exec backend python -m backend.seed_course
+```
+
+this upserts content in place: student work keeps its attempts, imported
+units 1–2 case-study pages are never rewritten (they carry `variant`), but
+edits made to seed-managed lessons or quizzes in the admin area revert to
+the seed version on a re-seed.
+
 ## alternative: cloud split (no server of your own)
 
 - **frontend → vercel**: import the repo, set root directory `frontend`,
