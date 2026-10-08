@@ -41,7 +41,7 @@ export default function PracticeCasesPage() {
         lesson: Lesson;
         practiceCases: PracticeCase[];
       }) => (
-        <main className="mx-auto grid w-full max-w-4xl gap-6 px-4 py-10 sm:px-6">
+        <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link
               href={`/lessons/${lesson.id}`}
@@ -59,7 +59,7 @@ export default function PracticeCasesPage() {
             <h1 className="mt-4 text-3xl font-semibold tracking-normal text-slate-950">
               extra case studies
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+            <p className="mt-3 text-sm leading-6 text-slate-600">
               more case studies on the same topic, for as many reps as you want. none of
               this is graded and nothing here reaches your teacher, so use it to drill the
               skill before or after the graded assessment. your draft saves in this browser

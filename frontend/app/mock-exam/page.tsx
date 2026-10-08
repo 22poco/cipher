@@ -71,13 +71,13 @@ function MockExamHub() {
     .sort((a, b) => (a.unit_id ?? 0) - (b.unit_id ?? 0));
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-10 sm:px-6">
       <div className="grid gap-2">
         <p className="text-sm font-semibold text-emerald-700">practice</p>
         <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
           mock exams
         </h1>
-        <p className="max-w-3xl text-sm leading-6 text-slate-600">
+        <p className="text-sm leading-6 text-slate-600">
           six ap-style practice exams: one full course exam with the exact structure of
           the real ap cybersecurity exam, plus one shorter exam for each unit. every exam
           ends with the device security analysis free-response question, graded by your
@@ -159,14 +159,13 @@ function FullExamCard({ exam }: { exam: MockExamDefinition }) {
         </p>
         <p>
           <span className="font-semibold text-slate-950">time limit:</span>{" "}
-          {formatDuration((exam.time_limit_minutes ?? 0) * 60)} — slightly longer than
+          {formatDuration((exam.time_limit_minutes ?? 0) * 60)} — slightly shorter than
           the real 2 hr 10 min exam, with questions written to be harder than exam
           difficulty.
         </p>
         <p>
           <span className="font-semibold text-slate-950">rules:</span> the timer keeps
-          running even if you quit or close the tab. skipped questions score zero, so
-          answer everything before time runs out.
+          running even if you quit or close the tab, and skipped questions score zero.
         </p>
       </div>
     </ExamCardShell>
@@ -180,8 +179,7 @@ function UnitExamCard({ exam }: { exam: MockExamDefinition }) {
         <p>{exam.description}</p>
         <p>
           <span className="font-semibold text-slate-950">time limit:</span>{" "}
-          {formatDuration((exam.time_limit_minutes ?? 0) * 60)} — the clock keeps running
-          if you quit before submitting.
+          {formatDuration((exam.time_limit_minutes ?? 0) * 60)}.
         </p>
       </div>
     </ExamCardShell>

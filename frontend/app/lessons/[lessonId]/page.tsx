@@ -60,7 +60,7 @@ export default function LessonDetailPage() {
         const assessmentPath = findAssessmentPath(units, lesson.id);
 
         return (
-        <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
+        <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/units" className="font-medium text-slate-700 hover:text-slate-950">
               module {assessmentPath?.unit.order_index ?? ""}
@@ -402,15 +402,13 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             <h2 className="mt-1 text-lg font-semibold text-slate-950">
               {isComplete ? "assessment complete" : "submission checklist"}
             </h2>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
-              {isComplete
-                ? quiz
+            {!isComplete ? null : (
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                {quiz
                   ? "quiz and written response are both saved."
-                  : "your written response is saved."
-                : quiz
-                  ? "complete both parts below: the written response and the quiz attempt."
-                  : "submit your written response below to complete this case study."}
-            </p>
+                  : "your written response is saved."}
+              </p>
+            )}
           </div>
           <div className="grid min-w-44 gap-2 text-sm">
             <span className="flex items-center justify-between gap-4 rounded-md bg-white px-3 py-2 text-slate-700">
@@ -832,12 +830,7 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             </Link>
           )}
         </div>
-      ) : (
-        <p className="border-t border-slate-100 pt-5 text-sm leading-6 text-slate-500">
-          submit both parts of this assessment to unlock the module and next-assessment
-          buttons — they appear right here once it is complete.
-        </p>
-      )}
+      ) : null}
     </section>
   );
 }

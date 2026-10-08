@@ -12,15 +12,14 @@ export default function UnitsPage() {
   return (
     <CourseLoader load={loadUnits}>
       {(units: Unit[]) => (
-        <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
+        <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-10 sm:px-6">
           <div className="grid gap-2">
             <p className="text-sm font-semibold text-emerald-700">module structure</p>
             <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
               modules
             </h1>
-            <p className="max-w-5xl text-sm leading-6 text-slate-600">
-              browse the five AP cybersecurity modules and open their topic assessments.
-              this is the structural view; the assessment hub is the main student path.
+            <p className="text-sm leading-6 text-slate-600">
+              browse the five ap cybersecurity modules and open their topic assessments.
             </p>
           </div>
 
@@ -43,7 +42,7 @@ export default function UnitsPage() {
                       <h2 className="mt-1 text-2xl font-semibold text-slate-950">
                         {unit.title}
                       </h2>
-                      <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-600">
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
                         {unit.description}
                       </p>
                     </div>
