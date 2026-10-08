@@ -6,7 +6,6 @@ import { useSyncExternalStore } from "react";
 
 import { clearSession, getStoredUser, subscribeToSessionChange } from "@/lib/auth";
 
-const publicLinks = [{ href: "/", label: "home" }];
 const getServerUser = () => null;
 
 export function AppNav() {
@@ -24,18 +23,16 @@ export function AppNav() {
   }
 
   return (
-    <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex min-h-16 w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <header className="border-b border-slate-200 bg-white/90 backdrop-blur">        <div className="mx-auto flex min-h-16 w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <Link href="/" className="text-lg font-semibold tracking-normal text-slate-950">
           cipher
         </Link>
 
         <nav className="flex flex-wrap items-center gap-2 text-sm">
           {[
-            ...publicLinks,
+            ...(user ? [{ href: "/dashboard", label: "dashboard" }] : []),
             ...(user ? [{ href: "/units", label: "modules" }] : []),
             ...(user ? [{ href: "/mock-exam", label: "exams" }] : []),
-            ...(user ? [{ href: "/dashboard", label: "dashboard" }] : []),
             ...(user?.role === "admin" ? [{ href: "/admin", label: "teacher" }] : []),
           ].map((link) => {
             const isActive =

@@ -18,7 +18,7 @@ export default function ModuleDetailPage() {
   return (
     <CourseLoader load={loadModule}>
       {(module: CourseModule) => (
-        <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:px-6">
+        <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/units" className="font-medium text-slate-700 hover:text-slate-950">
               modules
@@ -33,7 +33,7 @@ export default function ModuleDetailPage() {
             <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
               {module.title}
             </h1>
-            <p className="max-w-3xl text-sm leading-6 text-slate-600">
+            <p className="text-sm leading-6 text-slate-600">
               {module.description}
             </p>
           </div>

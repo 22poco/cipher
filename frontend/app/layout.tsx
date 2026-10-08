@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AppNav } from "./components/app-nav";
 import { ExamChrome } from "./components/exam-chrome";
 import "./globals.css";
 

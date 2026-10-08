@@ -1885,10 +1885,7 @@ def assessment_module(unit_data: dict) -> dict:
             ),
             "quiz": {
                 "title": f"{topic['code']} check",
-                "description": (
-                    "four multiple-choice questions for this topic. the answer "
-                    "order is shuffled every time you load the quiz."
-                ),
+                "description": "four questions on this case study.",
                 "questions": [
                     {
                         "question_text": item["text"],

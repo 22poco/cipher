@@ -126,9 +126,9 @@ def get_exam_definition(unit_order: int | None) -> dict:
         "unit_id": unit_order,
         "title": f"unit {unit_order} exam",
         "description": (
-            f"30 hard multiple-choice questions covering {UNIT_EXAM_DESCRIPTIONS[unit_order]} "
-            "plus the device security analysis free-response question, graded on the "
-            "same 14-point rubric."
+            f"30 multiple-choice questions on {UNIT_EXAM_DESCRIPTIONS[unit_order]} "
+            "Also includes the device security analysis free-response question, graded "
+            "on the same 14-point rubric."
         ),
         "mcq_count": UNIT_MCQ_COUNT,
         "time_limit_minutes": UNIT_TIME_LIMIT_MINUTES,
