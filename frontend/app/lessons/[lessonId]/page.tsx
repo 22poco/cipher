@@ -14,13 +14,11 @@ import {
   fetchLessonQuiz,
   fetchLessonQuizAttempts,
   fetchMyProgress,
-  fetchPracticeCases,
   fetchUnits,
   submitCaseStudyResponse,
   type CaseStudyResponse,
   submitQuiz,
   type Lesson,
-  type PracticeCase,
   type ProgressSummary,
   type Quiz,
   type QuizAttemptDetail,
@@ -35,13 +33,12 @@ export default function LessonDetailPage() {
   const lessonId = params.lessonId;
   const loadAssessment = useCallback(
     async (token: string) => {
-      const [lesson, units, practiceCases] = await Promise.all([
+      const [lesson, units] = await Promise.all([
         fetchLesson(lessonId, token),
         fetchUnits(token),
-        fetchPracticeCases(lessonId, token).catch(() => [] as PracticeCase[]),
       ]);
 
-      return { lesson, units, practiceCases };
+      return { lesson, units };
     },
     [lessonId],
   );
@@ -51,16 +48,14 @@ export default function LessonDetailPage() {
       {({
         lesson,
         units,
-        practiceCases,
       }: {
         lesson: Lesson;
         units: Unit[];
-        practiceCases: PracticeCase[];
       }) => {
         const assessmentPath = findAssessmentPath(units, lesson.id);
 
         return (
-        <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-10 sm:px-6">
+        <main className="grid w-full gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/units" className="font-medium text-slate-700 hover:text-slate-950">
               module {assessmentPath?.unit.order_index ?? ""}
@@ -99,7 +94,6 @@ export default function LessonDetailPage() {
 
             <div className="grid gap-6">
               <AssessmentWorkPanel lesson={lesson} units={units} />
-              <PracticeCasesLink lessonId={lessonId} cases={practiceCases} />
             </div>
           </div>
         </main>
@@ -572,9 +566,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           <div>
             <p className="text-sm font-semibold text-emerald-700">quiz</p>
             <h2 className="mt-1 text-xl font-semibold text-slate-950">{quiz.title}</h2>
-            {quiz.description ? (
-              <p className="mt-2 text-sm leading-6 text-slate-600">{quiz.description}</p>
-            ) : null}
           </div>
 
           {latestQuizScore !== null && !result && !isRetakingQuiz ? (
@@ -888,28 +879,3 @@ function QuizQuestionCard({
   );
 }
 
-function PracticeCasesLink({ lessonId, cases }: { lessonId: string; cases: PracticeCase[] }) {
-  if (!cases.length) {
-    return null;
-  }
-
-  return (
-    <Link
-      href={`/lessons/${lessonId}/practice`}
-      className="group grid gap-2 rounded-md border border-slate-200 bg-white p-5 text-left transition hover:border-emerald-300 sm:p-6"
-    >
-      <span className="w-fit rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-        practice
-      </span>
-      <h2 className="mt-1 text-xl font-semibold text-slate-950">extra case studies</h2>
-      <p className="text-sm leading-6 text-slate-600">
-        {cases.length === 1 ? "one more case study" : `${cases.length} more case studies`}{" "}
-        on this topic for extra reps. it is ungraded, and your draft saves in this browser
-        only.
-      </p>
-      <span className="mt-1 text-sm font-semibold text-emerald-700 transition group-hover:text-emerald-800">
-        open practice cases →
-      </span>
-    </Link>
-  );
-}

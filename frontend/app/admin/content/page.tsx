@@ -642,7 +642,7 @@ function ContentTools() {
   }
 
   return (
-    <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-10 sm:px-6">
+    <main className="grid w-full gap-6 px-4 py-10 sm:px-6">
       <div className="grid gap-2">
         <p className="text-sm font-semibold text-emerald-700">teacher dashboard</p>
         <h1 className="text-3xl font-semibold tracking-normal text-slate-950">

@@ -149,6 +149,17 @@ export type PracticeCase = {
   points: number | null;
 };
 
+export type PracticeCaseIndex = {
+  id: number;
+  lesson_id: number;
+  variant: string;
+  title: string;
+  points: number | null;
+  lesson_title: string;
+  unit_order: number;
+  unit_title: string;
+};
+
 export type AdminPsetResponse = {
   id: number;
   student_id: number;
@@ -439,6 +450,10 @@ export function fetchPracticeCases(lessonId: string, token: string) {
     {},
     token,
   );
+}
+
+export function fetchAllPracticeCases(token: string) {
+  return apiRequest<PracticeCaseIndex[]>("/practice-cases", {}, token);
 }
 
 export function fetchMyProgress(token: string) {

@@ -305,6 +305,21 @@ class CaseStudyPracticeRead(BaseModel):
     points: int | None = None
 
 
+class CaseStudyPracticeIndexRead(BaseModel):
+    """practice case index entry for the extra tab: where it lives, no body."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    lesson_id: int
+    variant: str
+    title: str
+    points: int | None = None
+    lesson_title: str
+    unit_order: int
+    unit_title: str
+
+
 class AdminPsetResponseRead(BaseModel):
     id: int
     student_id: int

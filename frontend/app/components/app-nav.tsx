@@ -23,7 +23,7 @@ export function AppNav() {
   }
 
   return (
-    <header className="border-b border-slate-200 bg-white/90 backdrop-blur">        <div className="mx-auto flex min-h-16 w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <header className="border-b border-slate-200 bg-white/90 backdrop-blur">        <div className="flex min-h-16 w-full flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <Link href="/" className="text-lg font-semibold tracking-normal text-slate-950">
           cipher
         </Link>
@@ -32,6 +32,7 @@ export function AppNav() {
           {[
             ...(user ? [{ href: "/dashboard", label: "dashboard" }] : []),
             ...(user ? [{ href: "/units", label: "modules" }] : []),
+            ...(user ? [{ href: "/extra", label: "extra" }] : []),
             ...(user ? [{ href: "/mock-exam", label: "exams" }] : []),
             ...(user?.role === "admin" ? [{ href: "/admin", label: "teacher" }] : []),
           ].map((link) => {

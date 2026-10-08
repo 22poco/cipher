@@ -39,7 +39,7 @@ export function CourseLoader<T>({ load, children }: CourseLoaderProps<T>) {
 
   if (error) {
     return (
-      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
+      <main className="w-full px-4 py-10 sm:px-6">
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
         </div>
@@ -49,7 +49,7 @@ export function CourseLoader<T>({ load, children }: CourseLoaderProps<T>) {
 
   if (!data) {
     return (
-      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
+      <main className="w-full px-4 py-10 sm:px-6">
         <p className="text-sm text-slate-500">loading course content...</p>
       </main>
     );
