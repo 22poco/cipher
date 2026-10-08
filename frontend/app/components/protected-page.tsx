@@ -42,7 +42,7 @@ export function ProtectedPage({ allowedRole, children }: ProtectedPageProps) {
 
   if (status === "loading") {
     return (
-      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
+      <main className="w-full px-4 py-10 sm:px-6">
         <p className="text-sm text-slate-500">checking your session...</p>
       </main>
     );
@@ -50,7 +50,7 @@ export function ProtectedPage({ allowedRole, children }: ProtectedPageProps) {
 
   if (status === "blocked") {
     return (
-      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
+      <main className="w-full px-4 py-10 sm:px-6">
         <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           this area is only available to {allowedRole} accounts.
         </div>

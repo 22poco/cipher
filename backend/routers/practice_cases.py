@@ -4,11 +4,56 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import CaseStudyPractice, Lesson, User
-from ..schemas import CaseStudyPracticeRead
+from ..models import CaseStudyPractice, Lesson, Module, Unit, User
+from ..schemas import CaseStudyPracticeIndexRead, CaseStudyPracticeRead
 
 
 router = APIRouter(prefix="/practice-cases", tags=["practice"])
+
+
+@router.get("", response_model=list[CaseStudyPracticeIndexRead])
+def list_all_practice_cases(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """index of every extra case study, ordered like the course.
+
+    the extra tab groups these client-side by module; entries never carry
+    answer keys or rubrics, same rule as the per-lesson route.
+    """
+    del current_user
+
+    rows = db.execute(
+        select(
+            CaseStudyPractice.id,
+            CaseStudyPractice.lesson_id,
+            CaseStudyPractice.variant,
+            CaseStudyPractice.title,
+            CaseStudyPractice.points,
+            Lesson.title.label("lesson_title"),
+            Unit.order_index.label("unit_order"),
+            Unit.title.label("unit_title"),
+        )
+        .join(Lesson, CaseStudyPractice.lesson_id == Lesson.id)
+        .join(Module, Lesson.module_id == Module.id)
+        .join(Unit, Module.unit_id == Unit.id)
+        .where(Module.is_hidden.is_(False))
+        .order_by(Unit.order_index, Lesson.order_index, CaseStudyPractice.variant)
+    ).all()
+
+    return [
+        CaseStudyPracticeIndexRead(
+            id=row.id,
+            lesson_id=row.lesson_id,
+            variant=row.variant,
+            title=row.title,
+            points=row.points,
+            lesson_title=row.lesson_title,
+            unit_order=row.unit_order,
+            unit_title=row.unit_title,
+        )
+        for row in rows
+    ]
 
 
 @router.get("/lessons/{lesson_id}", response_model=list[CaseStudyPracticeRead])

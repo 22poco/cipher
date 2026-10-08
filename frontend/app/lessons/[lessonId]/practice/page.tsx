@@ -41,7 +41,7 @@ export default function PracticeCasesPage() {
         lesson: Lesson;
         practiceCases: PracticeCase[];
       }) => (
-        <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-10 sm:px-6">
+        <main className="grid w-full gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link
               href={`/lessons/${lesson.id}`}
