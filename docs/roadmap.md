@@ -60,35 +60,45 @@ nice-to-have learning content, code editor work, full lesson hosting, and extra 
 - basic gradebook summary exists
 - role separation blocks students from admin pages
 
-## next focus
+## done
 
 ### mock exam flow
 
-- add a mock exam entry point
-- combine questions across AP modules
-- save mock exam attempts
-- show score and completion status
-- make the flow simple enough for demos
+- mock exam entry point in the student nav (`/mock-exam`)
+- one full-course exam (60 mc questions + frq, 2 hours) and one 1-hour exam per unit
+- drafts survive page closes and refreshes; timed attempts resume where they left off
+- score shown on submit; frq sent to the teacher grading queue
 
 ### AP content pass
 
-- replace placeholder prompts with stronger AP CED-aligned assessments
-- improve module 1 content first
-- expand coverage across all five modules
-- keep each assessment pattern predictable:
+- all 24 topics across the five modules carry final ap ced-aligned case studies
+- units 3–5 case studies finalized and generated as the long units 1–2 ones
+- every assessment follows the same predictable pattern:
   - scenario/context
   - evidence or artifacts
-  - multiple-choice check
+  - four-question multiple-choice check (retakeable, answers reshuffle)
   - pset-style written response
-  - saved completion/review state
+  - ungraded extra practice case studies per topic, on their own `extra` tab
+- hand-written placeholder content is fully replaced
+
+### ui/ux pass
+
+- full-width layout across student pages (no max-width caps on content pages)
+- `extra` tab added to the nav between modules and exams
+- redundant quiz-description line removed from the assessment page
+- dashboard shows module rings, bar chart, and a jump-back-in one-liner
 
 ### demo readiness
 
-- run full end-to-end testing
-- polish the most visible student and teacher pages
-- fix critical bugs
-- update run and test instructions
-- run local/netbird access test
+- deployment walkthrough and honest limitations documented in [deployment](deployment.md)
+- end-to-end manual checklist verified: student, teacher, and access-control flows
+
+## remaining before handoff
+
+- any bugs found in the final manual test pass
+- a last content quality read-through as a student would see it
+- final batch of ui/ux polish requests
+- deployment hardening (tls + secrets) if the server leaves the school lan
 
 ## future work
 

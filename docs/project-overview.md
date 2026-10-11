@@ -132,6 +132,6 @@ students and teachers access the platform through a web browser.
 
 ## current status
 
-the assessment platform foundation is working: authentication, AP modules, student assessment flow, quiz scoring, saved answers, pset responses, student progress, admin content editing, pset review, quiz attempt review, and a basic gradebook.
+the platform is feature-complete for its assessment-first scope: authentication, five AP modules with final case studies, quiz scoring with retakes and saved answers, pset responses with teacher feedback, six ap-style mock exams (timed, resumable, frq-graded by the teacher), the teacher grading dashboard, gradebook, content tools, and an ungraded `extra` practice tab.
 
-the current goal is to deliver a demo-ready AP-aligned assessment platform, with mock exams and real AP CED-aligned content as the next focus.
+the only outstanding work is final polish: any bugs from the last manual test, a content read-through, and ui/ux tweaks — then the project is ready to hand over. see the roadmap for the exact list.
