@@ -71,7 +71,7 @@ function MockExamHub() {
     .sort((a, b) => (a.unit_id ?? 0) - (b.unit_id ?? 0));
 
   return (
-    <main className="grid w-full gap-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto grid w-full max-w-[100rem] gap-6 px-4 py-10 sm:px-6">
       <div className="grid gap-2">
         <p className="text-sm font-semibold text-emerald-700">practice</p>
         <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
@@ -100,13 +100,8 @@ function MockExamHub() {
           {fullExam ? <FullExamCard exam={fullExam} /> : null}
 
           <section className="grid gap-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-xl font-semibold text-slate-950">unit exams</h2>
-              <p className="text-sm text-slate-600">
-                30 questions + frq — half the length of the full exam.
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
+            <h2 className="text-xl font-semibold text-slate-950">unit exams</h2>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               {unitExams.map((exam) => (
                 <UnitExamCard key={exam.key} exam={exam} />
               ))}
@@ -152,15 +147,14 @@ function FullExamCard({ exam }: { exam: MockExamDefinition }) {
     <ExamCardShell exam={exam} featured>
       <div className="grid gap-3 text-sm leading-6 text-slate-700">
         <p>
-          <span className="font-semibold text-slate-950">format:</span> {exam.mcq_count}{" "}
-          multiple-choice questions across all five units (80 min on the real exam) plus
-          the device security analysis free-response question (50 min). weighted 70% mcq
+          <span className="font-semibold text-slate-950">format:</span> every unit plus
+          the device security analysis free-response question. weighted 70% mcq
           / 30% frq once your teacher grades the frq.
         </p>
         <p>
           <span className="font-semibold text-slate-950">time limit:</span>{" "}
           {formatDuration((exam.time_limit_minutes ?? 0) * 60)} — slightly shorter than
-          the real 2 hr 10 min exam, with questions written to be harder than exam
+          the real exam, with questions written to be harder than exam
           difficulty.
         </p>
         <p>
@@ -177,10 +171,6 @@ function UnitExamCard({ exam }: { exam: MockExamDefinition }) {
     <ExamCardShell exam={exam}>
       <div className="grid gap-3 text-sm leading-6 text-slate-700">
         <p>{exam.description}</p>
-        <p>
-          <span className="font-semibold text-slate-950">time limit:</span>{" "}
-          {formatDuration((exam.time_limit_minutes ?? 0) * 60)}.
-        </p>
       </div>
     </ExamCardShell>
   );

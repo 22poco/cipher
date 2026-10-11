@@ -113,9 +113,9 @@ def get_exam_definition(unit_order: int | None) -> dict:
             "kind": "full",
             "title": "full course exam",
             "description": (
-                "the complete practice exam: 60 multiple-choice questions across all "
-                "five units plus the device security analysis free-response question. "
-                "same structure and weighting as the real ap exam."
+                "the complete practice exam: every unit plus the device security "
+                "analysis free-response question. same structure and weighting "
+                "as the real ap exam."
             ),
             "mcq_count": FULL_MCQ_COUNT,
             "time_limit_minutes": FULL_TIME_LIMIT_MINUTES,
@@ -125,11 +125,7 @@ def get_exam_definition(unit_order: int | None) -> dict:
         "kind": "unit",
         "unit_id": unit_order,
         "title": f"unit {unit_order} exam",
-        "description": (
-            f"30 multiple-choice questions on {UNIT_EXAM_DESCRIPTIONS[unit_order]} "
-            "Also includes the device security analysis free-response question, graded "
-            "on the same 14-point rubric."
-        ),
+        "description": UNIT_EXAM_DESCRIPTIONS[unit_order],
         "mcq_count": UNIT_MCQ_COUNT,
         "time_limit_minutes": UNIT_TIME_LIMIT_MINUTES,
     }

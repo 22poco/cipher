@@ -1,6 +1,7 @@
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from .answer_length import balance_option_lengths
 from .database import Base, SessionLocal, engine
 from .exam_bank import MCQ_BANK
 from .models import Lesson, Module, Quiz, QuizOption, QuizQuestion, Unit
@@ -31,21 +32,39 @@ def exam_bank_module(unit_order_index: int) -> dict:
                     "description": "internal exam bank storage.",
                     "questions": [
                         {
-                            "question_text": q["question_text"],
+                            "question_text": question_text,
                             "order_index": q_index,
+                            # distractors are length-balanced so the correct
+                            # option is never visibly the longest one
                             "options": [
-                                {"option_text": q["correct"], "is_correct": True},
-                                {"option_text": q["wrong"][0], "is_correct": False},
-                                {"option_text": q["wrong"][1], "is_correct": False},
-                                {"option_text": q["wrong"][2], "is_correct": False},
+                                {"option_text": correct, "is_correct": True},
+                                {"option_text": wrongs[0], "is_correct": False},
+                                {"option_text": wrongs[1], "is_correct": False},
+                                {"option_text": wrongs[2], "is_correct": False},
                             ],
                         }
-                        for q_index, q in enumerate(unit_pool, start=1)
+                        for q_index, (question_text, correct, *wrongs) in enumerate(
+                            (
+                                bank_question_row(q)
+                                for q in unit_pool
+                            ),
+                            start=1,
+                        )
                     ],
                 },
             }
         ],
     }
+
+
+def bank_question_row(q: dict) -> tuple[str, ...]:
+    """one exam-bank row as (question, correct, wrong...) with balanced lengths."""
+    correct, wrongs = balance_option_lengths(
+        q["correct"],
+        q["wrong"],
+        q["question_text"],
+    )
+    return (q["question_text"], correct, *wrongs)
 
 
 AP_MODULES = [
@@ -1869,9 +1888,27 @@ def case_study_rubric(topic: dict) -> str:
     return "\n\n".join(blocks) + "\n"
 
 
+def balance_topic_options(item: dict) -> list[str]:
+    """length-balance the authored options of one topic-quiz question.
+
+    the authored correct answer is identified by index, then rebalanced before
+    the length cue is removed from the served options.
+    """
+    options = list(item["options"])
+    correct = options[item["answer"]]
+    wrongs = [option for index, option in enumerate(options) if index != item["answer"]]
+    correct, wrongs = balance_option_lengths(correct, wrongs, item["text"])
+
+    balanced: list[str] = []
+    wrongs_iter = iter(wrongs)
+    return [
+        correct if index == item["answer"] else next(wrongs_iter)
+        for index in range(len(options))
+    ]
+
+
 def assessment_module(unit_data: dict) -> dict:
     lessons = []
-
     for index, topic in enumerate(unit_data["topics"], start=1):
         lesson = {
             "title": f"{topic['code']} {topic['title']}",
@@ -1892,13 +1929,23 @@ def assessment_module(unit_data: dict) -> dict:
                         "order_index": question_index,
                         # authored option order varies per question so the
                         # correct choice is not parked in one spot even before
-                        # the serve-time shuffle
+                        # the serve-time shuffle, and distractors are
+                        # length-balanced so length alone is never a tell
                         "options": [
                             {"option_text": option, "is_correct": position == item["answer"]}
-                            for position, option in enumerate(item["options"])
+                            for position, option in enumerate(balanced_options)
                         ],
                     }
-                    for question_index, item in enumerate(topic["questions"], start=1)
+                    for question_index, (item, balanced_options) in enumerate(
+                        (
+                            (
+                                item,
+                                balance_topic_options(item),
+                            )
+                            for item in topic["questions"]
+                        ),
+                        start=1,
+                    )
                 ],
             },
         }
