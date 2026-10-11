@@ -65,7 +65,7 @@ function GradingDashboard() {
   const ungradedCount = frqQueue.length;
 
   return (
-    <main className="grid w-full gap-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto grid w-full max-w-[100rem] gap-6 px-4 py-10 sm:px-6">
       <div className="grid gap-2">
         <p className="text-sm font-semibold text-emerald-700">teacher dashboard</p>
         <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
@@ -141,6 +141,11 @@ function GradingDashboard() {
         </section>
       ) : (
         <section className="grid gap-3">
+          {frqQueue.length > 0 ? (
+            <p className="text-sm font-semibold text-amber-700">
+              {frqQueue.length} frq{frqQueue.length === 1 ? "" : "s"} waiting for grading
+            </p>
+          ) : null}
           {attempts.map((attempt) => (
             <GradingCard key={attempt.id} attempt={attempt} onSaved={loadAttempts} />
           ))}
@@ -218,6 +223,13 @@ function GradingCard({
 
   function renderPartScoreFields() {
     const maxima: Record<string, number> = { a: 2, b: 2, c: 3, d: 3, e: 4 };
+    const partHints: Record<string, string> = {
+      a: "one protective rule + one modification with example",
+      b: "describe password-attack evidence + adversary ip",
+      c: "explain a file's permissions + propose restriction + chmod",
+      d: "cite a blocked connection + scoped rule change + traffic impact",
+      e: "name the second attack + evidence + automated halt + manual counter",
+    };
     return (
       <div className="grid grid-cols-5 gap-2">
         {Object.entries(maxima).map(([part, max]) => (
@@ -232,6 +244,9 @@ function GradingCard({
               defaultValue={partScores[part] ?? ""}
               className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-950 outline-none focus:border-emerald-600"
             />
+            <span className="mt-1 block font-normal text-slate-400">
+              {partHints[part]}
+            </span>
           </label>
         ))}
       </div>

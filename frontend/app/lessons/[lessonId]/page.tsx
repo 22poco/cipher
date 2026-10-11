@@ -55,7 +55,7 @@ export default function LessonDetailPage() {
         const assessmentPath = findAssessmentPath(units, lesson.id);
 
         return (
-        <main className="grid w-full gap-6 px-4 py-10 sm:px-6">
+        <main className="mx-auto grid w-full max-w-[100rem] gap-6 px-4 py-10 sm:px-6">
           <nav className="text-sm text-slate-500">
             <Link href="/units" className="font-medium text-slate-700 hover:text-slate-950">
               module {assessmentPath?.unit.order_index ?? ""}
@@ -131,11 +131,8 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
   const [result, setResult] = useState<QuizSubmitResult | null>(null);
   const [isRetakingQuiz, setIsRetakingQuiz] = useState(false);
   const [isEditingResponse, setIsEditingResponse] = useState(false);
-  const [showQuizReview, setShowQuizReview] = useState(false);
-  const [showPsetReview, setShowPsetReview] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [psetError, setPsetError] = useState("");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -174,12 +171,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
       ? progress?.quiz_attempts.find((attempt) => attempt.quiz_id === quiz.id)?.score ?? null
       : null;
   }, [latestQuizAttempt, progress, quiz, result]);
-  const assessments = useMemo(() => flattenAssessments(units), [units]);
-  const currentAssessmentIndex = assessments.findIndex(
-    (entry) => entry.lesson.id === lesson.id,
-  );
-  const nextAssessment = assessments[currentAssessmentIndex + 1]?.lesson;
-  const currentModule = assessments[currentAssessmentIndex]?.unit;
   const completionState = isComplete
     ? "complete"
     : hasQuizAttempt || result || writtenResponse
@@ -267,7 +258,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
     }
 
     setIsSubmitting(true);
-    setMessage("");
     setError("");
 
     try {
@@ -283,11 +273,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         await completeLesson(lessonId, token);
         setProgress(await fetchMyProgress(token));
       }
-      setMessage(
-        !quiz || hasQuizAttempt || result
-          ? "written response submitted. assessment is now complete."
-          : "written response submitted. submit the quiz to complete this assessment.",
-      );
     } catch (caughtError) {
       setPsetError(
         caughtError instanceof Error ? caughtError.message : "could not submit response",
@@ -323,7 +308,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
     }
 
     setIsSubmitting(true);
-    setMessage("");
     setQuizError("");
 
     try {
@@ -337,11 +321,8 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         },
         token,
       );
-      // keep the result so per-question correct/incorrect highlighting stays
-      // visible; retaking the quiz clears it
       setResult(quizResult);
       setIsRetakingQuiz(false);
-      setShowQuizReview(false);
       if (writtenResponse) {
         await completeLesson(lessonId, token);
       }
@@ -354,11 +335,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
           throw caughtError;
         }),
-      );
-      setMessage(
-        writtenResponse
-          ? "quiz submitted. assessment is now complete."
-          : "quiz submitted. submit your written response to complete this assessment.",
       );
     } catch (caughtError) {
       setQuizError(caughtError instanceof Error ? caughtError.message : "could not submit quiz");
@@ -396,13 +372,17 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
             <h2 className="mt-1 text-lg font-semibold text-slate-950">
               {isComplete ? "assessment complete" : "submission checklist"}
             </h2>
-            {!isComplete ? null : (
+            {isComplete ? (
               <p className="mt-1 text-sm leading-6 text-slate-600">
-                {quiz
-                  ? "quiz and written response are both saved."
-                  : "your written response is saved."}
+                quiz and written response are both saved.{" "}
+                <Link
+                  href={`/lessons/${lesson.id}/review`}
+                  className="font-semibold text-emerald-700 hover:text-emerald-800"
+                >
+                  review your work
+                </Link>
               </p>
-            )}
+            ) : null}
           </div>
           <div className="grid min-w-44 gap-2 text-sm">
             <span className="flex items-center justify-between gap-4 rounded-md bg-white px-3 py-2 text-slate-700">
@@ -433,12 +413,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
         </div>
       </div>
 
-      {message ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {message}
-        </div>
-      ) : null}
-
       {error ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -459,54 +433,15 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
 
         {writtenResponse && !isEditingResponse ? (
           <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-950">
-                  submitted for teacher review
-                </p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  your latest written response is saved. view it or revise it
-                  before teacher review.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPsetReview(!showPsetReview)}
-                className="min-h-10 w-fit min-w-36 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+            <p className="text-sm text-slate-600">
+              submitted for teacher review.{" "}
+              <Link
+                href={`/lessons/${lesson.id}/review`}
+                className="font-semibold text-emerald-700 hover:text-emerald-800"
               >
-                {showPsetReview ? "hide response" : "view response"}
-              </button>
-            </div>
-            {showPsetReview ? (
-              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4">
-                <p className="text-xs font-semibold uppercase text-emerald-700">
-                  your submitted response
-                </p>
-                <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-800">
-                  {writtenResponse.response_text}
-                </p>
-                {writtenResponse.feedback ? (
-                  <div className="mt-3 rounded-md border border-slate-200 bg-white p-3">
-                    <p className="text-xs font-semibold uppercase text-slate-500">teacher feedback</p>
-                    <p className="mt-1 text-sm leading-6 text-slate-700">{writtenResponse.feedback}</p>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsEditingResponse(true);
-                  setMessage("");
-                  setError("");
-                  setPsetError("");
-                }}
-                className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                revise response
-              </button>
-            </div>
+                review or revise your response
+              </Link>
+            </p>
           </div>
         ) : (
           <>
@@ -536,7 +471,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                   onClick={() => {
                     setResponseText(writtenResponse.response_text);
                     setIsEditingResponse(false);
-                    setMessage("");
                     setError("");
                     setPsetError("");
                   }}
@@ -571,61 +505,16 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           {latestQuizScore !== null && !result && !isRetakingQuiz ? (
             <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-950">
-                    latest quiz score: {latestQuizScore}%
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
-                    your latest attempt is saved. retake the quiz to submit a new
-                    score for this case study.
-                  </p>
-                </div>
-                {latestQuizAttempt ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowQuizReview(!showQuizReview)}
-                    className="min-h-10 w-fit rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold leading-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-                  >
-                    {showQuizReview ? "hide response" : "view response"}
-                  </button>
-                ) : null}
-              </div>
-              {showQuizReview ? (
-                <div className="grid gap-3">
-                  {latestQuizAttempt && latestQuizAttempt.answers.length > 0 ? (
-                    quiz.questions.map((question) => {
-                      const answer = latestQuizAttempt.answers.find(
-                        (entry) => entry.question_id === question.id,
-                      );
-
-                      return (
-                        <QuizQuestionCard
-                          key={question.id}
-                          question={question}
-                          selectedOptionId={answer?.selected_option_id ?? null}
-                          correctOptionId={answer?.correct_option_id ?? null}
-                          isSubmitted
-                        />
-                      );
-                    })
-                  ) : (
-                    <p className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-600">
-                      answer history was not stored for this older attempt. retake
-                      the quiz to save reviewable answers.
-                    </p>
-                  )}
-                </div>
-              ) : null}
-              <div className="flex justify-end">
+                <p className="text-sm text-slate-600">
+                  latest score: <strong className="text-slate-950">{latestQuizScore}%</strong>
+                </p>
                 <button
                   type="button"
                   onClick={() => {
                     setIsRetakingQuiz(true);
                     setSelectedAnswers({});
                     setResult(null);
-                    setShowQuizReview(false);
                     setCurrentQuestionIndex(0);
-                    setMessage("");
                     setError("");
                     setQuizError("");
                   }}
@@ -711,8 +600,17 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
                 </button>
                 {activeQuestionIndex >= quiz.questions.length - 1 ? (
                   <button
-                    type="submit"
+                    type="button"
                     disabled={isSubmitting}
+                    onClick={() => {
+                      // explicit click, not a form enter: never auto-submit on
+                      // navigation. the wrapper form handles validation.
+                      if (!isSubmitting) {
+                        void handleSubmitQuiz(
+                          new Event("submit", { cancelable: true }) as unknown as FormEvent<HTMLFormElement>,
+                        );
+                      }
+                    }}
                     className="h-10 w-fit rounded-md bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
                     {isSubmitting ? "submitting..." : "submit quiz"}
@@ -742,52 +640,9 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
               </p>
               <p className="text-sm leading-6 text-emerald-800">
                 {writtenResponse
-                  ? "quiz submitted. your written response is already saved, so this assessment is now complete."
-                  : "quiz submitted. submit your written response above to complete this assessment."}
+                  ? "assessment complete."
+                  : "quiz submitted. the written response completes this assessment."}
               </p>
-            </div>
-          ) : null}
-
-          {result ? (
-            <p className="text-sm font-semibold text-slate-950">review your answers</p>
-          ) : null}
-
-          {result
-            ? quiz.questions.map((question) => {
-                const questionResult = result.results.find(
-                  (entry) => entry.question_id === question.id,
-                );
-
-                return (
-                  <QuizQuestionCard
-                    key={question.id}
-                    question={question}
-                    selectedOptionId={selectedAnswers[question.id] ?? null}
-                    correctOptionId={questionResult?.correct_option_id ?? null}
-                    isSubmitted
-                  />
-                );
-              })
-            : null}
-
-          {result ? (
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRetakingQuiz(true);
-                  setSelectedAnswers({});
-                  setResult(null);
-                  setShowQuizReview(false);
-                  setCurrentQuestionIndex(0);
-                  setMessage("");
-                  setError("");
-                  setQuizError("");
-                }}
-                className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                retake quiz
-              </button>
             </div>
           ) : null}
         </form>
@@ -796,32 +651,6 @@ function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] 
           no quiz has been added to this assessment yet.
         </div>
       )}
-
-      {isComplete ? (
-        <div className="flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <Link
-            href={currentModule ? `/units/${currentModule.id}` : "/assessments"}
-            className="flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-          >
-            back to module
-          </Link>
-          {nextAssessment ? (
-            <Link
-              href={`/lessons/${nextAssessment.id}`}
-              className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              next assessment
-            </Link>
-          ) : (
-            <Link
-              href="/units"
-              className="flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              all modules
-            </Link>
-          )}
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -878,4 +707,3 @@ function QuizQuestionCard({
     </fieldset>
   );
 }
-

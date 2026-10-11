@@ -85,7 +85,7 @@ function AdminDashboard({ email }: { email: string }) {
   }
 
   return (
-    <main className="grid w-full gap-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto grid w-full max-w-[100rem] gap-6 px-4 py-10 sm:px-6">
       <div className="grid gap-2">
         <p className="text-sm font-semibold text-emerald-700">teacher dashboard</p>
         <h1 className="text-3xl font-semibold tracking-normal text-slate-950">
@@ -166,6 +166,16 @@ function ReviewPanel({
   isSaving: boolean;
   onTogglePsetReview: (response: AdminPsetResponse) => void;
 }) {
+  const [queueFilter, setQueueFilter] = useState<"pending" | "all" | "reviewed">(
+    "pending",
+  );
+  const filteredPsets =
+    queueFilter === "pending"
+      ? dashboard.pset_responses.filter((response) => !response.reviewed)
+      : queueFilter === "reviewed"
+        ? dashboard.pset_responses.filter((response) => response.reviewed)
+        : dashboard.pset_responses;
+
   return (
     <section className="grid gap-5 rounded-md border border-slate-200 bg-white p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -175,19 +185,33 @@ function ReviewPanel({
             review written responses and leave feedback for students.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
-          <span className="rounded-md bg-slate-100 px-2 py-1">
-            {dashboard.pending_psets} pending
-          </span>
-          <span className="rounded-md bg-emerald-50 px-2 py-1 text-emerald-700">
-            {dashboard.reviewed_psets} reviewed
-          </span>
+        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
+          <div className="flex overflow-hidden rounded-md border border-slate-200">
+            {(["pending", "reviewed", "all"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setQueueFilter(option)}
+                className={`px-3 py-1.5 transition ${
+                  queueFilter === option
+                    ? "bg-slate-950 text-white"
+                    : "bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {option === "pending"
+                  ? `pending (${dashboard.pending_psets})`
+                  : option === "reviewed"
+                    ? `reviewed (${dashboard.reviewed_psets})`
+                    : `all (${dashboard.pset_responses.length})`}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="grid gap-3">
-        {dashboard.pset_responses.length > 0 ? (
-          dashboard.pset_responses.map((response) => (
+        {filteredPsets.length > 0 ? (
+          filteredPsets.map((response) => (
             <PsetReviewCard
               key={response.id}
               response={response}
@@ -196,7 +220,13 @@ function ReviewPanel({
             />
           ))
         ) : (
-          <p className="text-sm text-slate-500">no pset responses submitted yet.</p>
+          <p className="text-sm text-slate-500">
+            {queueFilter === "pending"
+              ? "no pending pset responses."
+              : queueFilter === "reviewed"
+                ? "no reviewed pset responses yet."
+                : "no pset responses submitted yet."}
+          </p>
         )}
       </div>
 

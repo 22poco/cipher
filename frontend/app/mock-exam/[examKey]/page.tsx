@@ -928,43 +928,118 @@ function ResultsScreen({
       </section>
 
       <section className="grid gap-3">
-        <h2 className="text-lg font-semibold text-slate-950">mcq answer review</h2>
-        {paper.questions.map((question, index) => {
-          const item = resultsByQuestion.get(question.id);
-          const correctOption = question.options.find(
-            (option) => option.id === item?.correct_option_id,
-          );
-          const selectedOption = question.options.find(
-            (option) => option.id === item?.selected_option_id,
-          );
-
-          return (
-            <article
-              key={question.id}
-              className={`rounded-md border p-4 ${
-                item?.is_correct
-                  ? "border-emerald-200 bg-emerald-50"
-                  : "border-red-200 bg-red-50"
-              }`}
-            >
-              <p className="text-xs font-semibold text-slate-500">
-                question {index + 1}
-              </p>
-              <p className="mt-1 font-semibold text-slate-950">
-                {question.question_text}
-              </p>
-              <div className="mt-3 grid gap-1 text-sm text-slate-700">
-                <p>
-                  your answer: {selectedOption ? selectedOption.option_text : "skipped"}
-                </p>
-                {!item?.is_correct && correctOption ? (
-                  <p className="text-red-700">correct answer: {correctOption.option_text}</p>
-                ) : null}
-              </div>
-            </article>
-          );
-        })}
+        <McqReview answers={paper.questions} results={resultsByQuestion} />
       </section>
     </main>
+  );
+}
+
+function McqReview({
+  answers,
+  results,
+}: {
+  answers: MockExamPaper["questions"];
+  results: Map<number, MockExamSubmitResult["results"][number]>;
+}) {
+  const [current, setCurrent] = useState(0);
+  const question = answers[current];
+  const item = results.get(question.id);
+  const correctCount = answers.filter((q) => results.get(q.id)?.is_correct).length;
+
+  if (!question) {
+    return null;
+  }
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-slate-950">mcq answer review</h2>
+        <p className="text-sm text-slate-600">
+          {correctCount}/{answers.length} correct
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-md border border-slate-200 bg-white px-3 py-2.5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          question {current + 1} of {answers.length}
+        </p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {answers.map((q, index) => {
+            const isCorrect = results.get(q.id)?.is_correct;
+            return (
+              <button
+                key={q.id}
+                type="button"
+                onClick={() => setCurrent(index)}
+                aria-label={`review question ${index + 1}`}
+                className={`h-2.5 w-2.5 rounded-full transition ${
+                  index === current
+                    ? "bg-slate-950 ring-2 ring-slate-300"
+                    : isCorrect
+                      ? "bg-emerald-500 hover:bg-emerald-600"
+                      : "bg-red-400 hover:bg-red-500"
+                }`}
+              />
+            );
+          })}
+        </div>
+        <p className="text-xs font-medium text-slate-500">
+          green correct · red missed
+        </p>
+      </div>
+
+      <fieldset className="rounded-md border border-slate-200 bg-white p-5">
+        <legend className="px-1 text-sm font-semibold text-slate-950">
+          {current + 1}. {question.question_text}
+        </legend>
+        <div className="mt-3 grid gap-2">
+          {question.options.map((option) => {
+            const isSelected = item?.selected_option_id === option.id;
+            const isCorrect = item?.correct_option_id === option.id;
+            const labelClass = isCorrect
+              ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+              : isSelected
+                ? "border-red-300 bg-red-50 text-red-800"
+                : "border-slate-200 text-slate-600";
+
+            return (
+              <div
+                key={option.id}
+                className={`flex gap-3 rounded-md border px-3 py-2 text-sm ${labelClass}`}
+              >
+                <span className="font-bold">{"ABCD"[question.options.indexOf(option)] ?? "?"}</span>
+                <span>{option.option_text}</span>
+                {isCorrect || isSelected ? (
+                  <span className="ml-auto shrink-0 self-center text-xs font-semibold">
+                    {isCorrect ? "correct answer" : isSelected ? "your answer" : ""}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          disabled={current === 0}
+          onClick={() => setCurrent((i) => Math.max(0, i - 1))}
+          className="h-10 w-fit rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-950 hover:text-slate-950 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+        >
+          back
+        </button>
+        {current >= answers.length - 1 ? (
+          <p className="text-sm text-slate-500">end of review</p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCurrent((i) => Math.min(answers.length - 1, i + 1))}
+            className="h-10 w-fit rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            next
+          </button>
+        )}
+      </div>
+    </>
   );
 }

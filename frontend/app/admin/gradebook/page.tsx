@@ -51,7 +51,7 @@ function GradebookPage() {
   }, [loadGradebook]);
 
   return (
-    <main className="grid w-full gap-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto grid w-full max-w-[100rem] gap-6 px-4 py-10 sm:px-6">
       <div className="grid gap-2">
         <p className="text-sm font-semibold text-emerald-700">teacher dashboard</p>
         <h1 className="text-3xl font-semibold tracking-normal text-slate-950">gradebook</h1>
@@ -81,12 +81,12 @@ function GradebookPage() {
       ) : null}
 
       <section className="overflow-x-auto rounded-md border border-slate-200 bg-white">
-        <table className="w-full min-w-[640px] text-left text-sm">
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
             <tr>
               <th className="py-3 px-4">student</th>
-              <th className="py-3 px-4">lessons</th>
-              <th className="py-3 px-4">quiz attempts</th>
+              <th className="py-3 px-4">assessments</th>
+              <th className="py-3 px-4">attempts</th>
               <th className="py-3 px-4">latest quiz</th>
               <th className="py-3 px-4">avg quiz</th>
               <th className="py-3 px-4">psets</th>
@@ -116,24 +116,53 @@ function GradebookPage() {
 }
 
 function GradebookRow({ row }: { row: AdminGradebookRow }) {
+  const completionPercent = row.total_assessments
+    ? Math.round((row.completed_lessons / row.total_assessments) * 100)
+    : 0;
+
   return (
     <tr className="border-b border-slate-100 last:border-0">
       <td className="py-3 px-4">
         <p className="font-semibold text-slate-950">{row.student_name}</p>
         <p className="mt-1 text-xs text-slate-500">{row.student_email}</p>
       </td>
-      <td className="py-3 px-4 text-slate-700">
-        {row.completed_lessons}/{row.total_assessments}
+      <td className="py-3 px-4">
+        <p className="text-slate-700">
+          {row.completed_lessons}/{row.total_assessments}
+        </p>
+        <div className="mt-1.5 h-1.5 w-28 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full bg-emerald-600"
+            style={{ width: `${completionPercent}%` }}
+          />
+        </div>
       </td>
       <td className="py-3 px-4 text-slate-700">{row.quiz_attempts}</td>
-      <td className="py-3 px-4 text-slate-700">
-        {row.latest_quiz_score === null ? "—" : `${row.latest_quiz_score}%`}
+      <td className="py-3 px-4">
+        {row.latest_quiz_score === null ? (
+          <span className="text-slate-400">—</span>
+        ) : (
+          <span
+            className={`rounded-md px-2 py-1 text-xs font-semibold ${
+              row.latest_quiz_score >= 70
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-amber-50 text-amber-700"
+            }`}
+          >
+            {row.latest_quiz_score}%
+          </span>
+        )}
       </td>
       <td className="py-3 px-4 text-slate-700">
         {row.average_quiz_score === null ? "—" : `${row.average_quiz_score}%`}
       </td>
-      <td className="py-3 px-4 text-slate-700">
-        {row.pset_submissions} submitted, {row.pending_psets} pending
+      <td className="py-3 px-4">
+        <span className="text-slate-700">{row.pset_submissions} submitted</span>
+        {row.pending_psets > 0 ? (
+          <span className="ml-2 rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
+            {row.pending_psets} pending
+          </span>
+        ) : null}
       </td>
     </tr>
   );
