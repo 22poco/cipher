@@ -93,7 +93,7 @@ export default function LessonDetailPage() {
             </article>
 
             <div className="grid gap-6">
-              <AssessmentWorkPanel lesson={lesson} units={units} />
+              <AssessmentWorkPanel lesson={lesson} />
             </div>
           </div>
         </main>
@@ -120,7 +120,7 @@ function findAssessmentPath(units: Unit[], lessonId: number) {
   return flattenAssessments(units).find((entry) => entry.lesson.id === lessonId);
 }
 
-function AssessmentWorkPanel({ lesson, units }: { lesson: Lesson; units: Unit[] }) {
+function AssessmentWorkPanel({ lesson }: { lesson: Lesson }) {
   const lessonId = lesson.id.toString();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [quizAttempts, setQuizAttempts] = useState<QuizAttemptDetail[]>([]);
