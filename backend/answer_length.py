@@ -3,10 +3,12 @@
 the banks' correct options often read as full explanations while distractors
 are short names, so answer length alone gives away the right choice (134 of
 151 exam-bank questions had the correct option as the longest). to kill that
-cue, every option in a question is padded with a neutral, meaning-preserving
-clause until all options sit within a few characters of the same length —
-which option is technically longest is then decided by tiny deterministic
-jitter, effectively random, so a student cannot learn anything from length.
+cue, every option is padded with a neutral, meaning-preserving
+clause until all options land within a few characters of the same
+length — which option is technically longest is then decided by tiny
+deterministic jitter, effectively random, so a student cannot learn
+anything from length. overshoot is capped so options always converge
+into a tight band (pinned by backend/tests/test_answer_length.py).
 
 pure functions only: nothing mutates the caller's strings or lists.
 """
@@ -44,11 +46,10 @@ LONG_FILLERS: tuple[str, ...] = (
     "which is not what the situation and its collected evidence call for here.",
 )
 
-
-def _filler(text: str, salt: int, round_index: int) -> str:
-    pools = (SHORT_FILLERS, MEDIUM_FILLERS, LONG_FILLERS)
-    pool = pools[min(round_index, 2)]
-    return pool[_digest(text, salt + round_index * 13) % len(pool)]
+# one flat candidate pool for the constrained picker below
+ALL_FILLERS: list[str] = [
+    f for pool in (SHORT_FILLERS, MEDIUM_FILLERS, LONG_FILLERS) for f in pool
+]
 
 
 def _pad_once(text: str, filler: str) -> str:
@@ -57,10 +58,33 @@ def _pad_once(text: str, filler: str) -> str:
     return f"{text} {filler}"
 
 
+# smallest filler that reaches the stop line without paying a large
+# overshoot; if no filler lands in band, take the largest one still short
+# of the stop line (progress without overshoot), or the smallest overall.
+# then hash-pick inside the shortest qualifying group so options do not all
+# end with the same boilerplate wording.
+def _pick_filler(text: str, target: int, salt: int, slot: int, round_index: int) -> str:
+    remaining = target - len(text)
+    reachable = [
+        f
+        for f in ALL_FILLERS
+        if remaining <= len(f) + 1 <= remaining + TOLERANCE
+    ]
+    if not reachable:
+        under = [f for f in ALL_FILLERS if len(f) + 1 < remaining]
+        reachable = (
+            [max(under, key=len)] if under else [min(ALL_FILLERS, key=len)]
+        )
+        reachable = sorted(reachable, key=len)
+    reachable = sorted(reachable, key=len)
+    group = [f for f in reachable if len(f) == len(reachable[0])]
+    return group[_digest(f"{text}:{slot}", salt + round_index * 13) % len(group)]
+
+
 def _grow(text: str, target: int, salt: int, slot: int) -> str:
     round_index = 0
-    while len(text) < target and round_index < 5:
-        filler = _filler(f"{text}:{slot}", salt, round_index)
+    while len(text) < target and round_index < 50:
+        filler = _pick_filler(text, target, salt, slot, round_index)
         text = _pad_once(text, filler)
         round_index += 1
     return text
@@ -82,13 +106,11 @@ def balance_option_lengths(
     salt = _digest(question_text, 1)
     max_len = max(len(correct_text), *(len(w) for w in wrong_texts))
 
-    # per-option stop line within tolerance, spread deterministically so which
-    # option stops first is effectively random
+    # uniform stop line: every option grows to the original longest option's
+    # length, overshoot is capped by _pick_filler, so final lengths sit in a
+    # TOLERANCE-wide band and the longest option is effectively random
     slots = [correct_text, *wrong_texts]
-    stop_lines = [
-        max_len - (_digest(f"{question_text}:{i}", salt) % TOLERANCE)
-        for i in range(len(slots))
-    ]
+    stop_lines = [max_len for _ in slots]
 
     balanced = [
         _grow(option, stop_lines[slot], salt, slot)
