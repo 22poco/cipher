@@ -4,7 +4,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { ProtectedPage } from "../components/protected-page";
-import { fetchMyProgress, fetchUnits, type ProgressSummary, type Unit } from "@/lib/api";
+import {
+  fetchMyMockExamAttempts,
+  fetchMyProgress,
+  fetchUnits,
+  type MockExamAttempt,
+  type ProgressSummary,
+  type Unit,
+} from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
 export default function DashboardPage() {
@@ -88,6 +95,7 @@ function QuizScoreChart({ attempts }: { attempts: ProgressSummary["quiz_attempts
 function StudentDashboard({ name, role }: { name: string; role: string }) {
   const [progress, setProgress] = useState<ProgressSummary | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [examAttempts, setExamAttempts] = useState<MockExamAttempt[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -97,10 +105,11 @@ function StudentDashboard({ name, role }: { name: string; role: string }) {
       return;
     }
 
-    Promise.all([fetchMyProgress(token), fetchUnits(token)])
-      .then(([progressData, unitsData]) => {
+    Promise.all([fetchMyProgress(token), fetchUnits(token), fetchMyMockExamAttempts(token)])
+      .then(([progressData, unitsData, examAttemptsData]) => {
         setProgress(progressData);
         setUnits(unitsData);
+        setExamAttempts(examAttemptsData);
       })
       .catch((caughtError) =>
         setError(caughtError instanceof Error ? caughtError.message : "could not load progress"),
@@ -273,6 +282,36 @@ function StudentDashboard({ name, role }: { name: string; role: string }) {
           </Link>
         </div>
       </section>
+
+      {(() => {
+        const awaiting = examAttempts.filter(
+          (attempt) => attempt.frq_response !== null && !attempt.frq_reviewed,
+        );
+
+        return awaiting.length > 0 ? (
+          <section className="rounded-md border border-amber-200 bg-amber-50 p-5">
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">
+                  {awaiting.length === 1
+                    ? "1 exam awaiting teacher grading"
+                    : `${awaiting.length} exams awaiting teacher grading`}
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  your frq responses are in. once your teacher grades them, the
+                  combined scores appear on your exams page.
+                </p>
+              </div>
+              <Link
+                href="/mock-exam"
+                className="flex h-10 items-center justify-center rounded-md border border-amber-300 px-4 text-sm font-semibold text-amber-800 transition hover:border-amber-500"
+              >
+                view exams
+              </Link>
+            </div>
+          </section>
+        ) : null;
+      })()}
 
       <section className="rounded-md border border-emerald-200 bg-emerald-50 p-5">
         <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
