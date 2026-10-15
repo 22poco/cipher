@@ -121,7 +121,12 @@ function MockExamHub() {
                       {attemptLabel(attempt.exam_kind, attempt.unit_id)} ·{" "}
                       {new Date(attempt.submitted_at).toLocaleString()}
                     </span>
-                    <span className="flex items-center gap-2">
+                    <span className="flex flex-wrap items-center gap-2">
+                      {attempt.frq_response !== null && !attempt.frq_reviewed ? (
+                        <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                          frq awaiting review
+                        </span>
+                      ) : null}
                       {attempt.frq_reviewed && attempt.frq_score !== null ? (
                         <span className="rounded-md bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700">
                           frq {attempt.frq_score}/14
@@ -129,6 +134,11 @@ function MockExamHub() {
                       ) : null}
                       <span className="font-semibold text-slate-950">
                         {attempt.score}% ({attempt.correct_count}/{attempt.total_questions})
+                        {attempt.frq_response !== null && !attempt.frq_reviewed ? (
+                          <span className="ml-1.5 text-xs font-normal text-slate-500">
+                            mcq only
+                          </span>
+                        ) : null}
                       </span>
                     </span>
                   </div>
