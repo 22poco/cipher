@@ -1,0 +1,42 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: cipher_db
+          POSTGRES_USER: cipher_user
+          POSTGRES_PASSWORD: cipher_password
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U cipher_user"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: run backend test suite
+        env:
+          DATABASE_URL: postgresql://cipher_user:cipher_password@localhost:5433/cipher_db
+        run: python -m pytest backend/tests -q
