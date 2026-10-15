@@ -95,15 +95,41 @@ def test_degenerate_inputs_pass_through():
 def test_full_bank_has_no_detectable_length_tell():
     """the guarantee over the real exam bank: no question where the correct
     option is strictly the longest by more than the jitter band."""
-    from backend.exam_bank import MCQ_BANK as EXAM_BANK
+    from backend.exam_bank import MCQ_BANK
+
+    offenders = _bank_offenders(MCQ_BANK)
+
+    assert not offenders, f"length tell survives after balancing for: {offenders}"
+
+
+def test_topic_quiz_bank_has_no_detectable_length_tell():
+    """same guarantee over the authored topic-quiz questions in AP_MODULES,
+    exercised through the same helper the seeder calls."""
+    from backend.seed_course import AP_MODULES, balance_topic_options
 
     offenders = []
-    for question in EXAM_BANK:
+    for module in AP_MODULES:
+        for topic in module["topics"]:
+            for item in topic["questions"]:
+                options = balance_topic_options(item)
+                correct, wrongs = (
+                    options[item["answer"]],
+                    [opt for i, opt in enumerate(options) if i != item["answer"]],
+                )
+                lengths = [len(correct), *(len(w) for w in wrongs)]
+                if len(correct) == max(lengths) and len(correct) - min(lengths) > 12:
+                    offenders.append(item["text"][:60])
+
+    assert not offenders, f"length tell survives after balancing for: {offenders}"
+
+
+def _bank_offenders(bank):
+    offenders = []
+    for item in bank:
         correct, wrongs = balance_option_lengths(
-            question["correct"], question["wrong"], question["question_text"]
+            item["correct"], item["wrong"], item["question_text"]
         )
         lengths = [len(correct), *(len(w) for w in wrongs)]
         if len(correct) == max(lengths) and len(correct) - min(lengths) > 12:
-            offenders.append(question["question_text"][:60])
-
-    assert not offenders, f"length tell survives after balancing for: {offenders}"
+            offenders.append(item["question_text"][:60])
+    return offenders
