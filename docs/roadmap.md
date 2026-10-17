@@ -95,10 +95,15 @@ nice-to-have learning content, code editor work, full lesson hosting, and extra 
 
 ## remaining before handoff
 
-- any bugs found in the final manual test pass
+- one-pass end-to-end click-through of the student + teacher frq flow (take exam -> submit -> teacher grades -> student sees combined score), with a short go/no-go write-up
 - a last content quality read-through as a student would see it
 - final batch of ui/ux polish requests
 - deployment hardening (tls + secrets) if the server leaves the school lan
+
+## known deferred limitations (accepted for now)
+
+- exam timers run in the browser: closing the tab pauses the clock, so a determined student can stretch an attempt past the time limit. server-side timers (a deadline stored at attempt start and enforced on submit) close this gap.
+- the extra-tab sample-solution pane shows student-facing explanations, not the official ap-style model answers.
 
 ## future work
 
