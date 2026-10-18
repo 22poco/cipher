@@ -20,6 +20,51 @@ import {
   readSavedProgress,
 } from "./progress";
 
+// same per-module accent families as the modules page, so unit exams and
+// module cards visually line up across tabs.
+const unitColors: Record<
+  number,
+  { chip: string; text: string; bar: string; badge: string }
+> = {
+  1: {
+    chip: "bg-emerald-100 text-emerald-700",
+    text: "text-emerald-700",
+    bar: "bg-emerald-500",
+    badge: "bg-emerald-50 text-emerald-700",
+  },
+  2: {
+    chip: "bg-sky-100 text-sky-700",
+    text: "text-sky-700",
+    bar: "bg-sky-500",
+    badge: "bg-sky-50 text-sky-700",
+  },
+  3: {
+    chip: "bg-violet-100 text-violet-700",
+    text: "text-violet-700",
+    bar: "bg-violet-500",
+    badge: "bg-violet-50 text-violet-700",
+  },
+  4: {
+    chip: "bg-amber-100 text-amber-700",
+    text: "text-amber-700",
+    bar: "bg-amber-500",
+    badge: "bg-amber-50 text-amber-700",
+  },
+  5: {
+    chip: "bg-rose-100 text-rose-700",
+    text: "text-rose-700",
+    bar: "bg-rose-500",
+    badge: "bg-rose-50 text-rose-700",
+  },
+};
+
+const FALLBACK_COLOR = {
+  chip: "bg-slate-100 text-slate-700",
+  text: "text-slate-700",
+  bar: "bg-slate-500",
+  badge: "bg-slate-100 text-slate-700",
+};
+
 export default function MockExamPage() {
   return (
     <ProtectedPage>
@@ -101,7 +146,7 @@ function MockExamHub() {
 
           <section className="grid gap-4">
             <h2 className="text-xl font-semibold text-slate-950">unit exams</h2>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5 items-stretch">
               {unitExams.map((exam) => (
                 <UnitExamCard key={exam.key} exam={exam} />
               ))}
@@ -177,8 +222,10 @@ function FullExamCard({ exam }: { exam: MockExamDefinition }) {
 }
 
 function UnitExamCard({ exam }: { exam: MockExamDefinition }) {
+  const colors = (exam.unit_id !== null && unitColors[exam.unit_id]) || FALLBACK_COLOR;
+
   return (
-    <ExamCardShell exam={exam}>
+    <ExamCardShell exam={exam} colors={colors}>
       <div className="grid gap-3 text-sm leading-6 text-slate-700">
         <p>{exam.description}</p>
       </div>
@@ -189,10 +236,12 @@ function UnitExamCard({ exam }: { exam: MockExamDefinition }) {
 function ExamCardShell({
   exam,
   featured = false,
+  colors = FALLBACK_COLOR,
   children,
 }: {
   exam: MockExamDefinition;
   featured?: boolean;
+  colors?: { chip: string; text: string; bar: string; badge: string };
   children: React.ReactNode;
 }) {
   const [resume, setResume] = useState(() => readSavedProgress(exam.key));
@@ -221,25 +270,39 @@ function ExamCardShell({
 
   return (
     <section
-      className={`grid gap-4 rounded-md border bg-white p-6 ${
+      className={`grid grid-rows-[auto_auto_1fr_auto] gap-4 rounded-md border bg-white p-6 ${
         featured ? "border-slate-950 shadow-sm" : "border-slate-200"
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
+          {!featured ? (
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold ${colors.chip}`}
+            >
+              {exam.unit_id}
+            </div>
+          ) : null}
           <p
             className={`text-xs font-semibold uppercase tracking-wide ${
-              featured ? "text-emerald-700" : "text-slate-500"
-            }`}
+              featured ? "text-emerald-700" : colors.text
+            } ${!featured ? "mt-2" : ""}`}
           >
-            {featured ? "full course exam" : "unit exam"}
+            {featured ? "Full Course Exam".toUpperCase() : `module ${exam.unit_id} exam`}
           </p>
-          <h3 className="mt-1 text-xl font-semibold text-slate-950">{exam.title}</h3>
+          <h3 className="mt-1 text-xl font-semibold text-slate-950">
+            {featured ? exam.title.toUpperCase() : exam.title}
+          </h3>
         </div>
-        <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
+        <span
+          className={`rounded-md px-2 py-1 text-xs font-semibold ${
+            featured ? "bg-slate-100 text-slate-600" : colors.badge
+          }`}
+        >
           {exam.mcq_count} mcq + frq · {formatDuration((exam.time_limit_minutes ?? 0) * 60)}
         </span>
       </div>
+      <div className={`h-1 rounded-full ${featured ? "bg-slate-900" : colors.bar}`} />
 
       {children}
 
