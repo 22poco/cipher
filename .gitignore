@@ -8,3 +8,9 @@ node_modules/
 .freebuff/
 .agents/
 database/init/*.sql
+
+# local dev scratch files
+.backend-dev.pid
+.frontend-dev.pid
+.backend-dev.log
+.frontend-dev.log
