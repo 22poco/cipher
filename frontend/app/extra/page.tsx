@@ -114,7 +114,7 @@ function ExtraCarousel({ cases }: { cases: PracticeCaseIndex[] }) {
             extra
           </h1>
           <p className="max-w-3xl text-sm leading-6 text-slate-600">
-            bonus practice that does not count for anything. No one sees this
+            bonus practice that does not count for anything. no one sees this
             work, so it is a safe place to mess up and try again.
           </p>
         </div>
@@ -133,7 +133,7 @@ function ExtraCarousel({ cases }: { cases: PracticeCaseIndex[] }) {
           extra
         </h1>
         <p className="max-w-3xl text-sm leading-6 text-slate-600">
-          bonus practice that does not count for anything. No one sees this
+          bonus practice that does not count for anything. no one sees this
           work, so it is a safe place to mess up and try again.
         </p>
       </div>
@@ -143,52 +143,37 @@ function ExtraCarousel({ cases }: { cases: PracticeCaseIndex[] }) {
       >
         {/* banner header in the module family color, distinct from the plain
             white cards on the modules tab */}
-        <div className="grid gap-4 p-6 pb-5">
+        <div className="grid justify-items-center gap-4 p-6 pb-5">
           <div className={`h-1.5 w-16 rounded-full ${colors.banner}`} />
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div
-                className={`flex h-12 w-12 items-center justify-center rounded-md text-xl font-bold ${colors.chip}`}
-              >
-                {active.order}
-              </div>
-              <div>
-                <p
-                  className={`text-xs font-semibold uppercase tracking-wide ${colors.text}`}
-                >
-                  module {active.order}
-                </p>
-                <h2 className="mt-0.5 text-2xl font-semibold text-slate-950">
-                  {active.title}
-                </h2>
-              </div>
+          <div className="flex items-center gap-4">
+            <div
+              className={`flex h-12 w-12 items-center justify-center rounded-md text-xl font-bold ${colors.chip}`}
+            >
+              {active.order}
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => go(-1)}
-                aria-label="previous module"
-                className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-lg font-semibold text-slate-600 transition hover:border-slate-950 hover:text-slate-950"
+            <div className="text-center">
+              <p
+                className={`text-xs font-semibold uppercase tracking-wide ${colors.text}`}
               >
-                ←
-              </button>
-              <span className="text-sm font-medium text-slate-500">
-                module {current + 1} of {modules.length}
-              </span>
-              <button
-                type="button"
-                onClick={() => go(1)}
-                aria-label="next module"
-                className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-lg font-semibold text-slate-600 transition hover:border-slate-950 hover:text-slate-950"
-              >
-                →
-              </button>
+                module {active.order}
+              </p>
+              <h2 className="mt-0.5 text-2xl font-semibold text-slate-950">
+                {active.title}
+              </h2>
             </div>
           </div>
 
-          {/* module selector dots: jump straight to any module */}
-          <div className="flex flex-wrap gap-1.5">
+          {/* module selector dots: jump straight to any module; arrows sit
+              beside the dot row so it reads as one centered control strip */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              aria-label="previous module"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-base font-semibold text-slate-600 transition hover:border-slate-950 hover:text-slate-950"
+            >
+              ←
+            </button>
             {modules.map((m, index) => (
               <button
                 key={m.order}
@@ -202,14 +187,31 @@ function ExtraCarousel({ cases }: { cases: PracticeCaseIndex[] }) {
                 }`}
               />
             ))}
+            <button
+              type="button"
+              onClick={() => go(1)}
+              aria-label="next module"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-base font-semibold text-slate-600 transition hover:border-slate-950 hover:text-slate-950"
+            >
+              →
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-center content-start gap-3 border-t border-slate-100 p-6">
+        {/* topic tiles. a plain centered flex-wrap row: rows establish
+            their own width, so a partial last row (4 topics -> 2+2, 5 -> 3+2)
+            always centers itself with equal margins on both sides. */}
+        <div
+          className="flex flex-wrap justify-center gap-3 border-t border-slate-100 p-6"
+        >
           {active.items.map((entry) => (
             <div
               key={entry.id}
-              className="w-full sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-0.5rem)]"
+              className={`w-full sm:w-[calc(50%-0.375rem)] ${
+                active.items.length === 4
+                  ? ""
+                  : "lg:w-[calc(33.333%-0.5rem)]"
+              }`}
             >
               <Link
                 href={`/lessons/${entry.lesson_id}/practice`}
@@ -224,6 +226,10 @@ function ExtraCarousel({ cases }: { cases: PracticeCaseIndex[] }) {
           ))}
         </div>
       </section>
+
+      <p className="text-center text-sm text-slate-500">
+        module {current + 1} of {modules.length}
+      </p>
     </main>
   );
 }
