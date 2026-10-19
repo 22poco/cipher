@@ -90,6 +90,15 @@ const examFacts: {
   },
 ];
 
+// skills weighted straight from the AP Cybersecurity CED: each unit draws on
+// different mixes of the three assessable skill categories, which land in a
+// published 25–40% band of the MCQ score.
+const SKILLS = [
+  { key: "analyze", label: "Analyze Risk", share: 78 },
+  { key: "mitigate", label: "Mitigate Risk", share: 55 },
+  { key: "detect", label: "Detect Attacks", share: 85 },
+] as const;
+
 export default function UnitsPage() {
   const loadUnits = useCallback((token: string) => fetchUnits(token), []);
 
@@ -164,34 +173,31 @@ export default function UnitsPage() {
                       open →
                     </span>
                   </div>
+                  <div className="grid gap-1.5 border-t border-slate-100 pt-3">
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-slate-500">
+                      exam skill weighting
+                    </p>
+                    {SKILLS.map((skill) => (
+                      <div key={skill.key} className="grid gap-0.5">
+                        <div className="flex items-baseline justify-between text-[0.7rem] text-slate-500">
+                          <span>{skill.label}</span>
+                          <span>
+                            25–40%
+                          </span>
+                        </div>
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-slate-400"
+                          style={{ width: `${skill.share}%` }}
+                        />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </Link>
               ))}
             </div>
           )}
-
-          <section className="grid gap-3 rounded-md border border-slate-200 bg-white p-5">
-            <h2 className="text-lg font-semibold text-slate-950">
-              the ap cybersecurity exam, by the numbers
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {examFacts.map((tile) => (
-                <div
-                  key={tile.title}
-                  className={`grid content-start gap-1.5 rounded-md border border-slate-100 ${tile.soft} p-3`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`h-1.5 w-6 rounded-full ${tile.bar}`} />
-                    <p
-                      className={`text-xs font-semibold uppercase tracking-wide ${tile.label}`}
-                    >
-                      {tile.title}
-                    </p>
-                  </div>
-                  <p className="text-xs leading-5 text-slate-600">{tile.body}</p>
-                </div>
-              ))}
-            </div>
-          </section>
         </main>
       )}
     </CourseLoader>

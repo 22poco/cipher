@@ -144,22 +144,15 @@ function ExtraCarousel({ cases }: { cases: PracticeCaseIndex[] }) {
         {/* banner header in the module family color, distinct from the plain
             white cards on the modules tab */}
         <div className="grid justify-items-center gap-4 p-6 pb-5">
-          <div className="flex items-center gap-4">
-            <div
-              className={`flex h-12 w-12 items-center justify-center rounded-md text-xl font-bold ${colors.chip}`}
+          <div className="text-center">
+            <p
+              className={`text-xs font-semibold uppercase tracking-wide ${colors.text}`}
             >
-              {active.order}
-            </div>
-            <div className="text-center">
-              <p
-                className={`text-xs font-semibold uppercase tracking-wide ${colors.text}`}
-              >
-                module {active.order}
-              </p>
-              <h2 className="mt-0.5 text-2xl font-semibold text-slate-950">
-                {active.title}
-              </h2>
-            </div>
+              module {active.order}
+            </p>
+            <h2 className="mt-0.5 text-2xl font-semibold text-slate-950">
+              {active.title}
+            </h2>
           </div>
 
           {/* module selector dots: jump straight to any module; arrows sit
@@ -226,9 +219,65 @@ function ExtraCarousel({ cases }: { cases: PracticeCaseIndex[] }) {
         </div>
       </section>
 
-      <p className="text-center text-sm text-slate-500">
-        module {current + 1} of {modules.length}
-      </p>
+      <section className="grid gap-3 rounded-md border border-slate-200 bg-white p-5">
+        <h2 className="text-lg font-semibold text-slate-950">
+          the ap cybersecurity exam, by the numbers
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              title: "60 questions · 80 minutes · 70%",
+              body: "Section I is 60 scenario-based multiple-choice questions in 80 minutes, worth 70% of the score. every question comes attached to realistic artifacts — logs, firewall rules, permission lists, policy documents — not standalone recall.",
+              soft: "bg-emerald-50",
+              bar: "bg-emerald-500",
+              label: "text-emerald-700",
+            },
+            {
+              title: "1 frq · 50 minutes · 30%",
+              body: "Section II is a single Device Security Analysis free-response question: 50 minutes, 30% of the score, graded against a 14-point rubric. it draws on the Mitigate Risk and Detect Attacks skill categories.",
+              soft: "bg-rose-50",
+              bar: "bg-rose-500",
+              label: "text-rose-700",
+            },
+            {
+              title: "skills are weighted 25–40%",
+              body: "the College Board publishes weighting by skill category, not by unit: Analyze Risk, Mitigate Risk, and Detect Attacks each land in a band of 25–40% of the exam — so no single unit dominates the score.",
+              soft: "bg-sky-50",
+              bar: "bg-sky-500",
+              label: "text-sky-700",
+            },
+            {
+              title: "what the frq hands you",
+              body: "the device security analysis gives you four sources for one device: the device policy, firewall rules, file permissions, and system/application logs. you interpret the policy, spot attack evidence in the logs, configure permissions and rules, and recommend hardening based on that evidence.",
+              soft: "bg-violet-50",
+              bar: "bg-violet-500",
+              label: "text-violet-700",
+            },
+            {
+              title: "a qualifying score stacks three ways",
+              body: "a passing score earns college credit/placement, the employer-endorsed AP Cybersecurity Credential aligned to the NICE framework, and a CompTIA Security+ exam voucher worth up to $350.",
+              soft: "bg-slate-50",
+              bar: "bg-slate-700",
+              label: "text-slate-700",
+            },
+          ].map((tile) => (
+            <div
+              key={tile.title}
+              className={`grid content-start gap-1.5 rounded-md border border-slate-100 ${tile.soft} p-3`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`h-1.5 w-6 rounded-full ${tile.bar}`} />
+                <p
+                  className={`text-xs font-semibold uppercase tracking-wide ${tile.label}`}
+                >
+                  {tile.title}
+                </p>
+              </div>
+              <p className="text-xs leading-5 text-slate-600">{tile.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
