@@ -44,9 +44,58 @@ const unitColors: Record<
   },
 };
 
-// nearest to test day-level readiness: the frq is 30% of the score, so a
-// strong mcq run with the frq still unreviewed lands around this band.
-const FULL_EXAM_SCORE_HINT = 70;
+// facts pulled straight from the AP Cybersecurity CED / College Board exam
+// format page — the stuff students won't already know just from class.
+const examFacts: {
+  title: string;
+  body: string;
+  soft: string;
+  bar: string;
+  label: string;
+}[] = [
+  {
+    title: "60 questions · 80 minutes",
+    body: "Section I is 60 scenario-based multiple-choice questions in 80 minutes, worth 70% of the score. every question comes attached to realistic artifacts — logs, firewall rules, network diagrams, packet captures — not standalone recall.",
+    soft: "bg-emerald-50",
+    bar: "bg-emerald-500",
+    label: "text-emerald-700",
+  },
+  {
+    title: "1 frq · 50 minutes · 30%",
+    body: "Section II is a single Device Security Analysis free-response question: 50 minutes, 30% of the score, graded against a 14-point rubric. it draws on the Mitigate Risk and Detect Attacks skill categories.",
+    soft: "bg-rose-50",
+    bar: "bg-rose-500",
+    label: "text-rose-700",
+  },
+  {
+    title: "skills are weighted 25–40%",
+    body: "the College Board publishes weighting by skill category, not by unit: Analyze Risk, Mitigate Risk, and Detect Attacks each land in a band of 25–40% of the exam — so no single unit dominates the score.",
+    soft: "bg-sky-50",
+    bar: "bg-sky-500",
+    label: "text-sky-700",
+  },
+  {
+    title: "task verbs signal what graders want",
+    body: "the frq runs on Identify, Describe, Explain, and Determine. an Explain part needs a reason backed by evidence from the provided sources; a Determine part needs a specific result, not a general description.",
+    soft: "bg-violet-50",
+    bar: "bg-violet-500",
+    label: "text-violet-700",
+  },
+  {
+    title: "evidence citations win the frq",
+    body: "generic claims earn zero on the device security analysis. a strong response quotes the artifact — a log line, a firewall rule, a permission string — then classifies the attack and ties it to the evidence.",
+    soft: "bg-amber-50",
+    bar: "bg-amber-500",
+    label: "text-amber-700",
+  },
+  {
+    title: "a qualifying score stacks three ways",
+    body: "a passing score earns college credit/placement, the employer-endorsed AP Cybersecurity Credential aligned to the NICE framework, and a CompTIA Security+ exam voucher worth up to $350.",
+    soft: "bg-slate-50",
+    bar: "bg-slate-700",
+    label: "text-slate-700",
+  },
+];
 
 export default function UnitsPage() {
   const loadUnits = useCallback((token: string) => fetchUnits(token), []);
@@ -129,61 +178,12 @@ export default function UnitsPage() {
 
           <section className="grid gap-3 rounded-md border border-slate-200 bg-white p-5">
             <h2 className="text-lg font-semibold text-slate-950">
-              what each module covers
+              the ap cybersecurity exam, by the numbers
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                {
-                  n: 1,
-                  title: "think like an attacker",
-                  body: "social engineering, suspicious logins, public networks, and how ai shows up on both sides of an attack.",
-                  soft: "bg-emerald-50",
-                  bar: "bg-emerald-500",
-                  label: "text-emerald-700",
-                },
-                {
-                  n: 2,
-                  title: "secure physical spaces",
-                  body: "door locks to server rooms: physical vulnerabilities, controls that stop them, and how attacks get detected.",
-                  soft: "bg-sky-50",
-                  bar: "bg-sky-500",
-                  label: "text-sky-700",
-                },
-                {
-                  n: 3,
-                  title: "secure networks",
-                  body: "network attacks and wireless weaknesses, then the segmentation, firewalls, and monitoring that catch them.",
-                  soft: "bg-violet-50",
-                  bar: "bg-violet-500",
-                  label: "text-violet-700",
-                },
-                {
-                  n: 4,
-                  title: "secure devices",
-                  body: "device vulnerabilities and authentication, hardening endpoints, and spotting a device under attack.",
-                  soft: "bg-amber-50",
-                  bar: "bg-amber-500",
-                  label: "text-amber-700",
-                },
-                {
-                  n: 5,
-                  title: "secure applications and data",
-                  body: "application and data attacks, access control, cryptography from symmetric to asymmetric, and detection.",
-                  soft: "bg-rose-50",
-                  bar: "bg-rose-500",
-                  label: "text-rose-700",
-                },
-                {
-                  n: 6,
-                  title: "how scoring works",
-                  body: `every mcq section is 70% of the score; the device security frq your teacher grades is the other 30%, against a 14-point rubric.`,
-                  soft: "bg-slate-50",
-                  bar: "bg-slate-700",
-                  label: "text-slate-700",
-                },
-              ].map((tile) => (
+              {examFacts.map((tile) => (
                 <div
-                  key={tile.n}
+                  key={tile.title}
                   className={`grid content-start gap-1.5 rounded-md border border-slate-100 ${tile.soft} p-3`}
                 >
                   <div className="flex items-center gap-2">
