@@ -55,7 +55,7 @@ const examFacts: {
 }[] = [
   {
     title: "60 questions · 80 minutes",
-    body: "Section I is 60 scenario-based multiple-choice questions in 80 minutes, worth 70% of the score. every question comes attached to realistic artifacts — logs, firewall rules, network diagrams, packet captures — not standalone recall.",
+    body: "Section I is 60 scenario-based multiple-choice questions in 80 minutes, worth 70% of the score. every question comes attached to realistic artifacts — logs, firewall rules, permission lists, policy documents — not standalone recall.",
     soft: "bg-emerald-50",
     bar: "bg-emerald-500",
     label: "text-emerald-700",
@@ -75,18 +75,11 @@ const examFacts: {
     label: "text-sky-700",
   },
   {
-    title: "task verbs signal what graders want",
-    body: "the frq runs on Identify, Describe, Explain, and Determine. an Explain part needs a reason backed by evidence from the provided sources; a Determine part needs a specific result, not a general description.",
+    title: "what the frq hands you",
+    body: "the device security analysis gives you four sources for one device: the device policy, firewall rules, file permissions, and system/application logs. you interpret the policy, spot attack evidence in the logs, configure permissions and rules, and recommend hardening based on that evidence.",
     soft: "bg-violet-50",
     bar: "bg-violet-500",
     label: "text-violet-700",
-  },
-  {
-    title: "evidence citations win the frq",
-    body: "generic claims earn zero on the device security analysis. a strong response quotes the artifact — a log line, a firewall rule, a permission string — then classifies the attack and ties it to the evidence.",
-    soft: "bg-amber-50",
-    bar: "bg-amber-500",
-    label: "text-amber-700",
   },
   {
     title: "a qualifying score stacks three ways",

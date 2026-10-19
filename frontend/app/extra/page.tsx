@@ -144,7 +144,6 @@ function ExtraCarousel({ cases }: { cases: PracticeCaseIndex[] }) {
         {/* banner header in the module family color, distinct from the plain
             white cards on the modules tab */}
         <div className="grid justify-items-center gap-4 p-6 pb-5">
-          <div className={`h-1.5 w-16 rounded-full ${colors.banner}`} />
           <div className="flex items-center gap-4">
             <div
               className={`flex h-12 w-12 items-center justify-center rounded-md text-xl font-bold ${colors.chip}`}
