@@ -324,7 +324,10 @@ class AdminPsetResponseRead(BaseModel):
     id: int
     student_id: int
     student_name: str
-    student_email: EmailStr
+    # display string, not user input: registration already validated it and
+    # a historic account with a reserved domain (.test, .local) would crash
+    # the whole teacher dashboard if re-validated here
+    student_email: str
     module_title: str
     module_order_index: int
     assessment_id: int
@@ -351,7 +354,7 @@ class AdminQuizAttemptRead(BaseModel):
     id: int
     student_id: int
     student_name: str
-    student_email: EmailStr
+    student_email: str
     module_title: str
     module_order_index: int
     assessment_id: int
@@ -365,7 +368,7 @@ class AdminQuizAttemptRead(BaseModel):
 class AdminGradebookRow(BaseModel):
     student_id: int
     student_name: str
-    student_email: EmailStr
+    student_email: str
     completed_lessons: int
     total_assessments: int
     latest_quiz_score: float | None = None
@@ -380,7 +383,7 @@ class AdminMockExamAttemptRead(BaseModel):
     id: int
     student_id: int
     student_name: str
-    student_email: EmailStr
+    student_email: str
     score: float
     total_questions: int
     correct_count: int
