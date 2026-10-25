@@ -116,6 +116,31 @@ worth knowing before class:
   (caddy/nginx) with TLS and set the two env vars to the https URLs;
   also restrict `BACKEND_CORS_ORIGINS` to the real frontend origin
 
+## troubleshooting: "register does nothing"
+
+the register button does nothing / comes back with an error almost always
+means the **database isn't actually up**, not that the app is broken:
+`/health` used to report `"status": "ok"` even when postgres was down, so
+"the backend seems fine" lied. newer builds report `"degraded"` instead.
+
+check, in order:
+
+```
+docker compose -f docker-compose.prod.yml ps        # all three services Up?
+curl http://localhost:8000/health                   # "status":"ok" + "database":"connected"?
+docker compose -f docker-compose.prod.yml logs backend --tail 30
+```
+
+- **health says disconnected** or a container is down → `docker compose
+  -f docker-compose.prod.yml up -d` again (or `down` then `up -d`) and
+  check `logs postgres`
+- **register fails only from another device, but works on the server** →
+  the frontend was built with `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
+  set it (and `BACKEND_CORS_ORIGINS`) to the server's IP in `.env`, then
+  rebuild: `docker compose -f docker-compose.prod.yml up -d --build frontend`
+- **still stuck** → send `docker compose ps` output plus the browser's
+  console errors (f12 → console) when clicking register
+
 ## 7. updating
 
 ```
