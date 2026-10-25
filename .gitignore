@@ -14,3 +14,6 @@ database/init/*.sql
 .frontend-dev.pid
 .backend-dev.log
 .frontend-dev.log
+
+# handoff bundles (gitignored: they carry the db content dump)
+cipher-handoff-*.zip

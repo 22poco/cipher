@@ -39,9 +39,12 @@ def root():
 
 @app.get("/health")
 def health_check():
+    # status must be honest: earlier revisions reported "ok" even when the
+    # database was down, which convinced a teacher his postgres was healthy
+    # while every registration silently failed
     database_connected = check_database_connection()
 
     return {
-        "status": "ok",
+        "status": "ok" if database_connected else "degraded",
         "database": "connected" if database_connected else "disconnected",
     }
