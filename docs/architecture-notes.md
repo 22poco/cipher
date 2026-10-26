@@ -1,123 +1,56 @@
 # architecture notes
 
-## core stack
+## what this is
 
-cipher has a working web app stack:
+a small assessment platform for AP cybersecurity practice: students complete
+case-study assessments and quizzes, write pset-style responses, and take mock
+exams; teachers review the submissions and grade the free-response questions.
 
-- next.js frontend
-- fastapi backend
-- postgresql database
-- jwt authentication
-- student/admin roles
-- protected student and admin pages
+## what it is not
 
-## backend
+it is not a full course, textbook, or lesson library. assessment content is the
+product: five AP modules, scenario prompts, four-question checks, written
+responses, and mock exams.
 
-`backend/main.py` creates the fastapi app.
+## how it is split
 
-it adds:
+- frontend: next.js (typescript + tailwind css), listens on port 3000
+- backend: fastapi (python 3.12), listens on port 8000
+- database: postgresql, managed by docker compose
 
-- cors middleware so the frontend can call the backend
-- auth, course, quiz, progress, response, and admin routers
-- `/health`, which confirms the backend can reach the database
+students talk to the frontend in the browser; the frontend calls the backend
+api directly from the client over the network. there is no server-side proxy
+between the two.
 
-`backend/config.py` reads environment values:
+## routing
 
-- `DATABASE_URL`
-- `SECRET_KEY`
-- `ACCESS_TOKEN_EXPIRE_MINUTES`
-- `BACKEND_CORS_ORIGINS`
+students land at `/units`, which lists the five AP modules. `/modules` and
+`/assessments` are deprecated aliases that redirect to `/units`.
 
-`backend/database.py` creates the sqlalchemy engine and session helper.
-
-important pieces:
-
-- `engine` connects sqlalchemy to postgresql
-- `SessionLocal` creates database sessions
-- `get_db()` gives one session to each request
-- `check_database_connection()` powers the `/health` endpoint
+`/admin` — teacher grading and review (`/admin/gradebook`, `/admin/content`).
+`/dashboard` — student home.
+`/mock-exam` — the six practice exams.
+`/extra` — ungraded extra practice cases.
+`/modules/[moduleId]` — a module's assessments and topic case studies.
+`/units/[unitId]` — a unit's modules, lessons, quizzes, psets, and pages.
 
 ## authentication
 
-`backend/models.py` defines the `User` database model.
+jwt tokens issued by the backend, stored in localStorage by the frontend.
+self-registration creates only students; the teacher account is created from
+a command-line tool.
 
-`backend/schemas.py` defines request and response shapes used by the api.
+## data
 
-`backend/auth.py` handles:
+user data lives in postgres. the docker compose volume keeps it across
+rebuilds. the course content dump (`10-content.sql`) restores only on first
+boot of a fresh volume.
 
-- password hashing with bcrypt
-- password checking
-- jwt creation
-- reading the current user from a bearer token
-- checking admin access
+## where docs live
 
-`backend/routers/auth.py` exposes:
-
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /auth/me`
-
-register and login return:
-
-- jwt access token
-- token type
-- current user data
-
-## frontend auth
-
-`frontend/lib/api.ts` talks to the backend.
-
-it handles:
-
-- registration
-- login
-- fetching the current user
-- course and assessment requests
-- quiz and pset response requests
-- admin review requests
-- clean backend error messages
-
-`frontend/lib/auth.ts` stores the session in `localStorage`.
-
-it stores:
-
-- `cipher_token`
-- `cipher_user`
-
-it also sends a browser event when login/logout changes, so navigation can update.
-
-`frontend/app/components/auth-form.tsx` powers login and register pages.
-
-`frontend/app/components/protected-page.tsx` protects pages by:
-
-- checking for a token
-- calling `/auth/me`
-- redirecting unauthenticated users to `/login`
-- blocking admin-only pages from student users
-
-## assessment structure
-
-the product uses assessment wording in the UI:
-
-- AP modules
-- assessment sets
-- case studies
-- quizzes
-- psets
-- mock exams
-
-the database still uses some earlier LMS-style names internally:
-
-- `units`
-- `modules`
-- `lessons`
-- `lesson_progress`
-
-those names can stay internally until a future migration, but user-facing pages should use assessment-first wording.
-
-## current limitations
-
-- public registration can create student or admin accounts during development
-- psets can be marked pending or reviewed, but they do not have scored rubrics yet
-- mock exam flow is still planned
-- seed content is useful for demos, but the assessment content still needs a deeper AP CED content pass
+- [project overview](project-overview.md)
+- [roadmap](roadmap.md)
+- [test plan](test-plan.md)
+- [deployment](deployment.md)
+- [teacher dashboard](admin-dashboard.md)
+- this file

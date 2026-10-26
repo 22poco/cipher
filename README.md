@@ -97,13 +97,14 @@ content dump, firewall/urls, updates, and a cloud fallback — in
 - [project overview](docs/project-overview.md)
 - [roadmap](docs/roadmap.md)
 - [test plan](docs/test-plan.md)
-- [architecture notes](docs/architecture-notes.md)
 - [deployment](docs/deployment.md)
 - [teacher dashboard](docs/admin-dashboard.md)
 
+note: the student route is `/units`; `/assessments` is a retained link that redirects there.
+
 ## status
 
-working: student auth and dashboard, five AP modules with case-study assessments, quiz scoring with retakes and saved answers, pset responses with teacher feedback, six AP-style mock exams with teacher free-response grading, teacher grading dashboard, gradebook, and content tools.
+working: student auth and dashboard, five AP modules (route `/units`) with case-study assessments, quiz scoring with retakes and saved answers, pset responses with teacher feedback, six AP-style mock exams with teacher free-response grading, teacher grading dashboard, gradebook, and content tools.
 
 in progress: a final AP CED-aligned content pass for case-study assessments.
 

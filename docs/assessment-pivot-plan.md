@@ -65,3 +65,7 @@ admins can:
 - improve pset grading with scores/rubrics/feedback
 - add full attempt history views
 - polish the admin authoring workflow
+
+## routing note
+
+the student modules page moved to `/units`. the old `/modules` and `/assessments` paths were deprecated aliases that redirect to `/units`; nothing else in this doc is affected by that change.

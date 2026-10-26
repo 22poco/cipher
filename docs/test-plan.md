@@ -68,17 +68,18 @@ expected:
 1. open `http://localhost:3000/register`
 2. create a student account
 3. confirm it redirects to `/dashboard`
-4. open `/assessments`
+4. open `/units`
 5. confirm all five AP modules appear
-6. open a module
-7. open a case study
-8. submit the quiz
-9. confirm the score appears
-10. use `view response` to review the submitted quiz answers
-11. submit a pset response
-12. confirm the assessment is marked complete
-13. open `/dashboard`
-14. confirm module progress updates
+6. note: `/modules` and `/assessments` now redirect to `/units`
+7. open a module
+8. open a case study
+9. submit the quiz
+10. confirm the score appears
+11. use `view response` to review the submitted quiz answers
+12. submit a pset response
+13. confirm the lesson is marked complete
+14. open `/dashboard`
+15. confirm module progress updates
 
 ## admin flow
 
