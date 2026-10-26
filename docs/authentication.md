@@ -19,27 +19,32 @@
 
 ## authentication flow
 
-student enters email and password
+student registers or logs in with the backend api (`/auth/register`, `/auth/login`), sending email and password over plain http on a LAN (tls required when reachable from outside)
 
 ↓
 
-password hashed
+the backend hashes the password and stores it; login returns a jwt token (expires after 1440 minutes) plus the user record
 
 ↓
 
-stored in database
+the frontend stores the token in `localStorage` under the key `cipher_token` and the user object under `cipher_user`, then navigates the logged-in student to their dashboard
 
 ↓
 
-login returns jwt token
+every subsequent api call from the frontend sends the token via an `Authorization: Bearer ...` header; routes that need a session (`/dashboard`, assessments, exams) redirect to `/login` when the token is missing or the user is not found
 
 ↓
 
-frontend stores token
+protected routes require the token to be present and valid
 
-↓
+## ## docs
 
-protected routes require token
+- this file
+- [project overview](project-overview.md)
+- [roadmap](roadmap.md)
+- [test plan](test-plan.md)
+- [deployment](deployment.md)
+- [teacher dashboard](admin-dashboard.md)
 
 ## future
 

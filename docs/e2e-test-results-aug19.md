@@ -1,4 +1,4 @@
-# e2e test results — aug 19, 2026
+# e2e test results — oct 25, 2026
 
 tested both student and admin flows end-to-end via API + frontend route checks.
 
@@ -26,18 +26,24 @@ tested both student and admin flows end-to-end via API + frontend route checks.
 - role-based access: students blocked from /admin routes
 
 ### frontend
-- all main routes return 200: /, /login, /register, /dashboard, /units, /assessments, /admin
+- all main routes return 200: /, /login, /register, /dashboard, /units, /admin
+- /modules and /assessments redirect to /units
+- module and lesson detail routes (`/modules/[moduleId]`, `/units/[unitId]`) return 200
 - lesson page renders content, quiz, and pset sections
 - navigation between assessments works (next assessment, back to module)
 
 ## issues found
 
-### medium priority (fix before demo)
+### this session
+- the student-facing route is `/units`. the docs and README still referenced the
+  old `/assessments` path in a few places; those references have been updated to
+  point at `/units`, and `/modules` and `/assessments` are now documented as
+  deprecated aliases that redirect there.
 
+### old known issues (still open)
 1. **quiz question count inconsistency**
    - quiz 1 (1.1 understanding social engineering) has 2 questions
    - question 2 ("which signal can make a message suspicious?") only has 3 options instead of 4
-   - this question doesn't match the seed data — likely leftover from older seed
    - should re-seed to clean this up
 
 2. **gradebook "completed assessments" is misleading**
@@ -48,10 +54,8 @@ tested both student and admin flows end-to-end via API + frontend route checks.
 3. **admin pset review: no feedback mechanism**
    - admins can only toggle reviewed/pending
    - no way to leave written feedback comments for the student
-   - teacher specifically asked for assessment-only platform, so this might be ok for now
 
 ### low priority (enhancement)
-
 4. **student dashboard shows "quiz {quiz_id}" instead of quiz title**
    - recent quiz attempts section shows quiz ID number, not the quiz title
    - should show "1.1 check" or similar
@@ -65,8 +69,6 @@ tested both student and admin flows end-to-end via API + frontend route checks.
    - only shows latest quiz score
    - for summative assessment use, average or best score would be more useful
 
-### cleanup (before demo)
-
-7. **test data in database**
-   - 15 student accounts from earlier development (bob, test accounts, etc.)
-   - should re-seed fresh database before demo
+## test data
+- 15 student accounts from earlier development (bob, test accounts, etc.)
+- should re-seed fresh database before demo

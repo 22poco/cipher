@@ -2,9 +2,11 @@
 
 the current foundation supports multiple-choice quizzes, pset responses, saved attempts, and progress tracking.
 
-## quizzes
+## assessments and modules
 
-quizzes are attached to assessment pages. internally these pages are still stored as `lessons`, but student-facing UI should use assessment/module wording.
+the student-facing modules page is at `/units`. `/modules` and `/assessments` are deprecated aliases that redirect there. assessments and quizzes live inside a module's topic-assessment lessons, and the route to open a specific module or lesson is `/modules/[moduleId]` / `/lessons/[lessonId]`.
+
+quizzes are attached to assessment pages. internally these pages are stored as `lessons`, but student-facing UI uses assessment/module wording.
 
 the first version supports multiple-choice questions. students can open an assessment, answer each question, submit the quiz, and receive a score from the backend.
 
@@ -21,7 +23,7 @@ admin users can manage basic assessment quizzes from the admin dashboard:
 
 ## progress
 
-assessment pages are marked complete after the student submits both required parts: the quiz and the pset response.
+assessment pages are marked complete after the student submits both required parts: the quiz and the pset response. this is set through the progress endpoint and only flipped to complete once the lesson's required parts are present.
 
 the backend stores completion in `lesson_progress` and keeps one progress row per user and assessment page.
 
