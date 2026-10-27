@@ -104,9 +104,9 @@ note: the student route is `/units`; `/assessments` is a retained link that redi
 
 ## status
 
-working: student auth and dashboard, five AP modules (route `/units`) with case-study assessments, quiz scoring with retakes and saved answers, pset responses with teacher feedback, six AP-style mock exams with teacher free-response grading, teacher grading dashboard, gradebook, and content tools.
+working: student auth and dashboard, five AP modules (route `/units`) with AP CED-aligned case-study assessments, quiz scoring with retakes and saved answers, pset responses with teacher feedback, six AP-style mock exams with teacher free-response grading, teacher grading dashboard, gradebook, and content tools.
 
-in progress: a final AP CED-aligned content pass for case-study assessments.
+next up: polish and extra features based on teacher feedback now that the first deployed version is in use.
 
 ## future work
 
