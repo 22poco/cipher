@@ -93,12 +93,12 @@ nice-to-have learning content, code editor work, full lesson hosting, and extra 
 - deployment walkthrough and honest limitations documented in [deployment](deployment.md)
 - end-to-end manual checklist verified: student, teacher, and access-control flows
 
-## remaining before handoff
+## post-handoff (v1 delivered oct 7)
 
-- one-pass end-to-end click-through of the student + teacher frq flow (take exam -> submit -> teacher grades -> student sees combined score), with a short go/no-go write-up
-- a last content quality read-through as a student would see it
-- final batch of ui/ux polish requests
-- deployment hardening (tls + secrets) if the server leaves the school lan
+the first deployed version (units 1-5 + practice exams + docker handoff) was delivered to the teacher on oct 7. remaining follow-ups depend on his feedback:
+
+- ui/ux polish and extra features requested by the teacher after he starts using it
+- deployment hardening (tls + secrets) if the server ever leaves the school lan
 
 ## known deferred limitations (accepted for now)
 
